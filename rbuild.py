@@ -436,7 +436,7 @@ class RDBBuild(object):
             item_first["select"].replace("\n", "\n    "),
             (
                 "NULL"
-                if item_first.get("comment") is None
+                if "comment" not in item_first
                 else '"%s"' % item_first["comment"]
             )
         )
@@ -446,7 +446,7 @@ class RDBBuild(object):
                 item["select"].replace("\n", "\n    "),
                 (
                     "NULL"
-                    if item.get("comment") is None
+                    if "comment" not in item
                     else "'%s'" % item["comment"]
                 )
             )
@@ -914,7 +914,7 @@ class RDBBuild(object):
                 "%s %s" % (
                     (
                         "MODIFY"
-                        if field.get("old_name") is None
+                        if "old_name" not in field
                         else "CHANGE"
                     ),
                     self._get_field_sql(**field)
