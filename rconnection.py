@@ -59,7 +59,7 @@ class RDatabase(object):
     def __init__(
         self,
         host: None = None,
-        port: Optional[str] = None,
+        port: Optional[Union[str, int]] = None,
         username: Optional[str] = None,
         password: Optional[str] = None,
         database: Optional[str] = None,
@@ -97,7 +97,7 @@ class RDatabase(object):
     def __init__(
         self,
         host: Optional[str] = None,
-        port: Optional[str] = None,
+        port: Optional[Union[str, int]] = None,
         username: None = None,
         password: Optional[str] = None,
         database: Optional[str] = None,
@@ -116,7 +116,7 @@ class RDatabase(object):
     def __init__(
         self,
         host: Optional[str] = None,
-        port: Optional[str] = None,
+        port: Optional[Union[str, int]] = None,
         username: Optional[str] = None,
         password: None = None,
         database: Optional[str] = None,
@@ -135,7 +135,7 @@ class RDatabase(object):
     def __init__(
         self,
         host: Optional[str] = None,
-        port: Optional[str] = None,
+        port: Optional[Union[str, int]] = None,
         username: Optional[str] = None,
         password: Optional[str] = None,
         database: Optional[str] = None,
@@ -153,7 +153,7 @@ class RDatabase(object):
     def __init__(
         self,
         host: Optional[str] = None,
-        port: Optional[str] = None,
+        port: Optional[Union[str, int]] = None,
         username: Optional[str] = None,
         password: Optional[str] = None,
         database: Optional[str] = None,
@@ -197,6 +197,10 @@ class RDatabase(object):
             `pool_size`, `max_overflow`, `pool_timeout`, `pool_recycle`.
         query : Server parameters.
         """
+
+        # Handle parameter.
+        if port.__class__ == int:
+            port = str(port)
 
         # Set attribute.
         self.retry = retry

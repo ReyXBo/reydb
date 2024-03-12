@@ -22,4 +22,4 @@ rparameter : Database parameter methods.
 from typing import Final
 
 
-__version__: Final[str] = "0.18"
+__version__: Final[str] = "0.19"
