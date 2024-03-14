@@ -38,7 +38,8 @@ __all__ = (
 
 
 # Monkey path.
-RResult = monkey_patch_sqlalchemy_result_more_fetch()
+monkey_result = monkey_patch_sqlalchemy_result_more_fetch()
+RResult = monkey_result
 monkey_patch_sqlalchemy_row_index_field()
 
 
