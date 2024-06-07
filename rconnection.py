@@ -10,7 +10,8 @@
 
 
 from __future__ import annotations
-from typing import Any, List, Dict, Tuple, Union, Optional, Literal, Iterable, Generator, NoReturn, overload
+from typing import Any, List, Dict, Tuple, Union, Optional, Literal, Iterable, Generator, NoReturn, Self, Type, overload
+from types import TracebackType
 from re import findall
 from urllib.parse import quote as urllib_quote
 from sqlalchemy import create_engine as sqlalchemy_create_engine, text
@@ -2228,6 +2229,44 @@ class RDBConnection(RDatabase):
 
         # Close.
         self.connection.close()
+
+
+    def __enter__(self) -> Self:
+        """
+        Enter syntax `with`.
+
+        Returns
+        -------
+        Self.
+        """
+
+        # Return.
+        return self
+
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_instance: Optional[BaseException],
+        exc_traceback: Optional[TracebackType]
+    ) -> None:
+        """
+        Exit syntax `with`.
+
+        Parameters
+        ----------
+        exc_type : Exception type.
+        exc_instance : Exception instance.
+        exc_traceback : Exception traceback instance.
+        """
+
+        # Commit.
+        if exc_type is None:
+            self.commit()
+
+        # Close.
+        else:
+            self.close()
 
 
     __del__ = close
