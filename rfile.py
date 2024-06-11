@@ -231,8 +231,6 @@ class RDBFile(object):
         # Get parameter.
         conn = self.rdatabase.connect()
 
-        # Get parameter.
-
         ## File path.
         if file.__class__ == str:
             rfile = RFile(file)
