@@ -12,7 +12,6 @@
 from typing import Any, Dict, Literal, Union, Optional
 from os.path import join as os_join
 from reytool.ros import RFile, RFolder, get_md5
-from reytool.rsystem import throw
 
 from .rconnection import RDatabase, RDBConnection
 
