@@ -1371,6 +1371,8 @@ class RDatabase(object):
         kwdata : Keyword parameters for filling.
             - `In 'WHERE' syntax` : Fill 'WHERE' syntax.
             - `Not in 'WHERE' syntax` : Fill 'INSERT' and 'SELECT' syntax.
+                * `str and first character is ':'` : Use this syntax.
+                * `Any` : Use this value.
 
         Returns
         -------
@@ -1381,7 +1383,7 @@ class RDatabase(object):
         Parameter `where` and `kwdata`.
         >>> where = '`id` IN :ids'
         >>> ids = (1, 2, 3)
-        >>> result = RDatabase.execute_copy('database.table', where, 2, ids=ids)
+        >>> result = RDatabase.execute_copy('database.table', where, 2, ids=ids, id=None, time=':NOW()')
         >>> print(result.rowcount)
         2
         """
@@ -1422,7 +1424,14 @@ class RDatabase(object):
                 for field in kwdata
                 if field not in where_keys
             )
-            sql_fields = f"{sql_fields}, {sql_fields_kwdata}"
+            sql_fields_filter = filter(
+                lambda sql: sql != "",
+                (
+                    sql_fields,
+                    sql_fields_kwdata
+                )
+            )
+            sql_fields = ", ".join(sql_fields_filter)
         sql_insert = f"INSERT INTO `{database}`.`{table}`({sql_fields})"
         sqls.append(sql_insert)
 
@@ -1434,11 +1443,24 @@ class RDatabase(object):
         )
         if kwdata != {}:
             sql_values_kwdata = ", ".join(
-                f":{field}"
-                for field in kwdata
+                value[1:]
+                if (
+                    value.__class__ == str
+                    and value.startswith(":")
+                    and value != ":"
+                )
+                else f":{field}"
+                for field, value in kwdata.items()
                 if field not in where_keys
             )
-            sql_values = f"{sql_values}, {sql_values_kwdata}"
+            sql_values_filter = filter(
+                lambda sql: sql != "",
+                (
+                    sql_values,
+                    sql_values_kwdata
+                )
+            )
+            sql_values = ", ".join(sql_values_filter)
         sql_select = (
             f"SELECT {sql_values}\n"
             f"FROM `{database}`.`{table}`"
