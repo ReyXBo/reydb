@@ -10,7 +10,7 @@
 
 
 from __future__ import annotations
-from typing import Any, List, Dict, Tuple, Union, Optional, Literal, Iterable, Generator, NoReturn, Self, Type, overload
+from typing import Any, List, Dict, Tuple, Union, Optional, Literal, Iterable, Generator, NoReturn, Type, overload
 from types import TracebackType
 from re import findall
 from urllib.parse import quote as urllib_quote
@@ -2253,7 +2253,7 @@ class RDBConnection(RDatabase):
         self.connection.close()
 
 
-    def __enter__(self) -> Self:
+    def __enter__(self) -> RDBConnection:
         """
         Enter syntax `with`.
 
