@@ -10,8 +10,9 @@
 
 
 from typing import Any, List, Tuple, Dict, Optional, Union, Literal, NoReturn, overload
+from reytool.rexception import throw
 from reytool.rstdout import rinput
-from reytool.rsystem import throw, get_first_notnull
+from reytool.rsystem import get_first_notnull
 
 from .rconnection import RDatabase, RDBConnection
 

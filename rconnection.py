@@ -22,10 +22,11 @@ from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.exc import OperationalError
 from pandas import DataFrame
 from reytool.rdata import objs_in, RGenerator
+from reytool.rexception import throw
 from reytool.rmonkey import monkey_patch_sqlalchemy_result_more_fetch, monkey_patch_sqlalchemy_row_index_field
 from reytool.rregex import search
 from reytool.rstdout import echo
-from reytool.rsystem import throw, get_first_notnull
+from reytool.rsystem import get_first_notnull
 from reytool.rtable import Table, fetch_table
 from reytool.rtext import join_data_text, to_json
 from reytool.rwrap import wrap_runtime, wrap_retry

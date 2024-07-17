@@ -10,8 +10,8 @@
 
 
 from __future__ import annotations
-from typing import Any, List, Dict, Tuple, Union, Optional, Literal, overload
-from reytool.rsystem import throw
+from typing import Any, List, Dict, Tuple, Union, Literal, overload
+from reytool.rexception import throw
 from reytool.rtable import Table
 
 from .rconnection import RDatabase, RDBConnection, RResult
