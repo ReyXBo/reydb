@@ -27,7 +27,7 @@ from reytool.rmonkey import monkey_patch_sqlalchemy_result_more_fetch, monkey_pa
 from reytool.rregex import search
 from reytool.rstdout import echo
 from reytool.rsystem import get_first_notnull
-from reytool.rtable import Table, fetch_table
+from reytool.rtable import Table, to_table
 from reytool.rtext import join_data_text, to_json
 from reytool.rwrap import wrap_runtime, wrap_retry
 
