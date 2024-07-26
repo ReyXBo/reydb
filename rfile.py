@@ -9,7 +9,7 @@
 """
 
 
-from typing import Any, Dict, Literal, Union, Optional
+from typing import Any, Dict, Literal, Union, Optional, overload
 from os.path import join as os_join
 from reytool.ros import RFile, RFolder, get_md5
 
@@ -292,11 +292,25 @@ class RDBFile(object):
         return file_id
 
 
+    @overload
+    def download(
+        self,
+        file_id: int,
+        path: None = None
+    ) -> bytes: ...
+
+    @overload
+    def download(
+        self,
+        file_id: int,
+        path: str = None
+    ) -> str: ...
+
     def download(
         self,
         file_id: int,
         path: Optional[str] = None
-    ) -> bytes:
+    ) -> Union[bytes, str]:
         """
         Download file.
 
@@ -304,14 +318,14 @@ class RDBFile(object):
         ----------
         file_id : File ID.
         path : File save path.
-            - `None` : Not save.
-            - `str` : Save.
+            - `None` : Not save and return file bytes.
+            - `str` : Save and return file path.
                 * `File path` : Use this file path.
                 * `Folder path` : Use this folder path and original name.
 
         Returns
         -------
-        File bytes.
+        File bytes or file path.
         """
 
         # Generate SQL.
@@ -336,15 +350,18 @@ class RDBFile(object):
             raise ValueError(text)
         file_name, file_bytes = result.first()
 
+        # Not save.
+        if path is None:
+            return file_bytes
+
         # Save.
-        if path is not None:
+        else:
             rfolder = RFolder(path)
             if rfolder:
                 path = os_join(path, file_name)
             rfile = RFile(path)
             rfile(file_bytes)
-
-        return file_bytes
+            return rfile.path
 
 
     def query(
