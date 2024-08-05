@@ -40,8 +40,8 @@ __all__ = (
 
 
 # Monkey path.
-monkey_result = monkey_patch_sqlalchemy_result_more_fetch()
-RResult = monkey_result
+monkey_result_type = monkey_patch_sqlalchemy_result_more_fetch()
+RResult = monkey_result_type
 monkey_patch_sqlalchemy_row_index_field()
 
 
@@ -581,7 +581,7 @@ class RDatabase(object):
         if data.__class__ == dict:
             data = [data]
         elif data.__class__ != list:
-            data = fetch_table(data)
+            data = to_table(data)
         if sql.__class__ == TextClause:
             sql = sql.text
 
@@ -757,9 +757,9 @@ class RDatabase(object):
             if data.__class__ == dict:
                 data = [data]
             elif isinstance(data, CursorResult):
-                data = fetch_table(data)
+                data = to_table(data)
             elif data.__class__ == DataFrame:
-                data = fetch_table(data)
+                data = to_table(data)
             else:
                 data = data.copy()
             for param in data:
@@ -846,13 +846,13 @@ class RDatabase(object):
         Parameter `fields`.
         >>> fields = ['id', ':`id` + 1 AS `id_`']
         >>> result = RDatabase.execute_select('database.table', fields)
-        >>> print(result.fetch_table())
+        >>> print(result.to_table())
         [{'id': 1, 'id_': 2}, ...]
 
         Parameter `kwdata`.
         >>> fields = '`id`, `id` + :value AS `id_`'
         >>> result = RDatabase.execute_select('database.table', fields, value=1)
-        >>> print(result.fetch_table())
+        >>> print(result.to_table())
         [{'id': 1, 'id_': 2}, ...]
         """
 
@@ -974,7 +974,7 @@ class RDatabase(object):
         >>> print(result.rowcount)
         2
         >>> result = RDatabase.execute_select('database.table')
-        >>> print(result.fetch_table())
+        >>> print(result.to_table())
         [{'key': 'a', 'value1': 1, 'value2': 2}, {'key': 'b', 'value1': 1, 'value2': 2}]
         """
 
@@ -993,9 +993,9 @@ class RDatabase(object):
         if data.__class__ == dict:
             data = [data]
         elif isinstance(data, CursorResult):
-            data = fetch_table(data)
+            data = to_table(data)
         elif data.__class__ == DataFrame:
-            data = fetch_table(data)
+            data = to_table(data)
 
         ## Check.
         if data in ([], [{}]):
@@ -1136,7 +1136,7 @@ class RDatabase(object):
         >>> print(result.rowcount)
         2
         >>> result = RDatabase.execute_select('database.table')
-        >>> print(result.fetch_table())
+        >>> print(result.to_table())
         [{'key': 'a', 'value': 1, 'name': 'a'}, {'key': 'b', 'value': 1, 'name': 'b'}]
         """
 
@@ -1155,9 +1155,9 @@ class RDatabase(object):
         if data.__class__ == dict:
             data = [data]
         elif isinstance(data, CursorResult):
-            data = fetch_table(data)
+            data = to_table(data)
         elif data.__class__ == DataFrame:
-            data = fetch_table(data)
+            data = to_table(data)
 
         ## Check.
         if data in ([], [{}]):
@@ -1632,9 +1632,9 @@ class RDatabase(object):
         if data.__class__ == dict:
             data = [data]
         elif isinstance(data, CursorResult):
-            data = fetch_table(data)
+            data = to_table(data)
         elif data.__class__ == DataFrame:
-            data = fetch_table(data)
+            data = to_table(data)
         else:
             data = data.copy()
 
@@ -2185,9 +2185,9 @@ class RDBConnection(RDatabase):
             if data.__class__ == dict:
                 data = [data]
             elif isinstance(data, CursorResult):
-                data = fetch_table(data)
+                data = to_table(data)
             elif data.__class__ == DataFrame:
-                data = fetch_table(data)
+                data = to_table(data)
             else:
                 data = data.copy()
             for param in data:
