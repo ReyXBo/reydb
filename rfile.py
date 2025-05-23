@@ -9,8 +9,9 @@
 """
 
 
-from typing import Any, Dict, Literal, Union, Optional, overload
+from typing import TypedDict, Union, Optional, overload
 from os.path import join as os_join
+from datetime import datetime
 from reytool.ros import RFile, RFolder, get_md5
 
 from .rconnection import RDatabase, RDBConnection
@@ -19,6 +20,9 @@ from .rconnection import RDatabase, RDBConnection
 __all__ = (
     "RDBFile",
 )
+
+
+FileInfo = TypedDict("FileInfo", {"create_time": datetime, "md5": str, "name": Optional[str], "size": int, "note": Optional[str]})
 
 
 class RDBFile(object):
@@ -367,16 +371,7 @@ class RDBFile(object):
     def query(
         self,
         file_id: int
-    ) -> Dict[
-        Literal[
-            "create_time",
-            "md5",
-            "name",
-            "size",
-            "note"
-        ],
-        Any
-    ]:
+    ) -> FileInfo:
         """
         Query file information.
 
