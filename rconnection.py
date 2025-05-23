@@ -295,7 +295,7 @@ class RDatabase(object):
 
         ## When str object.
         if url.__class__ == str:
-            pattern = "^([\w\+]+)://(\w+):(\w+)@(\d+\.\d+\.\d+\.\d+):(\d+)[/]?([\w/]+)?[\?]?([\w&=]+)?$"
+            pattern = r"^([\w\+]+)://(\w+):(\w+)@(\d+\.\d+\.\d+\.\d+):(\d+)[/]?([\w/]+)?[\?]?([\w&=]+)?$"
             result = search(pattern, url)
             if result is None:
                 throw(ValueError, url)
@@ -309,7 +309,7 @@ class RDatabase(object):
                 query_str
             ) = result
             if query_str is not None:
-                pattern = "(\w+)=(\w+)"
+                pattern = r"(\w+)=(\w+)"
                 query_findall = findall(pattern, query_str)
                 query = {key: value for key, value in query_findall}
             else:
@@ -586,11 +586,11 @@ class RDatabase(object):
             sql = sql.text
 
         # Extract keys.
-        pattern = "(?<!\\\):(\w+)"
+        pattern = r"(?<!\\):(\w+)"
         sql_keys = findall(pattern, sql)
 
         # Extract keys of syntax "in".
-        pattern = "[iI][nN]\s+(?<!\\\):(\w+)"
+        pattern = r"[iI][nN]\s+(?<!\\):(\w+)"
         sql_keys_in = findall(pattern, sql)
 
         # Loop.
@@ -637,7 +637,7 @@ class RDatabase(object):
 
         # Extract.
         syntax = [
-            search("[a-zA-Z]+", sql_part).upper()
+            search(r"[a-zA-Z]+", sql_part).upper()
             for sql_part in sql.split(";")
         ]
 
@@ -819,7 +819,7 @@ class RDatabase(object):
         fields : Select clause content.
             - `None` : Is `SELECT *`.
             - `str` : Join as `SELECT str`.
-            - `Iterable[str]` : Join as `SELECT \`str\`, ...`.
+            - `Iterable[str]` : Join as `SELECT ``str``, ...`.
                 * `str and first character is ':'` : Use this syntax.
                 * `str` : Use this field.
 
@@ -1404,7 +1404,7 @@ class RDatabase(object):
             row["COLUMN_NAME"]
             for row in table_info
         ]
-        pattern = "(?<!\\\):(\w+)"
+        pattern = r"(?<!\\):(\w+)"
         if where.__class__ == str:
             where_keys = findall(pattern, where)
         else:
