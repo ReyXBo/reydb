@@ -242,7 +242,9 @@ class RDBFile(object):
             file_name = rfile.name_suffix
 
         ## File bytes.
-        elif file.__class__ == bytes:
+        elif file.__class__ in (bytes, bytearray):
+            if file.__class__ == bytearray:
+                file = bytes(file)
             file_bytes = file
             file_md5 = get_md5(file_bytes)
             file_name = None
