@@ -10,7 +10,7 @@
 
 
 from __future__ import annotations
-from typing import Any, List, Dict, Tuple, Union, Optional, Literal, Iterable, Generator, NoReturn, Type, overload
+from typing import Any, List, Dict, Tuple, Union, Optional, Literal, Iterable, Generator, NoReturn, Type, overload, override
 from types import TracebackType
 from re import findall
 from urllib.parse import quote as urllib_quote
@@ -2088,6 +2088,7 @@ class RDBConnection(RDatabase):
         self.retry = rdatabase.retry
 
 
+    @override
     def executor(
         self,
         connection: Connection,
@@ -2145,6 +2146,7 @@ class RDBConnection(RDatabase):
         return result
 
 
+    @override
     def execute(
         self,
         sql: Union[str, TextClause],
