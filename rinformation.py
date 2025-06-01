@@ -165,14 +165,15 @@ class RDBInformation(object):
             return self.__dict__[key]
 
         # Build.
-        if self.__class__ == RDBISchema:
-            rtable = RDBIDatabase(self._rdatabase, key)
-        elif self.__class__ == RDBIDatabase:
-            rtable = RDBITable(self._rdatabase, self._database_name, key)
-        elif self.__class__ == RDBITable:
-            rtable = RDBIColumn(self._rdatabase, self._database_name, self._table_name, key)
-        else:
-            raise AssertionError("class '%s' does not have this method" % self.__class__.__name__)
+        match self:
+            case RDBISchema():
+                rtable = RDBIDatabase(self._rdatabase, key)
+            case RDBIDatabase():
+                rtable = RDBITable(self._rdatabase, self._database_name, key)
+            case RDBITable():
+                rtable = RDBIColumn(self._rdatabase, self._database_name, self._table_name, key)
+            case _:
+                raise AssertionError("class '%s' does not have this method" % self.__class__.__name__)
 
         return rtable
 

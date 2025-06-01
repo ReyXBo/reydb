@@ -111,12 +111,13 @@ class RDBBuild(object):
             comment = f" COMMENT '{comment}'"
 
         ## Position.
-        if position is None:
-            position = ""
-        elif position == "first":
-            position = " FIRST"
-        else:
-            position = f" AFTER `{position}`"
+        match position:
+            case None:
+                position = ""
+            case "first":
+                position = " FIRST"
+            case _:
+                position = f" AFTER `{position}`"
 
         ## Old name.
         if old_name is None:
@@ -173,20 +174,21 @@ class RDBBuild(object):
         # Get parameter.
         if fields.__class__ == str:
             fields = [fields]
-        if type_ == "noraml":
-            type_ = "KEY"
-            method = " USING BTREE"
-        elif type_ == "unique":
-            type_ = "UNIQUE KEY"
-            method = " USING BTREE"
-        elif type_ == "fulltext":
-            type_ = "FULLTEXT KEY"
-            method = ""
-        elif type_ == "spatial":
-            type_ = "SPATIAL KEY"
-            method = ""
-        else:
-            throw(ValueError, type_)
+        match type_:
+            case "noraml":
+                type_ = "KEY"
+                method = " USING BTREE"
+            case "unique":
+                type_ = "UNIQUE KEY"
+                method = " USING BTREE"
+            case "fulltext":
+                type_ = "FULLTEXT KEY"
+                method = ""
+            case "spatial":
+                type_ = "SPATIAL KEY"
+                method = ""
+            case _:
+                throw(ValueError, type_)
         if comment in (None, ""):
             comment = ""
         else:
@@ -1108,19 +1110,20 @@ class RDBBuild(object):
         # Check.
         while True:
             command = command.lower()
+            match command:
 
-            ## Confirm.
-            if command == "y":
-                break
+                ## Confirm.
+                case "y":
+                    break
 
-            ## Stop.
-            elif command == "n":
-                raise AssertionError("program stop")
+                ## Stop.
+                case "n":
+                    raise AssertionError("program stop")
 
-            ## Reenter.
-            else:
-                text = "Incorrect input, reenter. (y/n) "
-                command = input(text)
+                ## Reenter.
+                case _:
+                    text = "Incorrect input, reenter. (y/n) "
+                    command = input(text)
 
 
     def build(

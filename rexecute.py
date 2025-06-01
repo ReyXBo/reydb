@@ -145,14 +145,15 @@ class RDBExecute(object):
 
         # Get.
         path_len = len(self._path)
-        if path_len == 1:
-            database = self._rdatabase.database
-            table = self._path[0]
-        elif path_len == 2:
-            database = self._path[0]
-            table = self._path[1]
-        else:
-            throw(AssertionError)
+        match path_len:
+            case 1:
+                database = self._rdatabase.database
+                table = self._path[0]
+            case 2:
+                database = self._path[0]
+                table = self._path[1]
+            case _:
+                throw(AssertionError)
 
         return database, table
 
@@ -201,12 +202,13 @@ class RDBExecute(object):
         """
 
         # Insert.
-        if params.__class__ == tuple:
-            result = self._rdatabase.execute_insert(self._get_path, *params)
-        elif params.__class__ == dict:
-            result = self._rdatabase.execute_insert(self._get_path, **params)
-        else:
-            result = self._rdatabase.execute_insert(self._get_path, params)
+        match params:
+            case tuple():
+                result = self._rdatabase.execute_insert(self._get_path, *params)
+            case dict():
+                result = self._rdatabase.execute_insert(self._get_path, **params)
+            case _:
+                result = self._rdatabase.execute_insert(self._get_path, params)
 
         return result
 
@@ -231,12 +233,13 @@ class RDBExecute(object):
         """
 
         # Update.
-        if params.__class__ == tuple:
-            result = self._rdatabase.execute_update(self._get_path, *params)
-        elif params.__class__ == dict:
-            result = self._rdatabase.execute_update(self._get_path, **params)
-        else:
-            result = self._rdatabase.execute_update(self._get_path, params)
+        match params:
+            case tuple():
+                result = self._rdatabase.execute_update(self._get_path, *params)
+            case dict():
+                result = self._rdatabase.execute_update(self._get_path, **params)
+            case _:
+                result = self._rdatabase.execute_update(self._get_path, params)
 
         return result
 
@@ -261,12 +264,13 @@ class RDBExecute(object):
         """
 
         # Update.
-        if params.__class__ == tuple:
-            result = self._rdatabase.execute_delete(self._get_path, *params)
-        elif params.__class__ == dict:
-            result = self._rdatabase.execute_delete(self._get_path, **params)
-        else:
-            result = self._rdatabase.execute_delete(self._get_path, params)
+        match params:
+            case tuple():
+                result = self._rdatabase.execute_delete(self._get_path, *params)
+            case dict():
+                result = self._rdatabase.execute_delete(self._get_path, **params)
+            case _:
+                result = self._rdatabase.execute_delete(self._get_path, params)
 
         return result
 
@@ -291,12 +295,13 @@ class RDBExecute(object):
         """
 
         # Update.
-        if params.__class__ == tuple:
-            result = self._rdatabase.execute_copy(self._get_path, *params)
-        elif params.__class__ == dict:
-            result = self._rdatabase.execute_copy(self._get_path, **params)
-        else:
-            result = self._rdatabase.execute_copy(self._get_path, params)
+        match params:
+            case tuple():
+                result = self._rdatabase.execute_copy(self._get_path, *params)
+            case dict():
+                result = self._rdatabase.execute_copy(self._get_path, **params)
+            case _:
+                result = self._rdatabase.execute_copy(self._get_path, params)
 
         return result
 
@@ -321,12 +326,13 @@ class RDBExecute(object):
         """
 
         # Update.
-        if params.__class__ == tuple:
-            result = self._rdatabase.execute_exist(self._get_path, *params)
-        elif params.__class__ == dict:
-            result = self._rdatabase.execute_exist(self._get_path, **params)
-        else:
-            result = self._rdatabase.execute_exist(self._get_path, params)
+        match params:
+            case tuple():
+                result = self._rdatabase.execute_exist(self._get_path, *params)
+            case dict():
+                result = self._rdatabase.execute_exist(self._get_path, **params)
+            case _:
+                result = self._rdatabase.execute_exist(self._get_path, params)
 
         return result
 

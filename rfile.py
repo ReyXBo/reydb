@@ -233,21 +233,22 @@ class RDBFile(object):
 
         # Get parameter.
         conn = self.rdatabase.connect()
+        match file:
 
-        ## File path.
-        if file.__class__ == str:
-            rfile = RFile(file)
-            file_bytes = rfile.bytes
-            file_md5 = get_md5(file_bytes)
-            file_name = rfile.name_suffix
+            ## File path.
+            case str():
+                rfile = RFile(file)
+                file_bytes = rfile.bytes
+                file_md5 = get_md5(file_bytes)
+                file_name = rfile.name_suffix
 
-        ## File bytes.
-        elif file.__class__ in (bytes, bytearray):
-            if file.__class__ == bytearray:
-                file = bytes(file)
-            file_bytes = file
-            file_md5 = get_md5(file_bytes)
-            file_name = None
+            ## File bytes.
+            case bytes() | bytearray():
+                if file.__class__ == bytearray:
+                    file = bytes(file)
+                file_bytes = file
+                file_md5 = get_md5(file_bytes)
+                file_name = None
 
         ## File name.
         if name is not None:

@@ -292,38 +292,39 @@ class RDatabase(object):
         """
 
         # Extract.
+        match url:
 
-        ## When str object.
-        if url.__class__ == str:
-            pattern = r"^([\w\+]+)://(\w+):(\w+)@(\d+\.\d+\.\d+\.\d+):(\d+)[/]?([\w/]+)?[\?]?([\w&=]+)?$"
-            result = search(pattern, url)
-            if result is None:
-                throw(ValueError, url)
-            (
-                drivername,
-                username,
-                password,
-                host,
-                port,
-                database,
-                query_str
-            ) = result
-            if query_str is not None:
-                pattern = r"(\w+)=(\w+)"
-                query_findall = findall(pattern, query_str)
-                query = {key: value for key, value in query_findall}
-            else:
-                query = {}
+            ## When str object.
+            case str():
+                pattern = r"^([\w\+]+)://(\w+):(\w+)@(\d+\.\d+\.\d+\.\d+):(\d+)[/]?([\w/]+)?[\?]?([\w&=]+)?$"
+                result = search(pattern, url)
+                if result is None:
+                    throw(ValueError, url)
+                (
+                    drivername,
+                    username,
+                    password,
+                    host,
+                    port,
+                    database,
+                    query_str
+                ) = result
+                if query_str is not None:
+                    pattern = r"(\w+)=(\w+)"
+                    query_findall = findall(pattern, query_str)
+                    query = {key: value for key, value in query_findall}
+                else:
+                    query = {}
 
-        ## When URL object.
-        elif url.__class__ == URL:
-            drivername = url.drivername
-            username = url.username
-            password = url.password
-            host = url.host
-            port = url.port
-            database = url.database
-            query = dict(url.query)
+            ## When URL object.
+            case URL():
+                drivername = url.drivername
+                username = url.username
+                password = url.password
+                host = url.host
+                port = url.port
+                database = url.database
+                query = dict(url.query)
 
         # Generate parameter.
         params = {
@@ -434,12 +435,13 @@ class RDatabase(object):
             or "`" in path
         ):
             name = path.replace("`", "")
-            if main == "table":
-                names = (None, name, None)
-            elif main == "database":
-                names = (name, None, None)
-            else:
-                throw(ValueError, main)
+            match main:
+                case "table":
+                    names = (None, name, None)
+                case "database":
+                    names = (name, None, None)
+                case _:
+                    throw(ValueError, main)
         else:
             names = path.split(".", 2)
             if len(names) == 2:
@@ -578,10 +580,11 @@ class RDatabase(object):
         """
 
         # Handle parameter.
-        if data.__class__ == dict:
-            data = [data]
-        elif data.__class__ != list:
-            data = to_table(data)
+        match data:
+            case dict():
+                data = [data]
+            case list():
+                data = to_table(data)
         if sql.__class__ == TextClause:
             sql = sql.text
 
@@ -754,14 +757,15 @@ class RDatabase(object):
             else:
                 data = [kwdata]
         else:
-            if data.__class__ == dict:
-                data = [data]
-            elif isinstance(data, CursorResult):
-                data = to_table(data)
-            elif data.__class__ == DataFrame:
-                data = to_table(data)
-            else:
-                data = data.copy()
+            match data:
+                case dict():
+                    data = [data]
+                case CursorResult():
+                    data = to_table(data)
+                case DataFrame():
+                    data = to_table(data)
+                case _:
+                    data = data.copy()
             for param in data:
                 param.update(kwdata)
 
@@ -990,12 +994,13 @@ class RDatabase(object):
         # Handle parameter.
 
         ## Data.
-        if data.__class__ == dict:
-            data = [data]
-        elif isinstance(data, CursorResult):
-            data = to_table(data)
-        elif data.__class__ == DataFrame:
-            data = to_table(data)
+        match data:
+            case dict():
+                data = [data]
+            case CursorResult():
+                data = to_table(data)
+            case DataFrame():
+                data = to_table(data)
 
         ## Check.
         if data in ([], [{}]):
@@ -1053,30 +1058,31 @@ class RDatabase(object):
         sql_values = ", ".join(sql_values_list)
 
         ## Join sql part.
+        match duplicate:
 
-        ### Ignore.
-        if duplicate == "ignore":
-            sql = (
-                f"INSERT IGNORE INTO `{database}`.`{table}`({sql_fields})\n"
-                f"VALUES({sql_values})"
-            )
+            ### Ignore.
+            case "ignore":
+                sql = (
+                    f"INSERT IGNORE INTO `{database}`.`{table}`({sql_fields})\n"
+                    f"VALUES({sql_values})"
+                )
 
-        ### Update.
-        elif duplicate == "update":
-            update_content = ",\n    ".join([f"`{field}` = VALUES(`{field}`)" for field in sql_fields_list])
-            sql = (
-                f"INSERT INTO `{database}`.`{table}`({sql_fields})\n"
-                f"VALUES({sql_values})\n"
-                "ON DUPLICATE KEY UPDATE\n"
-                f"    {update_content}"
-            )
+            ### Update.
+            case "update":
+                update_content = ",\n    ".join([f"`{field}` = VALUES(`{field}`)" for field in sql_fields_list])
+                sql = (
+                    f"INSERT INTO `{database}`.`{table}`({sql_fields})\n"
+                    f"VALUES({sql_values})\n"
+                    "ON DUPLICATE KEY UPDATE\n"
+                    f"    {update_content}"
+                )
 
-        ### Not handle.
-        else:
-            sql = (
-                f"INSERT INTO `{database}`.`{table}`({sql_fields})\n"
-                f"VALUES({sql_values})"
-            )
+            ### Not handle.
+            case _:
+                sql = (
+                    f"INSERT INTO `{database}`.`{table}`({sql_fields})\n"
+                    f"VALUES({sql_values})"
+                )
 
         # Execute SQL.
         result = self.execute(sql, data, report, **kwdata_replace)
@@ -1152,12 +1158,13 @@ class RDatabase(object):
         # Handle parameter.
 
         ## Data.
-        if data.__class__ == dict:
-            data = [data]
-        elif isinstance(data, CursorResult):
-            data = to_table(data)
-        elif data.__class__ == DataFrame:
-            data = to_table(data)
+        match data:
+            case dict():
+                data = [data]
+            case CursorResult():
+                data = to_table(data)
+            case DataFrame():
+                data = to_table(data)
 
         ## Check.
         if data in ([], [{}]):
@@ -1629,14 +1636,15 @@ class RDatabase(object):
         """
 
         # Handle parameter.
-        if data.__class__ == dict:
-            data = [data]
-        elif isinstance(data, CursorResult):
-            data = to_table(data)
-        elif data.__class__ == DataFrame:
-            data = to_table(data)
-        else:
-            data = data.copy()
+        match data:
+            case dict():
+                data = [data]
+            case CursorResult():
+                data = to_table(data)
+            case DataFrame():
+                data = to_table(data)
+            case _:
+                data = data.copy()
 
         # Instance.
         rgenerator = RGenerator(
@@ -2184,14 +2192,15 @@ class RDBConnection(RDatabase):
             else:
                 data = [kwdata]
         else:
-            if data.__class__ == dict:
-                data = [data]
-            elif isinstance(data, CursorResult):
-                data = to_table(data)
-            elif data.__class__ == DataFrame:
-                data = to_table(data)
-            else:
-                data = data.copy()
+            match data:
+                case dict():
+                    data = [data]
+                case CursorResult():
+                    data = to_table(data)
+                case DataFrame():
+                    data = to_table(data)
+                case _:
+                    data = data.copy()
             for param in data:
                 param.update(kwdata)
 
