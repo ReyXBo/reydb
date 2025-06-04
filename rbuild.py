@@ -10,15 +10,15 @@
 
 
 from typing import Any, List, Tuple, Dict, Optional, Union, Literal, NoReturn, overload
-from reytool.rexception import throw
-from reytool.rstdout import rinput
-from reytool.rsystem import get_first_notnull
+from reykit.rexception import throw
+from reykit.rstdout import rinput
+from reykit.rsystem import get_first_notnull
 
 from .rconnection import RDatabase, RDBConnection
 
 
 __all__ = (
-    "RDBBuild",
+    'RDBBuild',
 )
 
 
@@ -44,8 +44,8 @@ class RDBBuild(object):
     def create_database(
         self,
         database: str,
-        character: str = "utf8mb3",
-        collate: str = "utf8mb3_general_ci",
+        character: str = 'utf8mb3',
+        collate: str = 'utf8mb3_general_ci',
         execute: bool = True
     ) -> str:
         """
@@ -64,7 +64,7 @@ class RDBBuild(object):
         """
 
         # Generate.
-        sql = f"CREATE DATABASE `{database}` CHARACTER SET {character} COLLATE {collate}"
+        sql = f'CREATE DATABASE `{database}` CHARACTER SET {character} COLLATE {collate}'
 
         # Execute.
         if execute:
@@ -77,7 +77,7 @@ class RDBBuild(object):
         self,
         name: str,
         type_: str,
-        constraint: str = "DEFAULT NULL",
+        constraint: str = 'DEFAULT NULL',
         comment: Optional[str] = None,
         position: Optional[str] = None,
         old_name: Optional[str] = None
@@ -102,31 +102,31 @@ class RDBBuild(object):
         # Get parameter.
 
         ## Constraint.
-        constraint = " " + constraint
+        constraint = ' ' + constraint
 
         ## Comment.
         if comment is None:
-            comment = ""
+            comment = ''
         else:
             comment = f" COMMENT '{comment}'"
 
         ## Position.
         match position:
             case None:
-                position = ""
-            case "first":
-                position = " FIRST"
+                position = ''
+            case 'first':
+                position = ' FIRST'
             case _:
-                position = f" AFTER `{position}`"
+                position = f' AFTER `{position}`'
 
         ## Old name.
         if old_name is None:
-            old_name = ""
+            old_name = ''
         else:
-            old_name = f"`{old_name}` "
+            old_name = f'`{old_name}` '
 
         # Generate.
-        sql = f"{old_name}`{name}` {type_}{constraint}{comment}{position}"
+        sql = f'{old_name}`{name}` {type_}{constraint}{comment}{position}'
 
         return sql
 
@@ -136,7 +136,7 @@ class RDBBuild(object):
         self,
         name: str,
         fields: Union[str, List[str]],
-        type_: Literal["noraml", "unique", "fulltext", "spatial"] = "noraml",
+        type_: Literal['noraml', 'unique', 'fulltext', 'spatial'] = 'noraml',
         comment: Optional[str] = None
     ) -> str: ...
 
@@ -145,7 +145,7 @@ class RDBBuild(object):
         self,
         name: str,
         fields: Union[str, List[str]],
-        type_: str = "noraml",
+        type_: str = 'noraml',
         comment: Optional[str] = None
     ) -> NoReturn: ...
 
@@ -153,7 +153,7 @@ class RDBBuild(object):
         self,
         name: str,
         fields: Union[str, List[str]],
-        type_: Literal["noraml", "unique", "fulltext", "spatial"] = "noraml",
+        type_: Literal['noraml', 'unique', 'fulltext', 'spatial'] = 'noraml',
         comment: Optional[str] = None
     ) -> str:
         """
@@ -175,37 +175,37 @@ class RDBBuild(object):
         if fields.__class__ == str:
             fields = [fields]
         match type_:
-            case "noraml":
-                type_ = "KEY"
-                method = " USING BTREE"
-            case "unique":
-                type_ = "UNIQUE KEY"
-                method = " USING BTREE"
-            case "fulltext":
-                type_ = "FULLTEXT KEY"
-                method = ""
-            case "spatial":
-                type_ = "SPATIAL KEY"
-                method = ""
+            case 'noraml':
+                type_ = 'KEY'
+                method = ' USING BTREE'
+            case 'unique':
+                type_ = 'UNIQUE KEY'
+                method = ' USING BTREE'
+            case 'fulltext':
+                type_ = 'FULLTEXT KEY'
+                method = ''
+            case 'spatial':
+                type_ = 'SPATIAL KEY'
+                method = ''
             case _:
                 throw(ValueError, type_)
-        if comment in (None, ""):
-            comment = ""
+        if comment in (None, ''):
+            comment = ''
         else:
             comment = f" COMMENT '{comment}'"
 
         # Generate.
 
         ## Fields.
-        sql_fields = ", ".join(
+        sql_fields = ', '.join(
             [
-                f"`{field}`"
+                f'`{field}`'
                 for field in fields
             ]
         )
 
         ## Join.
-        sql = f"{type_} `{name}` ({sql_fields}){method}{comment}"
+        sql = f'{type_} `{name}` ({sql_fields}){method}{comment}'
 
         return sql
 
@@ -216,10 +216,10 @@ class RDBBuild(object):
         fields: Union[Dict, List[Dict]],
         primary: Optional[Union[str, List[str]]] = None,
         indexes: Optional[Union[Dict, List[Dict]]] = None,
-        engine: str = "InnoDB",
+        engine: str = 'InnoDB',
         increment: int = 1,
-        charset: str = "utf8mb3",
-        collate: str = "utf8mb3_general_ci",
+        charset: str = 'utf8mb3',
+        collate: str = 'utf8mb3_general_ci',
         comment: Optional[str] = None,
         execute: bool = True
     ) -> str:
@@ -277,12 +277,12 @@ class RDBBuild(object):
             database, table, _ = self.rdatabase.extract_path(path)
         else:
             database, table = path
-        database = get_first_notnull(database, self.rdatabase.database, default="exception")
+        database = get_first_notnull(database, self.rdatabase.database, default='exception')
         if fields.__class__ == dict:
             fields = [fields]
         if primary.__class__ == str:
             primary = [primary]
-        if primary in ([], [""]):
+        if primary in ([], ['']):
             primary = None
         if indexes.__class__ == dict:
             indexes = [indexes]
@@ -291,8 +291,8 @@ class RDBBuild(object):
         fields = [
             {
                 (
-                    "type_"
-                    if key == "type"
+                    'type_'
+                    if key == 'type'
                     else key
                 ): value
                 for key, value in row.items()
@@ -303,8 +303,8 @@ class RDBBuild(object):
             indexes = [
                 {
                     (
-                        "type_"
-                        if key == "type"
+                        'type_'
+                        if key == 'type'
                         else key
                     ): value
                     for key, value in row.items()
@@ -322,13 +322,13 @@ class RDBBuild(object):
 
         ## Primary.
         if primary is not None:
-            keys = ", ".join(
+            keys = ', '.join(
                 [
-                    f"`{key}`"
+                    f'`{key}`'
                     for key in primary
                 ]
             )
-            sql_primary = f"PRIMARY KEY ({keys}) USING BTREE"
+            sql_primary = f'PRIMARY KEY ({keys}) USING BTREE'
             sql_fields.append(sql_primary)
 
         ## Indexes.
@@ -341,16 +341,16 @@ class RDBBuild(object):
 
         ## Comment.
         if comment is None:
-            sql_comment = ""
+            sql_comment = ''
         else:
             sql_comment = f" COMMENT='{comment}'"
 
         ## Join.
-        sql_fields = ",\n    ".join(sql_fields)
+        sql_fields = ',\n    '.join(sql_fields)
         sql = (
-            f"CREATE TABLE `{database}`.`{table}`(\n"
-            f"    {sql_fields}\n"
-            f") ENGINE={engine} AUTO_INCREMENT={increment} CHARSET={charset} COLLATE={collate}{sql_comment}"
+            f'CREATE TABLE `{database}`.`{table}`(\n'
+            f'    {sql_fields}\n'
+            f') ENGINE={engine} AUTO_INCREMENT={increment} CHARSET={charset} COLLATE={collate}{sql_comment}'
         )
 
         # Execute.
@@ -388,11 +388,11 @@ class RDBBuild(object):
             database, view, _ = self.rdatabase.extract_path(path)
         else:
             database, view = path
-        database = get_first_notnull(database, self.rdatabase.database, default="exception")
+        database = get_first_notnull(database, self.rdatabase.database, default='exception')
 
         # Generate SQL.
-        select = select.replace("\n", "\n    ")
-        sql = "CREATE VIEW `%s`.`%s` AS (\n    %s\n)" % (database, view, select)
+        select = select.replace('\n', '\n    ')
+        sql = 'CREATE VIEW `%s`.`%s` AS (\n    %s\n)' % (database, view, select)
 
         # Execute.
         if execute:
@@ -435,28 +435,28 @@ class RDBBuild(object):
         # Generate select SQL.
         item_first = items[0]
         select_first = "SELECT '%s' AS `Item`,\n(\n    %s\n) AS `Value`,\n%s AS `Comment`" % (
-            item_first["name"],
-            item_first["select"].replace("\n", "\n    "),
+            item_first['name'],
+            item_first['select'].replace('\n', '\n    '),
             (
-                "NULL"
-                if "comment" not in item_first
-                else '"%s"' % item_first["comment"]
+                'NULL'
+                if 'comment' not in item_first
+                else "'%s'" % item_first['comment']
             )
         )
         selects = [
             "SELECT '%s',\n(\n    %s\n),\n%s" % (
-                item["name"],
-                item["select"].replace("\n", "\n    "),
+                item['name'],
+                item['select'].replace('\n', '\n    '),
                 (
-                    "NULL"
-                    if "comment" not in item
-                    else "'%s'" % item["comment"]
+                    'NULL'
+                    if 'comment' not in item
+                    else "'%s'" % item['comment']
                 )
             )
             for item in items[1:]
         ]
         selects[0:0] = [select_first]
-        select = "\nUNION\n".join(selects)
+        select = '\nUNION\n'.join(selects)
 
         # Create.
         sql = self.create_view(
@@ -487,7 +487,7 @@ class RDBBuild(object):
         """
 
         # Generate.
-        sql = f"DROP DATABASE `{database}`"
+        sql = f'DROP DATABASE `{database}`'
 
         # Execute.
         if execute:
@@ -522,10 +522,10 @@ class RDBBuild(object):
             database, table, _ = self.rdatabase.extract_path(path)
         else:
             database, table = path
-        database = get_first_notnull(database, self.rdatabase.database, default="exception")
+        database = get_first_notnull(database, self.rdatabase.database, default='exception')
 
         # Generate.
-        sql = f"DROP TABLE `{database}`.`{table}`"
+        sql = f'DROP TABLE `{database}`.`{table}`'
 
         # Execute.
         if execute:
@@ -560,10 +560,10 @@ class RDBBuild(object):
             database, view, _ = self.rdatabase.extract_path(path)
         else:
             database, view = path
-        database = get_first_notnull(database, self.rdatabase.database, default="exception")
+        database = get_first_notnull(database, self.rdatabase.database, default='exception')
 
         # Generate SQL.
-        sql = "DROP VIEW `%s`.`%s`" % (database, view)
+        sql = 'DROP VIEW `%s`.`%s`' % (database, view)
 
         # Execute.
         if execute:
@@ -604,18 +604,18 @@ class RDBBuild(object):
 
         ## Character.
         if character is None:
-            sql_character = ""
+            sql_character = ''
         else:
-            sql_character = f" CHARACTER SET {character}"
+            sql_character = f' CHARACTER SET {character}'
 
         ## Collate.
         if collate is None:
-            sql_collate = ""
+            sql_collate = ''
         else:
-            sql_collate = f" COLLATE {collate}"
+            sql_collate = f' COLLATE {collate}'
 
         ## Join.
-        sql = f"ALTER DATABASE `{database}`{sql_character}{sql_collate}"
+        sql = f'ALTER DATABASE `{database}`{sql_character}{sql_collate}'
 
         # Execute.
         if execute:
@@ -683,12 +683,12 @@ class RDBBuild(object):
             database, table, _ = self.rdatabase.extract_path(path)
         else:
             database, table = path
-        database = get_first_notnull(database, self.rdatabase.database, default="exception")
+        database = get_first_notnull(database, self.rdatabase.database, default='exception')
         if fields.__class__ == dict:
             fields = [fields]
         if primary.__class__ == str:
             primary = [primary]
-        if primary in ([], [""]):
+        if primary in ([], ['']):
             primary = None
         if indexes.__class__ == dict:
             indexes = [indexes]
@@ -697,8 +697,8 @@ class RDBBuild(object):
         fields = [
             {
                 (
-                    "type_"
-                    if key == "type"
+                    'type_'
+                    if key == 'type'
                     else key
                 ): value
                 for key, value in row.items()
@@ -709,8 +709,8 @@ class RDBBuild(object):
             indexes = [
                 {
                     (
-                        "type_"
-                        if key == "type"
+                        'type_'
+                        if key == 'type'
                         else key
                     ): value
                     for key, value in row.items()
@@ -724,20 +724,20 @@ class RDBBuild(object):
         ## Fields.
         if fields is not None:
             sql_fields = [
-                "COLUMN " + self._get_field_sql(**field)
+                'COLUMN ' + self._get_field_sql(**field)
                 for field in fields
             ]
             sql_content.extend(sql_fields)
 
         ## Primary.
         if primary is not None:
-            keys = ", ".join(
+            keys = ', '.join(
                 [
-                    f"`{key}`"
+                    f'`{key}`'
                     for key in primary
                 ]
             )
-            sql_primary = f"PRIMARY KEY ({keys}) USING BTREE"
+            sql_primary = f'PRIMARY KEY ({keys}) USING BTREE'
             sql_content.append(sql_primary)
 
         ## Indexes.
@@ -749,10 +749,10 @@ class RDBBuild(object):
             sql_content.extend(sql_indexes)
 
         ## Join.
-        sql_content = ",\n    ADD ".join(sql_content)
+        sql_content = ',\n    ADD '.join(sql_content)
         sql = (
-            f"ALTER TABLE `{database}`.`{table}`\n"
-            f"    ADD {sql_content}"
+            f'ALTER TABLE `{database}`.`{table}`\n'
+            f'    ADD {sql_content}'
         )
 
         # Execute.
@@ -794,7 +794,7 @@ class RDBBuild(object):
             database, table, _ = self.rdatabase.extract_path(path)
         else:
             database, table = path
-        database = get_first_notnull(database, self.rdatabase.database, default="exception")
+        database = get_first_notnull(database, self.rdatabase.database, default='exception')
 
         # Generate.
         sql_content = []
@@ -802,29 +802,29 @@ class RDBBuild(object):
         ## Fields.
         if fields is not None:
             sql_fields = [
-                "COLUMN " + field
+                'COLUMN ' + field
                 for field in fields
             ]
             sql_content.extend(sql_fields)
 
         ## Primary.
         if primary:
-            sql_primary = "PRIMARY KEY"
+            sql_primary = 'PRIMARY KEY'
             sql_content.append(sql_primary)
 
         ## Indexes.
         if indexes is not None:
             sql_indexes = [
-                "INDEX " + index
+                'INDEX ' + index
                 for index in indexes
             ]
             sql_content.extend(sql_indexes)
 
         ## Join.
-        sql_content = ",\n    DROP ".join(sql_content)
+        sql_content = ',\n    DROP '.join(sql_content)
         sql = (
-            f"ALTER TABLE `{database}`.`{table}`\n"
-            f"    DROP {sql_content}"
+            f'ALTER TABLE `{database}`.`{table}`\n'
+            f'    DROP {sql_content}'
         )
 
         # Execute.
@@ -886,7 +886,7 @@ class RDBBuild(object):
             database, table, _ = self.rdatabase.extract_path(path)
         else:
             database, table = path
-        database = get_first_notnull(database, self.rdatabase.database, default="exception")
+        database = get_first_notnull(database, self.rdatabase.database, default='exception')
         if fields.__class__ == dict:
             fields = [fields]
 
@@ -894,8 +894,8 @@ class RDBBuild(object):
         fields = [
             {
                 (
-                    "type_"
-                    if key == "type"
+                    'type_'
+                    if key == 'type'
                     else key
                 ): value
                 for key, value in row.items()
@@ -908,17 +908,17 @@ class RDBBuild(object):
 
         ## Rename.
         if rename is not None:
-            sql_rename = f"RENAME `{database}`.`{rename}`"
+            sql_rename = f'RENAME `{database}`.`{rename}`'
             sql_content.append(sql_rename)
 
         ## Fields.
         if fields is not None:
             sql_fields = [
-                "%s %s" % (
+                '%s %s' % (
                     (
-                        "MODIFY"
-                        if "old_name" not in field
-                        else "CHANGE"
+                        'MODIFY'
+                        if 'old_name' not in field
+                        else 'CHANGE'
                     ),
                     self._get_field_sql(**field)
                 )
@@ -931,33 +931,33 @@ class RDBBuild(object):
 
         ### Engine.
         if engine is not None:
-            sql_engine = f"ENGINE={engine}"
+            sql_engine = f'ENGINE={engine}'
             sql_attr.append(sql_engine)
 
         ### Increment.
         if increment is not None:
-            sql_increment = f"AUTO_INCREMENT={increment}"
+            sql_increment = f'AUTO_INCREMENT={increment}'
             sql_attr.append(sql_increment)
 
         ### Charset.
         if charset is not None:
-            sql_charset = f"CHARSET={charset}"
+            sql_charset = f'CHARSET={charset}'
             sql_attr.append(sql_charset)
 
         ### Collate.
         if collate is not None:
-            sql_collate = f"COLLATE={collate}"
+            sql_collate = f'COLLATE={collate}'
             sql_attr.append(sql_collate)
 
         if sql_attr != []:
-            sql_attr = " ".join(sql_attr)
+            sql_attr = ' '.join(sql_attr)
             sql_content.append(sql_attr)
 
         ## Join.
-        sql_content = ",\n    ".join(sql_content)
+        sql_content = ',\n    '.join(sql_content)
         sql = (
-            f"ALTER TABLE `{database}`.`{table}`\n"
-            f"    {sql_content}"
+            f'ALTER TABLE `{database}`.`{table}`\n'
+            f'    {sql_content}'
         )
 
         # Execute.
@@ -995,10 +995,10 @@ class RDBBuild(object):
             database, view, _ = self.rdatabase.extract_path(path)
         else:
             database, view = path
-        database = get_first_notnull(database, self.rdatabase.database, default="exception")
+        database = get_first_notnull(database, self.rdatabase.database, default='exception')
 
         # Generate SQL.
-        sql = "ALTER VIEW `%s`.`%s` AS\n%s" % (database, view, select)
+        sql = 'ALTER VIEW `%s`.`%s` AS\n%s' % (database, view, select)
 
         # Execute.
         if execute:
@@ -1033,10 +1033,10 @@ class RDBBuild(object):
             database, table, _ = self.rdatabase.extract_path(path)
         else:
             database, table = path
-        database = get_first_notnull(database, self.rdatabase.database, default="exception")
+        database = get_first_notnull(database, self.rdatabase.database, default='exception')
 
         # Generate.
-        sql = f"TRUNCATE TABLE `{database}`.`{table}`"
+        sql = f'TRUNCATE TABLE `{database}`.`{table}`'
 
         # Execute.
         if execute:
@@ -1065,7 +1065,7 @@ class RDBBuild(object):
 
         # Handle parameter.
         if path.__class__ == str:
-            database, table, column = self.rdatabase.extract_path(path, "database")
+            database, table, column = self.rdatabase.extract_path(path, 'database')
         else:
             database, table, column = path
 
@@ -1077,7 +1077,7 @@ class RDBBuild(object):
         else:
             rinfo = self.rdatabase.info(database)(table)(column)
         try:
-            rinfo["*"]
+            rinfo['*']
         except AssertionError:
             judge = False
         else:
@@ -1099,12 +1099,12 @@ class RDBBuild(object):
         """
 
         # Confirm.
-        text = "Do you want to execute SQL to build the database? Otherwise stop program. (y/n) "
+        text = 'Do you want to execute SQL to build the database? Otherwise stop program. (y/n) '
         command = rinput(
             sql,
             text,
-            frame="top",
-            title="SQL"
+            frame='top',
+            title='SQL'
         )
 
         # Check.
@@ -1113,16 +1113,16 @@ class RDBBuild(object):
             match command:
 
                 ## Confirm.
-                case "y":
+                case 'y':
                     break
 
                 ## Stop.
-                case "n":
-                    raise AssertionError("program stop")
+                case 'n':
+                    raise AssertionError('program stop')
 
                 ## Reenter.
                 case _:
-                    text = "Incorrect input, reenter. (y/n) "
+                    text = 'Incorrect input, reenter. (y/n) '
                     command = input(text)
 
 
@@ -1156,7 +1156,7 @@ class RDBBuild(object):
 
         # Database.
         for params in databases:
-            database = params["database"]
+            database = params['database']
 
             # Exist.
             exist = self.rdatabase.build.exist((database, None, None))
@@ -1177,7 +1177,7 @@ class RDBBuild(object):
 
         # Table.
         for params in tables:
-            path = params["path"]
+            path = params['path']
             if path.__class__ == str:
                 database, table, _ = self.rdatabase.extract_path(path)
             else:
@@ -1202,7 +1202,7 @@ class RDBBuild(object):
 
         # View.
         for params in views:
-            path = params["path"]
+            path = params['path']
             if path.__class__ == str:
                 database, view, _ = self.rdatabase.extract_path(path)
             else:
@@ -1227,7 +1227,7 @@ class RDBBuild(object):
 
         # View stats.
         for params in views_stats:
-            path = params["path"]
+            path = params['path']
             if path.__class__ == str:
                 database, view, _ = self.rdatabase.extract_path(path)
             else:

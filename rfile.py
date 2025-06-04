@@ -12,17 +12,17 @@
 from typing import TypedDict, Union, Optional, overload
 from os.path import join as os_join
 from datetime import datetime
-from reytool.ros import RFile, RFolder, get_md5
+from reykit.ros import RFile, RFolder, get_md5
 
 from .rconnection import RDatabase, RDBConnection
 
 
 __all__ = (
-    "RDBFile",
+    'RDBFile',
 )
 
 
-FileInfo = TypedDict("FileInfo", {"create_time": datetime, "md5": str, "name": Optional[str], "size": int, "note": Optional[str]})
+FileInfo = TypedDict('FileInfo', {'create_time': datetime, 'md5': str, 'name': Optional[str], 'size': int, 'note': Optional[str]})
 
 
 class RDBFile(object):
@@ -57,146 +57,146 @@ class RDBFile(object):
         ## Database.
         databases = [
             {
-                "database": "file"
+                'database': 'file'
             }
         ]
 
         ## Table.
         tables = [
 
-            ### "information".
+            ### 'information'.
             {
-                "path": ("file", "information"),
-                "fields": [
+                'path': ('file', 'information'),
+                'fields': [
                     {
-                        "name": "create_time",
-                        "type": "datetime",
-                        "constraint": "NOT NULL DEFAULT CURRENT_TIMESTAMP",
-                        "comment": "Record create time."
+                        'name': 'create_time',
+                        'type': 'datetime',
+                        'constraint': 'NOT NULL DEFAULT CURRENT_TIMESTAMP',
+                        'comment': 'Record create time.'
                     },
                     {
-                        "name": "file_id",
-                        "type": "mediumint unsigned",
-                        "constraint": "NOT NULL AUTO_INCREMENT",
-                        "comment": "File self increase ID."
+                        'name': 'file_id',
+                        'type': 'mediumint unsigned',
+                        'constraint': 'NOT NULL AUTO_INCREMENT',
+                        'comment': 'File self increase ID.'
                     },
                     {
-                        "name": "md5",
-                        "type": "char(32)",
-                        "constraint": "NOT NULL",
-                        "comment": "File MD5."
+                        'name': 'md5',
+                        'type': 'char(32)',
+                        'constraint': 'NOT NULL',
+                        'comment': 'File MD5.'
                     },
                     {
-                        "name": "name",
-                        "type": "varchar(260)",
-                        "constraint": "DEFAULT NULL",
-                        "comment": "File name."
+                        'name': 'name',
+                        'type': 'varchar(260)',
+                        'constraint': 'DEFAULT NULL',
+                        'comment': 'File name.'
                     },
                     {
-                        "name": "note",
-                        "type": "varchar(500)",
-                        "constraint": "DEFAULT NULL",
-                        "comment": "File note."
+                        'name': 'note',
+                        'type': 'varchar(500)',
+                        'constraint': 'DEFAULT NULL',
+                        'comment': 'File note.'
                     }
                 ],
-                "primary": "file_id",
-                "indexes": [
+                'primary': 'file_id',
+                'indexes': [
                     {
-                        "name": "n_md5",
-                        "fields": "md5",
-                        "type": "noraml",
-                        "comment": "File MD5 normal index."
+                        'name': 'n_md5',
+                        'fields': 'md5',
+                        'type': 'noraml',
+                        'comment': 'File MD5 normal index.'
                     },
                     {
-                        "name": "n_name",
-                        "fields": "name",
-                        "type": "noraml",
-                        "comment": "File name normal index."
+                        'name': 'n_name',
+                        'fields': 'name',
+                        'type': 'noraml',
+                        'comment': 'File name normal index.'
                     }
                 ],
-                "comment": "File information table."
+                'comment': 'File information table.'
             },
 
-            ### "data".
+            ### 'data'.
             {
-                "path": ("file", "data"),
-                "fields": [
+                'path': ('file', 'data'),
+                'fields': [
                     {
-                        "name": "md5",
-                        "type": "char(32)",
-                        "constraint": "NOT NULL",
-                        "comment": "File MD5."
+                        'name': 'md5',
+                        'type': 'char(32)',
+                        'constraint': 'NOT NULL',
+                        'comment': 'File MD5.'
                     },
                     {
-                        "name": "size",
-                        "type": "int unsigned",
-                        "constraint": "NOT NULL",
-                        "comment": "File byte size."
+                        'name': 'size',
+                        'type': 'int unsigned',
+                        'constraint': 'NOT NULL',
+                        'comment': 'File byte size.'
                     },
                     {
-                        "name": "bytes",
-                        "type": "longblob",
-                        "constraint": "NOT NULL",
-                        "comment": "File bytes."
+                        'name': 'bytes',
+                        'type': 'longblob',
+                        'constraint': 'NOT NULL',
+                        'comment': 'File bytes.'
                     }
                 ],
-                "primary": "md5",
-                "comment": "File data table."
+                'primary': 'md5',
+                'comment': 'File data table.'
             }
         ]
 
         ## View stats.
         views_stats = [
 
-            ### "stats".
+            ### 'stats'.
             {
-                "path": ("file", "stats"),
-                "items": [
+                'path': ('file', 'stats'),
+                'items': [
                     {
-                        "name": "count",
-                        "select": (
-                            "SELECT COUNT(1)\n"
-                            "FROM `file`.`information`"
+                        'name': 'count',
+                        'select': (
+                            'SELECT COUNT(1)\n'
+                            'FROM `file`.`information`'
                         ),
-                        "comment": "File information count."
+                        'comment': 'File information count.'
                     },
                     {
-                        "name": "count_data",
-                        "select": (
-                            "SELECT COUNT(1)\n"
-                            "FROM `file`.`data`"
+                        'name': 'count_data',
+                        'select': (
+                            'SELECT COUNT(1)\n'
+                            'FROM `file`.`data`'
                         ),
-                        "comment": "File data unique count."
+                        'comment': 'File data unique count.'
                     },
                     {
-                        "name": "size_avg",
-                        "select": (
-                            "SELECT CONCAT(\n"
-                            "    ROUND(AVG(`size`) / 1024),\n"
+                        'name': 'size_avg',
+                        'select': (
+                            'SELECT CONCAT(\n'
+                            '    ROUND(AVG(`size`) / 1024),\n'
                             "    ' KB'\n"
-                            ")\n"
-                            "FROM `file`.`data`\n"
+                            ')\n'
+                            'FROM `file`.`data`\n'
                         ),
-                        "comment": "File average size."
+                        'comment': 'File average size.'
                     },
                     {
-                        "name": "size_max",
-                        "select": (
-                            "SELECT CONCAT(\n"
-                            "    ROUND(MAX(`size`) / 1024),\n"
+                        'name': 'size_max',
+                        'select': (
+                            'SELECT CONCAT(\n'
+                            '    ROUND(MAX(`size`) / 1024),\n'
                             "    ' KB'\n"
-                            ")\n"
-                            "FROM `file`.`data`\n"
+                            ')\n'
+                            'FROM `file`.`data`\n'
                         ),
-                        "comment": "File maximum size."
+                        'comment': 'File maximum size.'
                     },
                     {
-                        "name": "last_time",
-                        "select": (
-                            "SELECT MAX(`create_time`)\n"
-                            "FROM `file`.`information`"
+                        'name': 'last_time',
+                        'select': (
+                            'SELECT MAX(`create_time`)\n'
+                            'FROM `file`.`information`'
                         ),
-                        "comment": "File last record create time."
+                        'comment': 'File last record create time.'
                     }
                 ]
             }
@@ -259,8 +259,8 @@ class RDBFile(object):
 
         # Exist.
         exist = conn.execute_exist(
-            ("file", "data"),
-            "`md5` = :file_md5",
+            ('file', 'data'),
+            '`md5` = :file_md5',
             file_md5=file_md5
         )
 
@@ -269,29 +269,29 @@ class RDBFile(object):
         ## Data.
         if not exist:
             data = {
-                "md5": file_md5,
-                "size": file_size,
-                "bytes": file_bytes
+                'md5': file_md5,
+                'size': file_size,
+                'bytes': file_bytes
             }
             conn.execute_insert(
-                ("file", "data"),
+                ('file', 'data'),
                 data,
-                "ignore"
+                'ignore'
             )
 
         ## Information.
         data = {
-            "md5": file_md5,
-            "name": file_name,
-            "note": note
+            'md5': file_md5,
+            'name': file_name,
+            'note': note
         }
         conn.execute_insert(
-            ("file", "information"),
+            ('file', 'information'),
             data
         )
 
         # Get ID.
-        file_id = conn.variables["identity"]
+        file_id = conn.variables['identity']
 
         # Commit.
         conn.commit()
@@ -337,15 +337,15 @@ class RDBFile(object):
 
         # Generate SQL.
         sql = (
-            "SELECT `name`, (\n"
-            "    SELECT `bytes`\n"
-            "    FROM `file`.`data`\n"
-            "    WHERE `md5` = `information`.`md5`\n"
-            "    LIMIT 1\n"
-            ") AS `bytes`\n"
-            "FROM `file`.`information`\n"
-            "WHERE `file_id` = :file_id\n"
-            "LIMIT 1"
+            'SELECT `name`, (\n'
+            '    SELECT `bytes`\n'
+            '    FROM `file`.`data`\n'
+            '    WHERE `md5` = `information`.`md5`\n'
+            '    LIMIT 1\n'
+            ') AS `bytes`\n'
+            'FROM `file`.`information`\n'
+            'WHERE `file_id` = :file_id\n'
+            'LIMIT 1'
         )
 
         # Execute SQL.
@@ -389,15 +389,15 @@ class RDBFile(object):
 
         # Generate SQL.
         sql = (
-            "SELECT `create_time`, `md5`, `name`, `note`, (\n"
-            "    SELECT `size`\n"
-            "    FROM `file`.`data`\n"
-            "    WHERE `md5` = `a`.`md5`\n"
-            "    LIMIT 1\n"
-            ") AS `size`\n"
-            "FROM `file`.`information` AS `a`\n"
-            "WHERE `file_id` = :file_id\n"
-            "LIMIT 1"
+            'SELECT `create_time`, `md5`, `name`, `note`, (\n'
+            '    SELECT `size`\n'
+            '    FROM `file`.`data`\n'
+            '    WHERE `md5` = `a`.`md5`\n'
+            '    LIMIT 1\n'
+            ') AS `size`\n'
+            'FROM `file`.`information` AS `a`\n'
+            'WHERE `file_id` = :file_id\n'
+            'LIMIT 1'
         )
 
         # Execute SQL.
@@ -405,7 +405,7 @@ class RDBFile(object):
 
         # Check.
         if result.empty:
-            raise AssertionError("file ID does not exist")
+            raise AssertionError('file ID does not exist')
 
         # Convert.
         table = result.fetch_table()

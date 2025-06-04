@@ -21,21 +21,21 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.exc import OperationalError
 from pandas import DataFrame
-from reytool.rdata import objs_in, RGenerator
-from reytool.rexception import throw
-from reytool.rmonkey import monkey_patch_sqlalchemy_result_more_fetch, monkey_patch_sqlalchemy_row_index_field
-from reytool.rregex import search
-from reytool.rstdout import echo
-from reytool.rsystem import get_first_notnull
-from reytool.rtable import Table, to_table
-from reytool.rtext import join_data_text, to_json
-from reytool.rwrap import wrap_runtime, wrap_retry
+from reykit.rdata import objs_in, RGenerator
+from reykit.rexception import throw
+from reykit.rmonkey import monkey_patch_sqlalchemy_result_more_fetch, monkey_patch_sqlalchemy_row_index_field
+from reykit.rregex import search
+from reykit.rstdout import echo
+from reykit.rsystem import get_first_notnull
+from reykit.rtable import Table, to_table
+from reykit.rtext import join_data_text, to_json
+from reykit.rwrap import wrap_runtime, wrap_retry
 
 
 __all__ = (
-    "RResult",
-    "RDatabase",
-    "RDBConnection"
+    'RResult',
+    'RDatabase',
+    'RDBConnection'
 )
 
 
@@ -51,8 +51,8 @@ class RDatabase(object):
     """
 
 
-    # Values to be converted to "NULL".
-    nulls: Tuple = ("", " ", b"", [], (), {}, set())
+    # Values to be converted to 'NULL'.
+    nulls: Tuple = ('', ' ', b'', [], (), {}, set())
 
     # Default value.
     default_report: bool = False
@@ -219,17 +219,17 @@ class RDatabase(object):
             params = self.extract_engine(engine)
 
             ## Set.
-            self.drivername: str = params["drivername"]
-            self.username: str = params["username"]
-            self.password: str = params["password"]
-            self.host: str = params["host"]
-            self.port: str = params["port"]
-            self.database: Optional[str] = params["database"]
-            self.query: Dict = params["query"]
-            self.pool_size: int = params["pool_size"]
-            self.max_overflow: int = params["max_overflow"]
-            self.pool_timeout: float = params["pool_timeout"]
-            self.pool_recycle: int = params["pool_recycle"]
+            self.drivername: str = params['drivername']
+            self.username: str = params['username']
+            self.password: str = params['password']
+            self.host: str = params['host']
+            self.port: str = params['port']
+            self.database: Optional[str] = params['database']
+            self.query: Dict = params['query']
+            self.pool_size: int = params['pool_size']
+            self.max_overflow: int = params['max_overflow']
+            self.pool_timeout: float = params['pool_timeout']
+            self.pool_recycle: int = params['pool_recycle']
             self.engine = engine
 
         # From parameters create.
@@ -241,24 +241,24 @@ class RDatabase(object):
             else:
                 params = dict.fromkeys(
                     (
-                        "drivername",
-                        "username",
-                        "password",
-                        "host",
-                        "port",
-                        "database",
-                        "query"
+                        'drivername',
+                        'username',
+                        'password',
+                        'host',
+                        'port',
+                        'database',
+                        'query'
                     )
                 )
 
             ## Set parameters by priority.
-            self.drivername: str = get_first_notnull(drivername, params["drivername"])
-            self.username: str = get_first_notnull(username, params["username"], default="exception")
-            self.password: str = get_first_notnull(password, params["password"], default="exception")
-            self.host: str = get_first_notnull(host, params["host"], default="exception")
-            self.port: str = get_first_notnull(port, params["port"], default="exception")
-            self.database: Optional[str] = get_first_notnull(database, params["database"])
-            self.query: Dict = get_first_notnull(query, params["query"])
+            self.drivername: str = get_first_notnull(drivername, params['drivername'])
+            self.username: str = get_first_notnull(username, params['username'], default='exception')
+            self.password: str = get_first_notnull(password, params['password'], default='exception')
+            self.host: str = get_first_notnull(host, params['host'], default='exception')
+            self.port: str = get_first_notnull(port, params['port'], default='exception')
+            self.database: Optional[str] = get_first_notnull(database, params['database'])
+            self.query: Dict = get_first_notnull(query, params['query'])
             self.pool_size = pool_size
             self.max_overflow = max_overflow
             self.pool_timeout = pool_timeout
@@ -267,7 +267,7 @@ class RDatabase(object):
             if pool_recycle is None:
                 self.pool_recycle = -1
                 self.engine = self.create_engine()
-                wait_timeout = int(self.variables["wait_timeout"])
+                wait_timeout = int(self.variables['wait_timeout'])
                 self.pool_recycle = wait_timeout
                 self.engine.pool._recycle = wait_timeout
             else:
@@ -276,7 +276,7 @@ class RDatabase(object):
 
 
     def extract_url(self, url: Union[str, URL]) -> Dict[
-        Literal["drivername", "username", "password", "host", "port", "database", "query"],
+        Literal['drivername', 'username', 'password', 'host', 'port', 'database', 'query'],
         Any
     ]:
         """
@@ -296,7 +296,7 @@ class RDatabase(object):
 
             ## When str object.
             case str():
-                pattern = r"^([\w\+]+)://(\w+):(\w+)@(\d+\.\d+\.\d+\.\d+):(\d+)[/]?([\w/]+)?[\?]?([\w&=]+)?$"
+                pattern = r'^([\w\+]+)://(\w+):(\w+)@(\d+\.\d+\.\d+\.\d+):(\d+)[/]?([\w/]+)?[\?]?([\w&=]+)?$'
                 result = search(pattern, url)
                 if result is None:
                     throw(ValueError, url)
@@ -310,7 +310,7 @@ class RDatabase(object):
                     query_str
                 ) = result
                 if query_str is not None:
-                    pattern = r"(\w+)=(\w+)"
+                    pattern = r'(\w+)=(\w+)'
                     query_findall = findall(pattern, query_str)
                     query = {key: value for key, value in query_findall}
                 else:
@@ -328,13 +328,13 @@ class RDatabase(object):
 
         # Generate parameter.
         params = {
-            "drivername": drivername,
-            "username": username,
-            "password": password,
-            "host": host,
-            "port": port,
-            "database": database,
-            "query": query
+            'drivername': drivername,
+            'username': username,
+            'password': password,
+            'host': host,
+            'port': port,
+            'database': database,
+            'query': query
         }
 
         return params
@@ -342,8 +342,8 @@ class RDatabase(object):
 
     def extract_engine(self, engine: Union[Engine, Connection]) -> Dict[
         Literal[
-            "drivername", "username", "password", "host", "port", "database", "query",
-            "pool_size", "max_overflow", "pool_timeout", "pool_recycle"
+            'drivername', 'username', 'password', 'host', 'port', 'database', 'query',
+            'pool_size', 'max_overflow', 'pool_timeout', 'pool_recycle'
         ],
         Any
     ]:
@@ -378,17 +378,17 @@ class RDatabase(object):
 
         # Generate parameter.
         params = {
-            "drivername": drivername,
-            "username": username,
-            "password": password,
-            "host": host,
-            "port": port,
-            "database": database,
-            "query": query,
-            "pool_size": pool_size,
-            "max_overflow": max_overflow,
-            "pool_timeout": pool_timeout,
-            "pool_recycle": pool_recycle
+            'drivername': drivername,
+            'username': username,
+            'password': password,
+            'host': host,
+            'port': port,
+            'database': database,
+            'query': query,
+            'pool_size': pool_size,
+            'max_overflow': max_overflow,
+            'pool_timeout': pool_timeout,
+            'pool_recycle': pool_recycle
         }
 
         return params
@@ -398,20 +398,20 @@ class RDatabase(object):
     def extract_path(
         self,
         path: str,
-        main: Literal["table"] = "table"
+        main: Literal['table'] = 'table'
     ) -> Tuple[Optional[str], str, Optional[str]]: ...
 
     @overload
     def extract_path(
         self,
         path: str,
-        main: Literal["database"] = "table"
+        main: Literal['database'] = 'table'
     ) -> Tuple[str, Optional[str], Optional[str]]: ...
 
     def extract_path(
         self,
         path: str,
-        main: Literal["table", "database"] = "table"
+        main: Literal['table', 'database'] = 'table'
     ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
         """
         Extract table name and database name and column name from path.
@@ -431,19 +431,19 @@ class RDatabase(object):
 
         # Extract.
         if (
-            "." not in path
-            or "`" in path
+            '.' not in path
+            or '`' in path
         ):
-            name = path.replace("`", "")
+            name = path.replace('`', '')
             match main:
-                case "table":
+                case 'table':
                     names = (None, name, None)
-                case "database":
+                case 'database':
                     names = (name, None, None)
                 case _:
                     throw(ValueError, main)
         else:
-            names = path.split(".", 2)
+            names = path.split('.', 2)
             if len(names) == 2:
                 names.append(None)
             names = tuple(names)
@@ -463,21 +463,21 @@ class RDatabase(object):
 
         # Generate URL.
         password = urllib_quote(self.password)
-        _url = f"{self.drivername}://{self.username}:{password}@{self.host}:{self.port}"
+        _url = f'{self.drivername}://{self.username}:{password}@{self.host}:{self.port}'
 
         # Add database path.
         if self.database is not None:
-            _url = f"{_url}/{self.database}"
+            _url = f'{_url}/{self.database}'
 
         # Add Server parameter.
         if self.query != {}:
-            query = "&".join(
+            query = '&'.join(
                 [
-                    f"{key}={value}"
+                    f'{key}={value}'
                     for key, value in self.query.items()
                 ]
             )
-            _url = f"{_url}?{query}"
+            _url = f'{_url}?{query}'
 
         return _url
 
@@ -497,7 +497,7 @@ class RDatabase(object):
 
         # Handle parameter.
         if self.drivername is None:
-            drivernames = ("mysql+mysqldb", "mysql+pymysql", "mysql+mysqlconnector")
+            drivernames = ('mysql+mysqldb', 'mysql+pymysql', 'mysql+mysqlconnector')
         else:
             drivernames = (self.drivername,)
 
@@ -507,11 +507,11 @@ class RDatabase(object):
             ## Set engine parameter.
             self.drivername = drivername
             engine_params = {
-                "url": self.url,
-                "pool_size": self.pool_size,
-                "max_overflow": self.max_overflow,
-                "pool_timeout": self.pool_timeout,
-                "pool_recycle": self.pool_recycle,
+                'url': self.url,
+                'pool_size': self.pool_size,
+                'max_overflow': self.max_overflow,
+                'pool_timeout': self.pool_timeout,
+                'pool_recycle': self.pool_recycle,
                 **kwargs
             }
 
@@ -524,13 +524,13 @@ class RDatabase(object):
                 return engine
 
         # Throw exception.
-        drivernames_str = " and ".join(
+        drivernames_str = ' and '.join(
             [
-                "'%s'" % dirvername.split("+", 1)[-1]
+                "'%s'" % dirvername.split('+', 1)[-1]
                 for dirvername in drivernames
             ]
         )
-        raise ModuleNotFoundError(f"module {drivernames_str} not fund")
+        raise ModuleNotFoundError(f'module {drivernames_str} not fund')
 
 
     @property
@@ -544,7 +544,7 @@ class RDatabase(object):
         """
 
         # Get parameter.
-        if hasattr(self, "engine"):
+        if hasattr(self, 'engine'):
             rdatabase = self
         else:
             rdatabase: RDatabase = self.rdatabase
@@ -589,11 +589,11 @@ class RDatabase(object):
             sql = sql.text
 
         # Extract keys.
-        pattern = r"(?<!\\):(\w+)"
+        pattern = '(?<!\\):(\\w+)'
         sql_keys = findall(pattern, sql)
 
         # Extract keys of syntax "in".
-        pattern = r"[iI][nN]\s+(?<!\\):(\w+)"
+        pattern = "[iI][nN]\\s+(?<!\\):(\\w+)"
         sql_keys_in = findall(pattern, sql)
 
         # Loop.
@@ -640,8 +640,8 @@ class RDatabase(object):
 
         # Extract.
         syntax = [
-            search(r"[a-zA-Z]+", sql_part).upper()
-            for sql_part in sql.split(";")
+            search('[a-zA-Z]+', sql_part).upper()
+            for sql_part in sql.split(';')
         ]
 
         return syntax
@@ -665,7 +665,7 @@ class RDatabase(object):
             sql = sql.text
 
         # Judge.
-        if ";" in sql.rstrip()[:-1]:
+        if ';' in sql.rstrip()[:-1]:
             return True
         return False
 
@@ -701,17 +701,17 @@ class RDatabase(object):
             if report:
                 result, report_runtime = wrap_runtime(connection.execute, sql, data, _return_report=True)
                 report_info = (
-                    f"{report_runtime}\n"
-                    f"Row Count: {result.rowcount}"
+                    f'{report_runtime}\n'
+                    f'Row Count: {result.rowcount}'
                 )
                 sqls = [
                     sql_part.strip()
-                    for sql_part in sql.text.split(";")
+                    for sql_part in sql.text.split(';')
                 ]
                 if data == []:
-                    echo(report_info, *sqls, title="SQL")
+                    echo(report_info, *sqls, title='SQL')
                 else:
-                    echo(report_info, *sqls, data, title="SQL")
+                    echo(report_info, *sqls, data, title='SQL')
 
             ## Not report.
             else:
@@ -746,7 +746,7 @@ class RDatabase(object):
         """
 
         # Get parameter by priority.
-        report = get_first_notnull(report, self.default_report, default="exception")
+        report = get_first_notnull(report, self.default_report, default='exception')
 
         # Handle parameter.
         if sql.__class__ == str:
@@ -788,7 +788,7 @@ class RDatabase(object):
                     sql,
                     data,
                     report,
-                    _report="Database Execute Operational Error",
+                    _report='Database Execute Operational Error',
                     _exception=OperationalError
                 )
 
@@ -867,66 +867,66 @@ class RDatabase(object):
             database, table = path
 
         # Get parameter by priority.
-        database = get_first_notnull(database, self.database, default="exception")
+        database = get_first_notnull(database, self.database, default='exception')
 
         # Generate SQL.
         sql_list = []
 
-        ## Part "SELECT" syntax.
+        ## Part 'SELECT' syntax.
         if fields is None:
-            fields = "*"
+            fields = '*'
         elif fields.__class__ != str:
-            fields = ", ".join(
+            fields = ', '.join(
                 [
                     field[1:]
                     if (
-                        field.startswith(":")
-                        and field != ":"
+                        field.startswith(':')
+                        and field != ':'
                     )
-                    else f"`{field}`"
+                    else f'`{field}`'
                     for field in fields
                 ]
             )
-        sql_select = f"SELECT {fields}"
+        sql_select = f'SELECT {fields}'
         sql_list.append(sql_select)
 
-        ## Part "FROM" syntax.
-        sql_from = f"FROM `{database}`.`{table}`"
+        ## Part 'FROM' syntax.
+        sql_from = f'FROM `{database}`.`{table}`'
         sql_list.append(sql_from)
 
-        ## Part "WHERE" syntax.
+        ## Part 'WHERE' syntax.
         if where is not None:
-            sql_where = f"WHERE {where}"
+            sql_where = f'WHERE {where}'
             sql_list.append(sql_where)
 
-        ## Part "GROUP BY" syntax.
+        ## Part 'GROUP BY' syntax.
         if group is not None:
-            sql_group = f"GROUP BY {group}"
+            sql_group = f'GROUP BY {group}'
             sql_list.append(sql_group)
 
-        ## Part "GROUP BY" syntax.
+        ## Part 'GROUP BY' syntax.
         if having is not None:
-            sql_having = f"HAVING {having}"
+            sql_having = f'HAVING {having}'
             sql_list.append(sql_having)
 
-        ## Part "ORDER BY" syntax.
+        ## Part 'ORDER BY' syntax.
         if order is not None:
-            sql_order = f"ORDER BY {order}"
+            sql_order = f'ORDER BY {order}'
             sql_list.append(sql_order)
 
-        ## Part "LIMIT" syntax.
+        ## Part 'LIMIT' syntax.
         if limit is not None:
             if limit.__class__ in (str, int):
-                sql_limit = f"LIMIT {limit}"
+                sql_limit = f'LIMIT {limit}'
             else:
                 if len(limit) == 2:
-                    sql_limit = f"LIMIT {limit[0]}, {limit[1]}"
+                    sql_limit = f'LIMIT {limit[0]}, {limit[1]}'
                 else:
                     throw(ValueError, limit)
             sql_list.append(sql_limit)
 
         ## Join sql part.
-        sql = "\n".join(sql_list)
+        sql = '\n'.join(sql_list)
 
         # Execute SQL.
         result = self.execute(sql, report=report, **kwdata)
@@ -938,7 +938,7 @@ class RDatabase(object):
         self,
         path: Union[str, Tuple[str, str]],
         data: Table,
-        duplicate: Optional[Literal["ignore", "update"]] = None,
+        duplicate: Optional[Literal['ignore', 'update']] = None,
         report: Optional[bool] = None,
         **kwdata: Any
     ) -> RResult:
@@ -989,7 +989,7 @@ class RDatabase(object):
             database, table = path
 
         # Get parameter by priority.
-        database = get_first_notnull(database, self.database, default="exception")
+        database = get_first_notnull(database, self.database, default='exception')
 
         # Handle parameter.
 
@@ -1012,8 +1012,8 @@ class RDatabase(object):
         for key, value in kwdata.items():
             if (
                 value.__class__ == str
-                and value.startswith(":")
-                and value != ":"
+                and value.startswith(':')
+                and value != ':'
             ):
                 kwdata_method[key] = value[1:]
             else:
@@ -1021,7 +1021,7 @@ class RDatabase(object):
 
         # Generate SQL.
 
-        ## Part "fields" syntax.
+        ## Part 'fields' syntax.
         fields_replace = {
             field
             for row in data
@@ -1037,51 +1037,51 @@ class RDatabase(object):
             *kwdata_replace,
             *fields_replace
         )
-        sql_fields = ", ".join(
+        sql_fields = ', '.join(
             [
-                f"`{field}`"
+                f'`{field}`'
                 for field in sql_fields_list
             ]
         )
 
-        ## Part "values" syntax.
+        ## Part 'values' syntax.
         sql_values_list = (
             *kwdata_method.values(),
             *[
-                ":" + field
+                ':' + field
                 for field in (
                     *kwdata_replace,
                     *fields_replace
                 )
             ]
         )
-        sql_values = ", ".join(sql_values_list)
+        sql_values = ', '.join(sql_values_list)
 
         ## Join sql part.
         match duplicate:
 
             ### Ignore.
-            case "ignore":
+            case 'ignore':
                 sql = (
-                    f"INSERT IGNORE INTO `{database}`.`{table}`({sql_fields})\n"
-                    f"VALUES({sql_values})"
+                    f'INSERT IGNORE INTO `{database}`.`{table}`({sql_fields})\n'
+                    f'VALUES({sql_values})'
                 )
 
             ### Update.
-            case "update":
-                update_content = ",\n    ".join([f"`{field}` = VALUES(`{field}`)" for field in sql_fields_list])
+            case 'update':
+                update_content = ',\n    '.join([f'`{field}` = VALUES(`{field}`)' for field in sql_fields_list])
                 sql = (
-                    f"INSERT INTO `{database}`.`{table}`({sql_fields})\n"
-                    f"VALUES({sql_values})\n"
-                    "ON DUPLICATE KEY UPDATE\n"
-                    f"    {update_content}"
+                    f'INSERT INTO `{database}`.`{table}`({sql_fields})\n'
+                    f'VALUES({sql_values})\n'
+                    'ON DUPLICATE KEY UPDATE\n'
+                    f'    {update_content}'
                 )
 
             ### Not handle.
             case _:
                 sql = (
-                    f"INSERT INTO `{database}`.`{table}`({sql_fields})\n"
-                    f"VALUES({sql_values})"
+                    f'INSERT INTO `{database}`.`{table}`({sql_fields})\n'
+                    f'VALUES({sql_values})'
                 )
 
         # Execute SQL.
@@ -1153,7 +1153,7 @@ class RDatabase(object):
             database, table = path
 
         # Get parameter by priority.
-        database = get_first_notnull(database, self.database, default="exception")
+        database = get_first_notnull(database, self.database, default='exception')
 
         # Handle parameter.
 
@@ -1176,19 +1176,19 @@ class RDatabase(object):
         for key, value in kwdata.items():
             if (
                 value.__class__ == str
-                and value.startswith(":")
-                and value != ":"
+                and value.startswith(':')
+                and value != ':'
             ):
                 kwdata_method[key] = value[1:]
             else:
                 kwdata_replace[key] = value
         sql_set_list_kwdata = [
-            f"`{key}` = {value}"
+            f'`{key}` = {value}'
             for key, value in kwdata_method.items()
         ]
         sql_set_list_kwdata.extend(
             [
-                f"`{key}` = :{key}"
+                f'`{key}` = :{key}'
                 for key in kwdata_replace
             ]
         )
@@ -1202,66 +1202,66 @@ class RDatabase(object):
             if where_fields.__class__ == str:
                 where_fields = [where_fields]
         sqls_list = []
-        sql_update = f"UPDATE `{database}`.`{table}`"
+        sql_update = f'UPDATE `{database}`.`{table}`'
         for index, row in enumerate(data):
             sql_parts = [sql_update]
             for key, value in row.items():
-                if key in ("order", "limit"):
+                if key in ('order', 'limit'):
                     continue
-                index_key = f"{index}_{key}"
+                index_key = f'{index}_{key}'
                 data_flatten[index_key] = value
             if no_where:
                 for key in row:
                     where_fields = [key]
                     break
 
-            ## Part "SET" syntax.
+            ## Part 'SET' syntax.
             sql_set_list = sql_set_list_kwdata.copy()
             sql_set_list.extend(
                 [
-                    f"`{key}` = :{index}_{key}"
+                    f'`{key}` = :{index}_{key}'
                     for key in row
                     if (
                         key not in where_fields
                         and key not in kwdata
-                        and key not in ("order", "limit")
+                        and key not in ('order', 'limit')
                     )
                 ]
             )
-            sql_set = "SET " + ",\n    ".join(sql_set_list)
+            sql_set = 'SET ' + ',\n    '.join(sql_set_list)
             sql_parts.append(sql_set)
 
-            ## Part "WHERE" syntax.
+            ## Part 'WHERE' syntax.
             sql_where_list = []
             for field in where_fields:
-                index_field = f"{index}_{field}"
+                index_field = f'{index}_{field}'
                 index_value = data_flatten[index_field]
                 if index_value.__class__ in (list, tuple):
-                    sql_where_part = f"`{field}` IN :{index_field}"
+                    sql_where_part = f'`{field}` IN :{index_field}'
                 else:
-                    sql_where_part = f"`{field}` = :{index_field}"
+                    sql_where_part = f'`{field}` = :{index_field}'
                 sql_where_list.append(sql_where_part)
-            sql_where = "WHERE " + "\n    AND ".join(sql_where_list)
+            sql_where = 'WHERE ' + '\n    AND '.join(sql_where_list)
             sql_parts.append(sql_where)
 
-            ## Part "ORDER BY" syntax.
-            order = row.get("order")
+            ## Part 'ORDER BY' syntax.
+            order = row.get('order')
             if order is not None:
-                sql_order = f"ORDER BY {order}"
+                sql_order = f'ORDER BY {order}'
                 sql_parts.append(sql_order)
 
-            ## Part "LIMIT" syntax.
-            limit = row.get("limit")
+            ## Part 'LIMIT' syntax.
+            limit = row.get('limit')
             if limit is not None:
-                sql_limit = f"LIMIT {limit}"
+                sql_limit = f'LIMIT {limit}'
                 sql_parts.append(sql_limit)
 
             ## Join sql part.
-            sql = "\n".join(sql_parts)
+            sql = '\n'.join(sql_parts)
             sqls_list.append(sql)
 
         ## Join sqls.
-        sqls = ";\n".join(sqls_list)
+        sqls = ';\n'.join(sqls_list)
 
         # Execute SQL.
         result = self.execute(sqls, data_flatten, report)
@@ -1317,32 +1317,32 @@ class RDatabase(object):
             database, table = path
 
         # Get parameter by priority.
-        database = get_first_notnull(database, self.database, default="exception")
+        database = get_first_notnull(database, self.database, default='exception')
 
         # Generate SQL.
         sqls = []
 
         ## Part 'DELETE' syntax.
-        sql_delete = f"DELETE FROM `{database}`.`{table}`"
+        sql_delete = f'DELETE FROM `{database}`.`{table}`'
         sqls.append(sql_delete)
 
         ## Part 'WHERE' syntax.
         if where is not None:
-            sql_where = f"WHERE {where}"
+            sql_where = f'WHERE {where}'
             sqls.append(sql_where)
 
-        ## Part "ORDER BY" syntax.
+        ## Part 'ORDER BY' syntax.
         if order is not None:
-            sql_order = f"ORDER BY {order}"
+            sql_order = f'ORDER BY {order}'
             sqls.append(sql_order)
 
-        ## Part "LIMIT" syntax.
+        ## Part 'LIMIT' syntax.
         if limit is not None:
-            sql_limit = f"LIMIT {limit}"
+            sql_limit = f'LIMIT {limit}'
             sqls.append(sql_limit)
 
         ## Join sqls.
-        sqls = "\n".join(sqls)
+        sqls = '\n'.join(sqls)
 
         # Execute SQL.
         result = self.execute(sqls, report=report, **kwdata)
@@ -1403,15 +1403,15 @@ class RDatabase(object):
             database, table = path
 
         # Get parameter by priority.
-        database = get_first_notnull(database, self.database, default="exception")
+        database = get_first_notnull(database, self.database, default='exception')
 
         # Get parameter.
         table_info: List[Dict] = self.info(database)(table)()
         fields = [
-            row["COLUMN_NAME"]
+            row['COLUMN_NAME']
             for row in table_info
         ]
-        pattern = r"(?<!\\):(\w+)"
+        pattern = '(?<!\\):(\\w+)'
         if where.__class__ == str:
             where_keys = findall(pattern, where)
         else:
@@ -1420,79 +1420,79 @@ class RDatabase(object):
         # Generate SQL.
         sqls = []
 
-        ## Part "INSERT" syntax.
-        sql_fields = ", ".join(
-            f"`{field}`"
+        ## Part 'INSERT' syntax.
+        sql_fields = ', '.join(
+            f'`{field}`'
             for field in fields
             if field not in kwdata
         )
         if kwdata != {}:
-            sql_fields_kwdata = ", ".join(
-                f"`{field}`"
+            sql_fields_kwdata = ', '.join(
+                f'`{field}`'
                 for field in kwdata
                 if field not in where_keys
             )
             sql_fields_filter = filter(
-                lambda sql: sql != "",
+                lambda sql: sql != '',
                 (
                     sql_fields,
                     sql_fields_kwdata
                 )
             )
-            sql_fields = ", ".join(sql_fields_filter)
-        sql_insert = f"INSERT INTO `{database}`.`{table}`({sql_fields})"
+            sql_fields = ', '.join(sql_fields_filter)
+        sql_insert = f'INSERT INTO `{database}`.`{table}`({sql_fields})'
         sqls.append(sql_insert)
 
-        ## Part "SELECT" syntax.
-        sql_values = ", ".join(
-            f"`{field}`"
+        ## Part 'SELECT' syntax.
+        sql_values = ', '.join(
+            f'`{field}`'
             for field in fields
             if field not in kwdata
         )
         if kwdata != {}:
-            sql_values_kwdata = ", ".join(
+            sql_values_kwdata = ', '.join(
                 value[1:]
                 if (
                     value.__class__ == str
-                    and value.startswith(":")
-                    and value != ":"
+                    and value.startswith(':')
+                    and value != ':'
                 )
-                else f":{field}"
+                else f':{field}'
                 for field, value in kwdata.items()
                 if field not in where_keys
             )
             sql_values_filter = filter(
-                lambda sql: sql != "",
+                lambda sql: sql != '',
                 (
                     sql_values,
                     sql_values_kwdata
                 )
             )
-            sql_values = ", ".join(sql_values_filter)
+            sql_values = ', '.join(sql_values_filter)
         sql_select = (
-            f"SELECT {sql_values}\n"
-            f"FROM `{database}`.`{table}`"
+            f'SELECT {sql_values}\n'
+            f'FROM `{database}`.`{table}`'
         )
         sqls.append(sql_select)
 
-        ## Part "WHERE" syntax.
+        ## Part 'WHERE' syntax.
         if where is not None:
-            sql_where = f"WHERE {where}"
+            sql_where = f'WHERE {where}'
             sqls.append(sql_where)
 
-        ## Part "LIMIT" syntax.
+        ## Part 'LIMIT' syntax.
         if limit is not None:
             if limit.__class__ in (str, int):
-                sql_limit = f"LIMIT {limit}"
+                sql_limit = f'LIMIT {limit}'
             else:
                 if len(limit) == 2:
-                    sql_limit = f"LIMIT {limit[0]}, {limit[1]}"
+                    sql_limit = f'LIMIT {limit[0]}, {limit[1]}'
                 else:
                     throw(ValueError, limit)
             sqls.append(sql_limit)
 
         ## Join.
-        sql = "\n".join(sqls)
+        sql = '\n'.join(sqls)
 
         # Execute SQL.
         result = self.execute(sql, report=report, **kwdata)
@@ -1549,7 +1549,7 @@ class RDatabase(object):
             database, table = path
 
         # Execute.
-        result = self.execute_select((database, table), "1", where=where, limit=1, report=report, **kwdata)
+        result = self.execute_select((database, table), '1', where=where, limit=1, report=report, **kwdata)
 
         # Judge.
         judge = result.exist
@@ -1604,7 +1604,7 @@ class RDatabase(object):
             database, table = path
 
         # Execute.
-        result = self.execute_select((database, table), "1", where=where, report=report, **kwdata)
+        result = self.execute_select((database, table), '1', where=where, report=report, **kwdata)
         count = result.rowcount
 
         return count
@@ -1695,8 +1695,8 @@ class RDatabase(object):
         >>> result = RDBExecute(sql, value=1)
 
         Select.
-        >>> field = ["id", "value"]
-        >>> where = "`id` = ids"
+        >>> field = ['id', 'value']
+        >>> where = '`id` = ids'
         >>> ids = (1, 2)
         >>> result = RDBExecute.database.table(field, where, ids=ids)
 
@@ -1705,41 +1705,41 @@ class RDatabase(object):
         >>> duplicate = 'ignore'
         >>> result = RDBExecute.database.table + data
         >>> result = RDBExecute.database.table + (data, duplicate)
-        >>> result = RDBExecute.database.table + {"data": data, "duplicate": duplicate}
+        >>> result = RDBExecute.database.table + {'data': data, 'duplicate': duplicate}
 
         Update.
         >>> data = [{'name': 'a', 'id': 1}, {'name': 'b', 'id': 2}]
         >>> where_fields = 'id'
         >>> result = RDBExecute.database.table & data
         >>> result = RDBExecute.database.table & (data, where_fields)
-        >>> result = RDBExecute.database.table & {"data": data, "where_fields": where_fields}
+        >>> result = RDBExecute.database.table & {'data': data, 'where_fields': where_fields}
 
         Delete.
         >>> where = '`id` IN (1, 2)'
         >>> report = True
         >>> result = RDBExecute.database.table - where
         >>> result = RDBExecute.database.table - (where, report)
-        >>> result = RDBExecute.database.table - {"where": where, "report": report}
+        >>> result = RDBExecute.database.table - {'where': where, 'report': report}
 
         Copy.
         >>> where = '`id` IN (1, 2)'
         >>> limit = 1
         >>> result = RDBExecute.database.table * where
         >>> result = RDBExecute.database.table * (where, limit)
-        >>> result = RDBExecute.database.table * {"where": where, "limit": limit}
+        >>> result = RDBExecute.database.table * {'where': where, 'limit': limit}
 
         Exist.
         >>> where = '`id` IN (1, 2)'
         >>> report = True
         >>> result = where in RDBExecute.database.table
         >>> result = (where, report) in RDBExecute.database.table
-        >>> result = {"where": where, "report": report} in RDBExecute.database.table
+        >>> result = {'where': where, 'report': report} in RDBExecute.database.table
 
         Count.
         >>> result = len(RDBExecute.database.table)
 
         Default database.
-        >>> field = ["id", "value"]
+        >>> field = ['id', 'value']
         >>> engine = RDatabase(**server, database)
         >>> result = engine.exe.table()
         """
@@ -1765,16 +1765,16 @@ class RDatabase(object):
 
         # Select.
         filter_db = (
-            "information_schema",
-            "mysql",
-            "performance_schema",
-            "sys"
+            'information_schema',
+            'mysql',
+            'performance_schema',
+            'sys'
         )
         result = self.execute_select(
-            "information_schema.COLUMNS",
-            ["TABLE_SCHEMA", "TABLE_NAME", "COLUMN_NAME"],
-            "`TABLE_SCHEMA` NOT IN :filter_db",
-            order="`TABLE_SCHEMA`, `TABLE_NAME`, `ORDINAL_POSITION`",
+            'information_schema.COLUMNS',
+            ['TABLE_SCHEMA', 'TABLE_NAME', 'COLUMN_NAME'],
+            '`TABLE_SCHEMA` NOT IN :filter_db',
+            order='`TABLE_SCHEMA`, `TABLE_NAME`, `ORDINAL_POSITION`',
             filter_db=filter_db
         )
 
@@ -1821,13 +1821,13 @@ class RDatabase(object):
         >>> columns_info = RDBISchema.database.table()
 
         Get database attribute.
-        >>> database_attr = RDBISchema.database["attribute"]
+        >>> database_attr = RDBISchema.database['attribute']
 
         Get table attribute.
-        >>> database_attr = RDBISchema.database.table["attribute"]
+        >>> database_attr = RDBISchema.database.table['attribute']
 
         Get column attribute.
-        >>> database_attr = RDBISchema.database.table.column["attribute"]
+        >>> database_attr = RDBISchema.database.table.column['attribute']
         """
 
         # Import.
@@ -2033,7 +2033,7 @@ class RDatabase(object):
         """
 
         # Get parameter.
-        if hasattr(self, "engine"):
+        if hasattr(self, 'engine'):
             attr_dict = self.__dict__
         else:
             rdatabase: RDatabase = self.rdatabase
@@ -2044,17 +2044,17 @@ class RDatabase(object):
 
         # Generate.
         filter_key = (
-            "engine",
-            "connection",
-            "rdatabase",
-            "begin"
+            'engine',
+            'connection',
+            'rdatabase',
+            'begin'
         )
         info = {
             key: value
             for key, value in attr_dict.items()
             if key not in filter_key
         }
-        info["count"] = self.count
+        info['count'] = self.count
         text = join_data_text(info)
 
         return text
@@ -2130,17 +2130,17 @@ class RDBConnection(RDatabase):
         if report:
             result, report_runtime = wrap_runtime(connection.execute, sql, data, _return_report=True)
             report_info = (
-                f"{report_runtime}\n"
-                f"Row Count: {result.rowcount}"
+                f'{report_runtime}\n'
+                f'Row Count: {result.rowcount}'
             )
             sqls = [
                 sql_part.strip()
-                for sql_part in sql.text.split(";")
+                for sql_part in sql.text.split(';')
             ]
             if data == []:
-                echo(report_info, *sqls, title="SQL")
+                echo(report_info, *sqls, title='SQL')
             else:
-                echo(report_info, *sqls, data, title="SQL")
+                echo(report_info, *sqls, data, title='SQL')
 
         ## Not report.
         else:
@@ -2148,7 +2148,7 @@ class RDBConnection(RDatabase):
 
         # Count.
         syntaxes = self.get_syntax(sql)
-        if objs_in(syntaxes, "INSERT", "UPDATE", "DELETE"):
+        if objs_in(syntaxes, 'INSERT', 'UPDATE', 'DELETE'):
             self.begin_count += 1
 
         return result
@@ -2181,7 +2181,7 @@ class RDBConnection(RDatabase):
         """
 
         # Get parameter by priority.
-        report = get_first_notnull(report, self.default_report, default="exception")
+        report = get_first_notnull(report, self.default_report, default='exception')
 
         # Handle parameter.
         if sql.__class__ == str:
@@ -2221,7 +2221,7 @@ class RDBConnection(RDatabase):
                 sql,
                 data,
                 report,
-                _report="Database Execute Operational Error",
+                _report='Database Execute Operational Error',
                 _exception=OperationalError
             )
 

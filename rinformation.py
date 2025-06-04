@@ -16,11 +16,11 @@ from .rconnection import RDatabase, RDBConnection
 
 
 __all__ = (
-    "RDBInformation",
-    "RDBISchema",
-    "RDBIDatabase",
-    "RDBITable",
-    "RDBIColumn"
+    'RDBInformation',
+    'RDBISchema',
+    'RDBIDatabase',
+    'RDBITable',
+    'RDBIColumn'
 )
 
 
@@ -65,7 +65,7 @@ class RDBInformation(object):
         if name is None:
 
             ## Break.
-            if not hasattr(self, "_get_info_table"):
+            if not hasattr(self, '_get_info_table'):
                 raise AssertionError("class '%s' does not have this method" % self.__class__.__name__)
 
             ## Get.
@@ -75,7 +75,7 @@ class RDBInformation(object):
         else:
 
             ## Break.
-            if not hasattr(self, "__getattr__"):
+            if not hasattr(self, '__getattr__'):
                 raise AssertionError("class '%s' does not have this method" % self.__class__.__name__)
 
             ## Get.
@@ -85,7 +85,7 @@ class RDBInformation(object):
 
 
     @overload
-    def __getitem__(self, key: Literal["*", "all", "ALL"]) -> Dict: ...
+    def __getitem__(self, key: Literal['*', 'all', 'ALL']) -> Dict: ...
 
     @overload
     def __getitem__(self, key: str) -> Any: ...
@@ -106,7 +106,7 @@ class RDBInformation(object):
         """
 
         # Break.
-        if not hasattr(self, "_get_info_attrs"):
+        if not hasattr(self, '_get_info_attrs'):
             raise AssertionError("class '%s' does not have this method" % self.__class__.__name__)
 
         # Get.
@@ -115,7 +115,7 @@ class RDBInformation(object):
         # Return.
 
         ## Dictionary.
-        if key in ("*", "all", "ALL"):
+        if key in ('*', 'all', 'ALL'):
             return info_attrs
 
         ## Value.
@@ -127,10 +127,10 @@ class RDBInformation(object):
 
 
     @overload
-    def __getattr__(self, key: Literal["_rdatabase"]) -> Union[RDatabase, RDBConnection]: ...
+    def __getattr__(self, key: Literal['_rdatabase']) -> Union[RDatabase, RDBConnection]: ...
 
     @overload
-    def __getattr__(self, key: Literal["_database_name", "_table_name"]) -> str: ...
+    def __getattr__(self, key: Literal['_database_name', '_table_name']) -> str: ...
 
     @overload
     def __getattr__(self: RDBISchema, key: str) -> RDBIDatabase: ...
@@ -161,7 +161,7 @@ class RDBInformation(object):
         """
 
         # Filter private
-        if key in ("_rdatabase", "_database_name", "_table_name"):
+        if key in ('_rdatabase', '_database_name', '_table_name'):
             return self.__dict__[key]
 
         # Build.
@@ -197,13 +197,13 @@ class RDBISchema(RDBInformation):
     >>> column_info = RDBISchema.database.table.column()
 
     Get database attribute.
-    >>> database_attr = RDBISchema.database["attribute"]
+    >>> database_attr = RDBISchema.database['attribute']
 
     Get table attribute.
-    >>> database_attr = RDBISchema.database.table["attribute"]
+    >>> database_attr = RDBISchema.database.table['attribute']
 
     Get column attribute.
-    >>> database_attr = RDBISchema.database.table.column["attribute"]
+    >>> database_attr = RDBISchema.database.table.column['attribute']
     """
 
 
@@ -234,8 +234,8 @@ class RDBISchema(RDBInformation):
 
         # Select.
         result = self._rdatabase.execute_select(
-            "information_schema.SCHEMATA",
-            order="`schema_name`"
+            'information_schema.SCHEMATA',
+            order='`schema_name`'
         )
 
         # Convert.
@@ -260,13 +260,13 @@ class RDBIDatabase(RDBInformation):
     >>> column_info = RDBIDatabase.table.column()
 
     Get database attribute.
-    >>> database_attr = RDBIDatabase["attribute"]
+    >>> database_attr = RDBIDatabase['attribute']
 
     Get table attribute.
-    >>> database_attr = RDBIDatabase.table["attribute"]
+    >>> database_attr = RDBIDatabase.table['attribute']
 
     Get column attribute.
-    >>> database_attr = RDBIDatabase.table.column["attribute"]
+    >>> database_attr = RDBIDatabase.table.column['attribute']
     """
 
 
@@ -299,9 +299,9 @@ class RDBIDatabase(RDBInformation):
         """
 
         # Select.
-        where = "`SCHEMA_NAME` = :database_name"
+        where = '`SCHEMA_NAME` = :database_name'
         result = self._rdatabase.execute_select(
-            "information_schema.SCHEMATA",
+            'information_schema.SCHEMATA',
             where=where,
             limit=1,
             database_name=self._database_name
@@ -327,11 +327,11 @@ class RDBIDatabase(RDBInformation):
         """
 
         # Select.
-        where = "`TABLE_SCHEMA` = :database_name"
+        where = '`TABLE_SCHEMA` = :database_name'
         result = self._rdatabase.execute_select(
-            "information_schema.TABLES",
+            'information_schema.TABLES',
             where=where,
-            order="`TABLE_NAME`",
+            order='`TABLE_NAME`',
             database_name=self._database_name
         )
 
@@ -357,10 +357,10 @@ class RDBITable(RDBInformation):
     >>> column_info = RDBITable.column()
 
     Get table attribute.
-    >>> database_attr = RDBITable["attribute"]
+    >>> database_attr = RDBITable['attribute']
 
     Get column attribute.
-    >>> database_attr = RDBITable.column["attribute"]
+    >>> database_attr = RDBITable.column['attribute']
     """
 
 
@@ -396,9 +396,9 @@ class RDBITable(RDBInformation):
         """
 
         # Select.
-        where = "`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name"
+        where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name'
         result = self._rdatabase.execute_select(
-            "information_schema.TABLES",
+            'information_schema.TABLES',
             where=where,
             limit=1,
             database_name=self._database_name,
@@ -425,11 +425,11 @@ class RDBITable(RDBInformation):
         """
 
         # Select.
-        where = "`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name"
+        where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name'
         result = self._rdatabase.execute_select(
-            "information_schema.COLUMNS",
+            'information_schema.COLUMNS',
             where=where,
-            order="`ORDINAL_POSITION`",
+            order='`ORDINAL_POSITION`',
             database_name=self._database_name,
             table_name=self._table_name
         )
@@ -453,7 +453,7 @@ class RDBIColumn(RDBInformation):
     >>> column_info = RDBIColumn()
 
     Get column attribute.
-    >>> database_attr = RDBIColumn["attribute"]
+    >>> database_attr = RDBIColumn['attribute']
     """
 
 
@@ -492,9 +492,9 @@ class RDBIColumn(RDBInformation):
         """
 
         # Select.
-        where = "`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name AND `COLUMN_NAME` = :column_name"
+        where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name AND `COLUMN_NAME` = :column_name'
         result = self._rdatabase.execute_select(
-            "information_schema.COLUMNS",
+            'information_schema.COLUMNS',
             where=where,
             limit=1,
             database_name=self._database_name,

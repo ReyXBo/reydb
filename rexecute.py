@@ -11,14 +11,14 @@
 
 from __future__ import annotations
 from typing import Any, List, Dict, Tuple, Union, Literal, overload
-from reytool.rexception import throw
-from reytool.rtable import Table
+from reykit.rexception import throw
+from reykit.rtable import Table
 
 from .rconnection import RDatabase, RDBConnection, RResult
 
 
 __all__ = (
-    "RDBExecute",
+    'RDBExecute',
 )
 
 
@@ -29,8 +29,8 @@ class RDBExecute(object):
     Examples
     --------
     Select.
-    >>> field = ["id", "value"]
-    >>> where = "`id` = ids"
+    >>> field = ['id', 'value']
+    >>> where = '`id` = ids'
     >>> ids = (1, 2)
     >>> result = RDBExecute.database.table(field, where, ids=ids)
 
@@ -39,41 +39,41 @@ class RDBExecute(object):
     >>> duplicate = 'ignore'
     >>> result = RDBExecute.database.table + data
     >>> result = RDBExecute.database.table + (data, duplicate)
-    >>> result = RDBExecute.database.table + {"data": data, "duplicate": duplicate}
+    >>> result = RDBExecute.database.table + {'data': data, 'duplicate': duplicate}
 
     Update.
     >>> data = [{'name': 'a', 'id': 1}, {'name': 'b', 'id': 2}]
     >>> where_fields = 'id'
     >>> result = RDBExecute.database.table & data
     >>> result = RDBExecute.database.table & (data, where_fields)
-    >>> result = RDBExecute.database.table & {"data": data, "where_fields": where_fields}
+    >>> result = RDBExecute.database.table & {'data': data, 'where_fields': where_fields}
 
     Delete.
     >>> where = '`id` IN (1, 2)'
     >>> report = True
     >>> result = RDBExecute.database.table - where
     >>> result = RDBExecute.database.table - (where, report)
-    >>> result = RDBExecute.database.table - {"where": where, "report": report}
+    >>> result = RDBExecute.database.table - {'where': where, 'report': report}
 
     Copy.
     >>> where = '`id` IN (1, 2)'
     >>> limit = 1
     >>> result = RDBExecute.database.table * where
     >>> result = RDBExecute.database.table * (where, limit)
-    >>> result = RDBExecute.database.table * {"where": where, "limit": limit}
+    >>> result = RDBExecute.database.table * {'where': where, 'limit': limit}
 
     Exist.
     >>> where = '`id` IN (1, 2)'
     >>> report = True
     >>> result = where in RDBExecute.database.table
     >>> result = (where, report) in RDBExecute.database.table
-    >>> result = {"where": where, "report": report} in RDBExecute.database.table
+    >>> result = {'where': where, 'report': report} in RDBExecute.database.table
 
     Count.
     >>> result = len(RDBExecute.database.table)
 
     Default database.
-    >>> field = ["id", "value"]
+    >>> field = ['id', 'value']
     >>> engine = RDatabase(**server, database)
     >>> result = engine.exe.table()
     """
@@ -94,10 +94,10 @@ class RDBExecute(object):
 
 
     @overload
-    def __getattr__(self, key: Literal["_rdatabase"]) -> Union[RDatabase, RDBConnection]: ...
+    def __getattr__(self, key: Literal['_rdatabase']) -> Union[RDatabase, RDBConnection]: ...
 
     @overload
-    def __getattr__(self, key: Literal["_path"]) -> List[str]: ...
+    def __getattr__(self, key: Literal['_path']) -> List[str]: ...
 
     @overload
     def __getattr__(self, key: str) -> RDBExecute: ...
@@ -120,7 +120,7 @@ class RDBExecute(object):
         """
 
         # Filter private.
-        if key in ("_rdatabase", "_path"):
+        if key in ('_rdatabase', '_path'):
             return self.__dict__[key]
 
         # Check parameter.

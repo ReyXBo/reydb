@@ -15,9 +15,9 @@ from .rconnection import RDatabase, RDBConnection
 
 
 __all__ = (
-    "RDBParameter",
-    "RDBPStatus",
-    "RDBPVariable"
+    'RDBParameter',
+    'RDBPStatus',
+    'RDBPVariable'
 )
 
 
@@ -113,11 +113,11 @@ class RDBPStatus(RDBParameter):
 
         ## Global.
         if self.global_:
-            sql = "SHOW GLOBAL STATUS"
+            sql = 'SHOW GLOBAL STATUS'
 
         ## Not global.
         else:
-            sql = "SHOW STATUS"
+            sql = 'SHOW STATUS'
 
         # Execute SQL.
 
@@ -127,13 +127,13 @@ class RDBPStatus(RDBParameter):
 
         ## Value.
         else:
-            sql += " LIKE :key"
+            sql += ' LIKE :key'
             result = self.rdatabase(sql, key=key)
             row = result.first()
             if row is None:
                 status = None
             else:
-                status = row["Value"]
+                status = row['Value']
 
         return status
 
@@ -148,7 +148,7 @@ class RDBPStatus(RDBParameter):
         """
 
         # Throw exception.
-        raise AssertionError("database status not update")
+        raise AssertionError('database status not update')
 
 
 class RDBPVariable(RDBParameter):
@@ -182,11 +182,11 @@ class RDBPVariable(RDBParameter):
 
         ## Global.
         if self.global_:
-            sql = "SHOW GLOBAL VARIABLES"
+            sql = 'SHOW GLOBAL VARIABLES'
 
         ## Not global.
         else:
-            sql = "SHOW VARIABLES"
+            sql = 'SHOW VARIABLES'
 
         # Execute SQL.
 
@@ -196,13 +196,13 @@ class RDBPVariable(RDBParameter):
 
         ## Value.
         else:
-            sql += " LIKE :key"
+            sql += ' LIKE :key'
             result = self.rdatabase(sql, key=key)
             row = result.first()
             if row is None:
                 variables = None
             else:
-                variables = row["Value"]
+                variables = row['Value']
 
         return variables
 
@@ -219,7 +219,7 @@ class RDBPVariable(RDBParameter):
 
         # Generate SQL.
         sql_set_list = [
-            "%s = %s" % (
+            '%s = %s' % (
                 key,
                 (
                     value
@@ -229,15 +229,15 @@ class RDBPVariable(RDBParameter):
             )
             for key, value in params.items()
         ]
-        sql_set = ",\n    ".join(sql_set_list)
+        sql_set = ',\n    '.join(sql_set_list)
 
         # Global.
         if self.global_:
-            sql = f"SET GLOBAL {sql_set}"
+            sql = f'SET GLOBAL {sql_set}'
 
         ## Not global.
         else:
-            sql = f"SET {sql_set}"
+            sql = f'SET {sql_set}'
 
         # Execute SQL.
         self.rdatabase(sql)
