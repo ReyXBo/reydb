@@ -192,9 +192,9 @@ class RDBExecute(object):
         Parameters
         ----------
         params : Insert parameters.
-            - `Tuple` : Enter parameters in '(path, *params)' format.
-            - `Dict` : Enter parameters in '(path, **params)' format.
-            - `Table` : Enter parameters in '(path, params)' format.
+            - `Tuple`: Enter parameters in '(path, *params)' format.
+            - `Dict`: Enter parameters in '(path, **params)' format.
+            - `Table`: Enter parameters in '(path, params)' format.
 
         Returns
         -------
@@ -223,9 +223,9 @@ class RDBExecute(object):
         Parameters
         ----------
         params : Update parameters.
-            - `Tuple` : Enter parameters in '(path, *params)' format.
-            - `Dict` : Enter parameters in '(path, **params)' format.
-            - `Table` : Enter parameters in '(path, params)' format.
+            - `Tuple`: Enter parameters in '(path, *params)' format.
+            - `Dict`: Enter parameters in '(path, **params)' format.
+            - `Table`: Enter parameters in '(path, params)' format.
 
         Returns
         -------
@@ -254,9 +254,9 @@ class RDBExecute(object):
         Parameters
         ----------
         params : Update parameters.
-            - `Tuple` : Enter parameters in '(path, *params)' format.
-            - `Dict` : Enter parameters in '(path, **params)' format.
-            - `str` : Enter parameters in '(path, params)' format.
+            - `Tuple`: Enter parameters in '(path, *params)' format.
+            - `Dict`: Enter parameters in '(path, **params)' format.
+            - `str`: Enter parameters in '(path, params)' format.
 
         Returns
         -------
@@ -285,9 +285,9 @@ class RDBExecute(object):
         Parameters
         ----------
         params : Update parameters.
-            - `Tuple` : Enter parameters in '(path, *params)' format.
-            - `Dict` : Enter parameters in '(path, **params)' format.
-            - `str` : Enter parameters in '(path, params)' format.
+            - `Tuple`: Enter parameters in '(path, *params)' format.
+            - `Dict`: Enter parameters in '(path, **params)' format.
+            - `str`: Enter parameters in '(path, params)' format.
 
         Returns
         -------
@@ -316,9 +316,9 @@ class RDBExecute(object):
         Parameters
         ----------
         params : Update parameters.
-            - `Tuple` : Enter parameters in '(path, *params)' format.
-            - `Dict` : Enter parameters in '(path, **params)' format.
-            - `str` : Enter parameters in '(path, params)' format.
+            - `Tuple`: Enter parameters in '(path, *params)' format.
+            - `Dict`: Enter parameters in '(path, **params)' format.
+            - `str`: Enter parameters in '(path, params)' format.
 
         Returns
         -------

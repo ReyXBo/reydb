@@ -181,17 +181,15 @@ class RDatabase(object):
         password : Server password.
         database : Database name in the server.
         drivername : Database backend and driver name.
-            - `None` : Automatic select and try.
-            - `str` : Use this value.
-
+            - `None`: Automatic select and try.
+            - `str`: Use this value.
         pool_size : Number of connections `keep open`.
         max_overflow : Number of connections `allowed overflow`.
         pool_timeout : Number of seconds `wait create` connection.
         pool_recycle : Number of seconds `recycle` connection.
-            - `None` : Use database variable `wait_timeout` value.
-            - `Literal[-1]` : No recycle.
-            - `int` : Use this value.
-
+            - `None`, Use database variable `wait_timeout`: value.
+            - `Literal[-1]`: No recycle.
+            - `int`: Use this value.
         retry : Whether retry execute.
         url: Get parameter from server `URL`, but preferred input parameters.
             Parameters include `username`, `password`, `host`, `port`, `database`, `drivername`, `query`.
@@ -419,9 +417,8 @@ class RDatabase(object):
         Parameters
         ----------
         path : Automatic extract.
-            * ```Not contain '.' or contain '`'```: Main name.
-            * `Contain '.'` : Database name and table name, column name is optional. Example 'database.table[.column]'.
-
+            ```Not contain '.' or contain '`'```: Main name.
+            `Contain '.'`: Database name and table name, column name is optional. Example 'database.table[.column]'.
         main : Priority main name, 'table' or 'database'.
 
         Returns
@@ -735,9 +732,8 @@ class RDatabase(object):
         sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
         data : Data set for filling.
         report : Whether report SQL execute information.
-            - `None` : Use attribute `default_report`.
-            - `bool` : Use this value.
-
+            - `None`: Use attribute `default_report`.
+            - `bool`: Use this value.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -817,28 +813,24 @@ class RDatabase(object):
         Parameters
         ----------
         path : Table name, can contain database name, otherwise use `self.database`.
-            - `str` : Automatic extract database name and table name.
-            - `Tuple[str, str]` : Database name and table name.
-
+            - `str`: Automatic extract database name and table name.
+            - `Tuple[str, str]`: Database name and table name.
         fields : Select clause content.
-            - `None` : Is `SELECT *`.
-            - `str` : Join as `SELECT str`.
-            - `Iterable[str]` : Join as `SELECT ``str``, ...`.
-                * `str and first character is ':'` : Use this syntax.
-                * `str` : Use this field.
-
+            - `None`: Is `SELECT *`.
+            - `str`: Join as `SELECT str`.
+            - `Iterable[str]`, Join as `SELECT ``str``: ...`.
+                `str and first character is ':'`: Use this syntax.
+                `str`: Use this field.
         where : Clause `WHERE` content, join as `WHERE str`.
         group : Clause `GROUP BY` content, join as `GROUP BY str`.
         having : Clause `HAVING` content, join as `HAVING str`.
         order : Clause `ORDER BY` content, join as `ORDER BY str`.
         limit : Clause `LIMIT` content.
-            - `Union[int, str]` : Join as `LIMIT int/str`.
-            - `Tuple[int, int]` : Join as `LIMIT int, int`.
-
+            - `Union[int, str]`: Join as `LIMIT int/str`.
+            - `Tuple[int, int]`: Join as `LIMIT int, int`.
         report : Whether report SQL execute information.
-            - `None` : Use attribute `report_execute_info` of object `ROption`.
-            - `int` : Use this value.
-
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -948,22 +940,19 @@ class RDatabase(object):
         Parameters
         ----------
         path : Table name, can contain database name, otherwise use `self.database`.
-            - `str` : Automatic extract database name and table name.
-            - `Tuple[str, str]` : Database name and table name.
-
+            - `str`: Automatic extract database name and table name.
+            - `Tuple[str, str]`: Database name and table name.
         data : Insert data.
         duplicate : Handle method when constraint error.
-            - `None` : Not handled.
-            - `ignore` : Use `UPDATE IGNORE INTO` clause.
-            - `update` : Use `ON DUPLICATE KEY UPDATE` clause.
-
+            - `None`: Not handled.
+            - `ignore`, Use `UPDATE IGNORE INTO`: clause.
+            - `update`, Use `ON DUPLICATE KEY UPDATE`: clause.
         report : Whether report SQL execute information.
-            - `None` : Use attribute `report_execute_info` of object `ROption`.
-            - `int` : Use this value.
-
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
         kwdata : Keyword parameters for filling.
-            - `str and first character is ':'` : Use this syntax.
-            - `Any` : Use this value.
+            - `str and first character is ':'`: Use this syntax.
+            - `Any`: Use this value.
 
         Returns
         -------
@@ -1104,30 +1093,26 @@ class RDatabase(object):
         Parameters
         ----------
         path : Table name, can contain database name, otherwise use `self.database`.
-            - `str` : Automatic extract database name and table name.
-            - `Tuple[str, str]` : Database name and table name.
-
+            - `str`: Automatic extract database name and table name.
+            - `Tuple[str, str]`: Database name and table name.
         data : Update data, clause `SET` and `WHERE` and `ORDER BY` and `LIMIT` content.
-            - `Key` : Table field.
-                * `literal['order']` : Clause `ORDER BY` content, join as `ORDER BY str`.
-                * `literal['limit']` : Clause `LIMIT` content, join as `LIMIT str`.
-                * `Other` : Clause `SET` and `WHERE` content.
-            - `Value` : Table value.
-                * `Union[List, Tuple]` : Join as `field IN :str`.
-                * `Any` : Join as `field = :str`.
-
+            - `Key`: Table field.
+                `literal['order']`: Clause `ORDER BY` content, join as `ORDER BY str`.
+                `literal['limit']`: Clause `LIMIT` content, join as `LIMIT str`.
+                `Other`: Clause `SET` and `WHERE` content.
+            - `Value`: Table value.
+                `Union[List, Tuple]`: Join as `field IN :str`.
+                `Any`: Join as `field = :str`.
         where_fields : Clause `WHERE` content fields.
-            - `None` : The first key value pair of each item is judged.
-            - `str` : This key value pair of each item is judged.
-            - `Iterable[str]` : Multiple judged, `and` relationship.
-
+            - `None`: The first key value pair of each item is judged.
+            - `str`: This key value pair of each item is judged.
+            - `Iterable[str]` Multiple judged, `and`: relationship.
         report : Whether report SQL execute information.
-            - `None` : Use attribute `report_execute_info` of object `ROption`.
-            - `int` : Use this value.
-
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
         kwdata : Keyword parameters for filling.
-            - `str and first character is ':'` : Use this syntax.
-            - `Any` : Use this value.
+            - `str and first character is ':'`: Use this syntax.
+            - `Any`: Use this value.
 
         Returns
         -------
@@ -1284,16 +1269,14 @@ class RDatabase(object):
         Parameters
         ----------
         path : Table name, can contain database name, otherwise use `self.database`.
-            - `str` : Automatic extract database name and table name.
-            - `Tuple[str, str]` : Database name and table name.
-
+            - `str`: Automatic extract database name and table name.
+            - `Tuple[str, str]`: Database name and table name.
         where : Clause `WHERE` content, join as `WHERE str`.
         order : Clause `ORDER BY` content, join as `ORDER BY str`.
         limit : Clause `LIMIT` content, join as `LIMIT int/str`.
         report : Whether report SQL execute information.
-            - `None` : Use attribute `report_execute_info` of object `ROption`.
-            - `int` : Use this value.
-
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1364,23 +1347,20 @@ class RDatabase(object):
         Parameters
         ----------
         path : Table name, can contain database name, otherwise use `self.database`.
-            - `str` : Automatic extract database name and table name.
-            - `Tuple[str, str]` : Database name and table name.
-
+            - `str`: Automatic extract database name and table name.
+            - `Tuple[str, str]`: Database name and table name.
         where : Clause `WHERE` content, join as `WHERE str`.
         limit : Clause `LIMIT` content.
-            - `Union[int, str]` : Join as `LIMIT int/str`.
-            - `Tuple[int, int]` : Join as `LIMIT int, int`.
-
+            - `Union[int, str]`: Join as `LIMIT int/str`.
+            - `Tuple[int, int]`: Join as `LIMIT int, int`.
         report : Whether report SQL execute information.
-            - `None` : Use attribute `report_execute_info` of object `ROption`.
-            - `int` : Use this value.
-
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
         kwdata : Keyword parameters for filling.
-            - `In 'WHERE' syntax` : Fill 'WHERE' syntax.
-            - `Not in 'WHERE' syntax` : Fill 'INSERT' and 'SELECT' syntax.
-                * `str and first character is ':'` : Use this syntax.
-                * `Any` : Use this value.
+            - `In 'WHERE' syntax`: Fill 'WHERE' syntax.
+            - `Not in 'WHERE' syntax`: Fill 'INSERT' and 'SELECT' syntax.
+                `str and first character is ':'`: Use this syntax.
+                `Any`: Use this value.
 
         Returns
         -------
@@ -1513,17 +1493,14 @@ class RDatabase(object):
         Parameters
         ----------
         path : Table name, can contain database name, otherwise use `self.database`.
-            - `str` : Automatic extract database name and table name.
-            - `Tuple[str, str]` : Database name and table name.
-
+            - `str`: Automatic extract database name and table name.
+            - `Tuple[str, str]`: Database name and table name.
         where : Match condition, `WHERE` clause content, join as `WHERE str`.
-            - `None` : Match all.
-            - `str` : Match condition.
-
+            - `None`: Match all.
+            - `str`: Match condition.
         report : Whether report SQL execute information.
-            - `None` : Use attribute `report_execute_info` of object `ROption`.
-            - `int` : Use this value.
-
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1570,17 +1547,14 @@ class RDatabase(object):
         Parameters
         ----------
         path : Table name, can contain database name, otherwise use `self.database`.
-            - `str` : Automatic extract database name and table name.
-            - `Tuple[str, str]` : Database name and table name.
-
+            - `str`: Automatic extract database name and table name.
+            - `Tuple[str, str]`: Database name and table name.
         where : Match condition, `WHERE` clause content, join as `WHERE str`.
-            - `None` : Match all.
-            - `str` : Match condition.
-
+            - `None`: Match all.
+            - `str`: Match condition.
         report : Whether report SQL execute information.
-            - `None` : Use attribute `report_execute_info` of object `ROption`.
-            - `int` : Use this value.
-
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1625,9 +1599,8 @@ class RDatabase(object):
         sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
         data : Data set for filling.
         report : Whether report SQL execute information.
-            - `None` : Use attribute `default_report`.
-            - `bool` : Use this value.
-
+            - `None`: Use attribute `default_report`.
+            - `bool`: Use this value.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1999,9 +1972,8 @@ class RDatabase(object):
         sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
         data : Data set for filling.
         report : Whether report SQL execute information.
-            - `None` : Use attribute `default_report`.
-            - `bool` : Use this value.
-
+            - `None`: Use attribute `default_report`.
+            - `bool`: Use this value.
         generator : whether return a generator that can execute SQL, otherwise execute SQL.
         kwdata : Keyword parameters for filling.
 
@@ -2170,9 +2142,8 @@ class RDBConnection(RDatabase):
         sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
         data : Data set for filling.
         report : Whether report SQL execute information.
-            - `None` : Use attribute `default_report`.
-            - `bool` : Use this value.
-
+            - `None`: Use attribute `default_report`.
+            - `bool`: Use this value.
         kwdata : Keyword parameters for filling.
 
         Returns

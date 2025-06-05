@@ -219,11 +219,10 @@ class RDBFile(object):
         ----------
         file : File path or file bytes.
         name : File name.
-            - `None` : Automatic set.
-                * `parameter 'file' is 'str'` : Use path file name.
-                * `parameter 'file' is 'bytes'` : No name.
-            - `str` : Use this name.
-
+            - `None`: Automatic set.
+                `parameter 'file' is 'str'`: Use path file name.
+                `parameter 'file' is 'bytes'`: No name.
+            - `str`: Use this name.
         note : File note.
 
         Returns
@@ -325,10 +324,10 @@ class RDBFile(object):
         ----------
         file_id : File ID.
         path : File save path.
-            - `None` : Not save and return file bytes.
-            - `str` : Save and return file path.
-                * `File path` : Use this file path.
-                * `Folder path` : Use this folder path and original name.
+            - `None`: Not save and return file bytes.
+            - `str`: Save and return file path.
+                `File path`: Use this file path.
+                `Folder path`: Use this folder path and original name.
 
         Returns
         -------

@@ -229,37 +229,33 @@ class RDBBuild(object):
         Parameters
         ----------
         path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str` : Automatic extract database name and table name.
-            - `Tuple[str, str]` : Database name and table name.
-
+            - `str`: Automatic extract database name and table name.
+            - `Tuple[str, str]`: Database name and table name.
         fields : Fields set table.
-            - `Key 'name'` : Field name, required.
-            - `Key 'type' or 'type_'` : Field type, required.
-            - `Key 'constraint'` : Field constraint.
-                * `Empty or None` : Use 'DEFAULT NULL'.
-                * `str` : Use this value.
-            - `Key 'comment'` : Field comment.
-                * `Empty or None` : Not comment.
-                * `str` : Use this value.
-
+            - `Key 'name'`: Field name, required.
+            - `Key 'type' or 'type_'`: Field type, required.
+            - `Key 'constraint'`: Field constraint.
+                `Empty or None`: Use 'DEFAULT NULL'.
+                `str`: Use this value.
+            - `Key 'comment'`: Field comment.
+                `Empty or None`: Not comment.
+                `str`: Use this value.
         primary : Primary key fields.
-            - `str` : One field.
-            - `List[str]` : Multiple fileds.
-
+            - `str`: One field.
+            - `List[str]`: Multiple fileds.
         indexes : Index set table.
-            - `Key 'name'` : Index name, required.
-            - `Key 'fields'` : Index fields, required.
-                * `str` : One field.
-                * `List[str]` : Multiple fileds.
-            - `Key 'type' or 'type_'` : Index type.
-                * `Literal['noraml']` : Noraml key.
-                * `Literal['unique']` : Unique key.
-                * `Literal['fulltext']` : Full text key.
-                * `Literal['spatial']` : Spatial key.
-            - `Key 'comment'` : Field comment.
-                * `Empty or None` : Not comment.
-                * `str` : Use this value.
-
+            - `Key 'name'`: Index name, required.
+            - `Key 'fields'`: Index fields, required.
+                `str`: One field.
+                `List[str]`: Multiple fileds.
+            - `Key 'type' or 'type_'`: Index type.
+                `Literal['noraml']`: Noraml key.
+                `Literal['unique']`: Unique key.
+                `Literal['fulltext']`: Full text key.
+                `Literal['spatial']`: Spatial key.
+            - `Key 'comment'`: Field comment.
+                `Empty or None`: Not comment.
+                `str`: Use this value.
         engine : Engine type.
         increment : Automatic Increment start value.
         charset : Charset type.
@@ -372,9 +368,8 @@ class RDBBuild(object):
         Parameters
         ----------
         path : View name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str` : Automatic extract database name and view name.
-            - `Tuple[str, str]` : Database name and view name.
-
+            - `str`: Automatic extract database name and view name.
+            - `Tuple[str, str]`: Database name and view name.
         select : View select SQL.
         execute : Whether directly execute.
 
@@ -413,14 +408,12 @@ class RDBBuild(object):
         Parameters
         ----------
         path : View name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str` : Automatic extract database name and view name.
-            - `Tuple[str, str]` : Database name and view name.
-
+            - `str`: Automatic extract database name and view name.
+            - `Tuple[str, str]`: Database name and view name.
         items : Items set table.
-            - `Key 'name'` : Item name, required.
-            - `Key 'select'` : Item select SQL, must only return one value, required.
-            - `Key 'comment' : Item comment.
-
+            - `Key 'name'`: Item name, required.
+            - `Key 'select'`: Item select SQL, must only return one value, required.
+            - `Key 'comment'`: Item comment.
         execute : Whether directly execute.
 
         Returns
@@ -507,9 +500,8 @@ class RDBBuild(object):
         Parameters
         ----------
         path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str` : Automatic extract database name and table name.
-            - `Tuple[str, str]` : Database name and table name.
-
+            - `str`: Automatic extract database name and table name.
+            - `Tuple[str, str]`: Database name and table name.
         execute : Whether directly execute.
 
         Returns
@@ -545,9 +537,8 @@ class RDBBuild(object):
         Parameters
         ----------
         path : View name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str` : Automatic extract database name and view name.
-            - `Tuple[str, str]` : Database name and view name.
-
+            - `str`: Automatic extract database name and view name.
+            - `Tuple[str, str]`: Database name and view name.
         execute : Whether directly execute.
 
         Returns
@@ -586,13 +577,11 @@ class RDBBuild(object):
         ----------
         database : Database name.
         character : Character set.
-            - `None` : Not alter.
-            - `str` : Alter to this value.
-
+            - `None`: Not alter.
+            - `str`: Alter to this value.
         collate : Collate rule.
-            - `None` : Not alter.
-            - `str` : Alter to this value.
-
+            - `None`: Not alter.
+            - `str`: Alter to this value.
         execute : Whether directly execute.
 
         Returns
@@ -638,40 +627,37 @@ class RDBBuild(object):
         Parameters
         ----------
         path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str` : Automatic extract database name and table name.
-            - `Tuple[str, str]` : Database name and table name.
-
+            - `str`: Automatic extract database name and table name.
+            - `Tuple[str, str]`: Database name and table name.
         fields : Fields set table.
-            - `Key 'name'` : Field name, required.
-            - `Key 'type' or 'type_'` : Field type, required.
-            - `Key 'constraint'` : Field constraint.
-                * `Empty or None` : Use 'DEFAULT NULL'.
-                * `str` : Use this value.
-            - `Key 'comment'` : Field comment.
-                * `Empty or None` : Not comment.
-                * `str` : Use this value.
-            - `Key 'position'` : Field position.
-                * `None` : Last.
-                * `Literal['first']` : First.
-                * `str` : After this field.
-
+            - `Key 'name'`: Field name, required.
+            - `Key 'type' or 'type_'`: Field type, required.
+            - `Key 'constraint'`: Field constraint.
+                `Empty or None`: Use 'DEFAULT NULL'.
+                `str`: Use this value.
+            - `Key 'comment'`: Field comment.
+                `Empty or None`: Not comment.
+                `str`: Use this value.
+            - `Key 'position'`: Field position.
+                `None`: Last.
+                `Literal['first']`: First.
+                `str`: After this field.
         primary : Primary key fields.
-            - `str` : One field.
-            - `List[str]` : Multiple fileds.
-
+            - `str`: One field.
+            - `List[str]`: Multiple fileds.
         indexes : Index set table.
-            - `Key 'name'` : Index name, required.
-            - `Key 'fields'` : Index fields, required.
-                * `str` : One field.
-                * `List[str]` : Multiple fileds.
-            - `Key 'type' or 'type_'` : Index type.
-                * `Literal['noraml']` : Noraml key.
-                * `Literal['unique']` : Unique key.
-                * `Literal['fulltext']` : Full text key.
-                * `Literal['spatial']` : Spatial key.
-            - `Key 'comment'` : Field comment.
-                * `Empty or None` : Not comment.
-                * `str` : Use this value.
+            - `Key 'name'`: Index name, required.
+            - `Key 'fields'`: Index fields, required.
+                `str`: One field.
+                `List[str]`: Multiple fileds.
+            - `Key 'type' or 'type_'`: Index type.
+                `Literal['noraml']`: Noraml key.
+                `Literal['unique']`: Unique key.
+                `Literal['fulltext']`: Full text key.
+                `Literal['spatial']`: Spatial key.
+            - `Key 'comment'`: Field comment.
+                `Empty or None`: Not comment.
+                `str`: Use this value.
 
         Returns
         -------
@@ -776,9 +762,8 @@ class RDBBuild(object):
         Parameters
         ----------
         path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str` : Automatic extract database name and table name.
-            - `Tuple[str, str]` : Database name and table name.
-
+            - `str`: Automatic extract database name and table name.
+            - `Tuple[str, str]`: Database name and table name.
         fields : Delete fields name.
         primary : Whether delete primary key.
         indexes : Delete indexes name.
@@ -851,24 +836,22 @@ class RDBBuild(object):
         Parameters
         ----------
         path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str` : Automatic extract database name and table name.
-            - `Tuple[str, str]` : Database name and table name.
-
+            - `str`: Automatic extract database name and table name.
+            - `Tuple[str, str]`: Database name and table name.
         fields : Fields set table.
-            - `Key 'name'` : Field name, required.
-            - `Key 'type' or 'type_'` : Field type, required.
-            - `Key 'constraint'` : Field constraint.
-                * `Empty or None` : Use 'DEFAULT NULL'.
-                * `str` : Use this value.
-            - `Key 'comment'` : Field comment.
-                * `Empty or None` : Not comment.
-                * `str` : Use this value.
-            - `Key 'position'` : Field position.
-                * `None` : Last.
-                * `Literal['first']` : First.
-                * `str` : After this field.
-            - `Key 'old_name'` : Field old name.
-
+            - `Key 'name'`: Field name, required.
+            - `Key 'type' or 'type_'`: Field type, required.
+            - `Key 'constraint'`: Field constraint.
+                `Empty or None`: Use 'DEFAULT NULL'.
+                `str`: Use this value.
+            - `Key 'comment'`: Field comment.
+                `Empty or None`: Not comment.
+                `str`: Use this value.
+            - `Key 'position'`: Field position.
+                `None`: Last.
+                `Literal['first']`: First.
+                `str`: After this field.
+            - `Key 'old_name'`: Field old name.
         rename : Table new name.
         engine : Engine type.
         increment : Automatic Increment start value.
@@ -979,9 +962,8 @@ class RDBBuild(object):
         Parameters
         ----------
         path : View name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str` : Automatic extract database name and view name.
-            - `Tuple[str, str]` : Database name and view name.
-
+            - `str`: Automatic extract database name and view name.
+            - `Tuple[str, str]`: Database name and view name.
         select : View select SQL.
         execute : Whether directly execute.
 
@@ -1018,9 +1000,8 @@ class RDBBuild(object):
         Parameters
         ----------
         path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str` : Automatic extract database name and table name.
-            - `Tuple[str, str]` : Database name and table name.
-
+            - `str`: Automatic extract database name and table name.
+            - `Tuple[str, str]`: Database name and table name.
         execute : Whether directly execute.
 
         Returns
@@ -1055,8 +1036,8 @@ class RDBBuild(object):
         Parameters
         ----------
         path : Database name and table name and column name.
-            - `str` : Automatic extract.
-            - `Tuple[str, Optional[str], Optional[str]]` : Database name, table name and column name is optional.
+            - `str`: Automatic extract.
+            - `Tuple[str, Optional[str], Optional[str]]`: Database name, table name and column name is optional.
 
         Returns
         -------

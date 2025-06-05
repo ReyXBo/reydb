@@ -101,8 +101,8 @@ class RDBPStatus(RDBParameter):
         Parameters
         ----------
         key : Parameter key.
-            - `None` : Return dictionary of all parameters.
-            - `str` : Return value of parameter.
+            - `None`: Return dictionary of all parameters.
+            - `str`: Return value of parameter.
 
         Returns
         -------
@@ -170,8 +170,8 @@ class RDBPVariable(RDBParameter):
         Parameters
         ----------
         key : Parameter key.
-            - `None` : Return dictionary of all parameters.
-            - `str` : Return value of parameter.
+            - `None`: Return dictionary of all parameters.
+            - `str`: Return value of parameter.
 
         Returns
         -------

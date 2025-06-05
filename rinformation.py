@@ -97,8 +97,8 @@ class RDBInformation(object):
         Parameters
         ----------
         key : Attribute key. When key not exist, then try all caps key.
-            - `Literal['*', 'all', 'ALL']` : Get attribute dictionary.
-            - `str` : Get attribute value.
+            - `Literal['*', 'all', 'ALL']`: Get attribute dictionary.
+            - `str`: Get attribute value.
 
         Returns
         -------
