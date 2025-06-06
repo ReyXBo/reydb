@@ -12,7 +12,6 @@
 from __future__ import annotations
 from typing import Any, List, Dict, Tuple, Union, Optional, Literal, Iterable, Generator, NoReturn, Type, overload, override
 from types import TracebackType
-from re import findall
 from urllib.parse import quote as urllib_quote
 from sqlalchemy import create_engine as sqlalchemy_create_engine, text
 from sqlalchemy.engine.base import Engine, Connection
@@ -24,7 +23,7 @@ from pandas import DataFrame
 from reykit.rdata import objs_in, RGenerator
 from reykit.rexception import throw
 from reykit.rmonkey import monkey_patch_sqlalchemy_result_more_fetch, monkey_patch_sqlalchemy_row_index_field
-from reykit.rregex import search
+from reykit.rregex import search, findall
 from reykit.rstdout import echo
 from reykit.rsystem import get_first_notnull
 from reykit.rtable import Table, to_table
@@ -586,11 +585,11 @@ class RDatabase(object):
             sql = sql.text
 
         # Extract keys.
-        pattern = '(?<!\\):(\\w+)'
+        pattern = '(?<!\\\\):(\\w+)'
         sql_keys = findall(pattern, sql)
 
         # Extract keys of syntax "in".
-        pattern = "[iI][nN]\\s+(?<!\\):(\\w+)"
+        pattern = '[iI][nN]\\s+(?<!\\\\):(\\w+)'
         sql_keys_in = findall(pattern, sql)
 
         # Loop.
@@ -1391,7 +1390,7 @@ class RDatabase(object):
             row['COLUMN_NAME']
             for row in table_info
         ]
-        pattern = '(?<!\\):(\\w+)'
+        pattern = '(?<!\\\\):(\\w+)'
         if where.__class__ == str:
             where_keys = findall(pattern, where)
         else:
