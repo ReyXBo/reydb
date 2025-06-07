@@ -10,7 +10,7 @@
 
 
 from __future__ import annotations
-from typing import Any, List, Dict, Tuple, Union, Literal, overload
+from typing import Any, Union, Literal, overload
 from reykit.rexception import throw
 from reykit.rtable import Table
 
@@ -90,21 +90,21 @@ class RDBExecute(object):
 
         # Set parameter.
         self._rdatabase = rdatabase
-        self._path: List[str] = []
+        self._path: list[str] = []
 
 
     @overload
     def __getattr__(self, key: Literal['_rdatabase']) -> Union[RDatabase, RDBConnection]: ...
 
     @overload
-    def __getattr__(self, key: Literal['_path']) -> List[str]: ...
+    def __getattr__(self, key: Literal['_path']) -> list[str]: ...
 
     @overload
     def __getattr__(self, key: str) -> RDBExecute: ...
 
     def __getattr__(self, key: str) -> Union[
         Union[RDatabase, RDBConnection],
-        List[str],
+        list[str],
         RDBExecute
     ]:
         """
@@ -134,7 +134,7 @@ class RDBExecute(object):
 
 
     @property
-    def _get_path(self) -> Tuple[str, str]:
+    def _get_path(self) -> tuple[str, str]:
         """
         Get database name and table name.
 
@@ -184,7 +184,7 @@ class RDBExecute(object):
 
     def __add__(
         self,
-        params: Union[Tuple, Dict, Table]
+        params: Union[tuple, dict, Table]
     ) -> RResult:
         """
         Insert the data of table in the datebase.
@@ -192,8 +192,8 @@ class RDBExecute(object):
         Parameters
         ----------
         params : Insert parameters.
-            - `Tuple`: Enter parameters in '(path, *params)' format.
-            - `Dict`: Enter parameters in '(path, **params)' format.
+            - `tuple`: Enter parameters in '(path, *params)' format.
+            - `dict`: Enter parameters in '(path, **params)' format.
             - `Table`: Enter parameters in '(path, params)' format.
 
         Returns
@@ -215,7 +215,7 @@ class RDBExecute(object):
 
     def __and__(
         self,
-        params: Union[Tuple, Dict, Table]
+        params: Union[tuple, dict, Table]
     ) -> RResult:
         """
         Update the data of table in the datebase.
@@ -223,8 +223,8 @@ class RDBExecute(object):
         Parameters
         ----------
         params : Update parameters.
-            - `Tuple`: Enter parameters in '(path, *params)' format.
-            - `Dict`: Enter parameters in '(path, **params)' format.
+            - `tuple`: Enter parameters in '(path, *params)' format.
+            - `dict`: Enter parameters in '(path, **params)' format.
             - `Table`: Enter parameters in '(path, params)' format.
 
         Returns
@@ -246,7 +246,7 @@ class RDBExecute(object):
 
     def __sub__(
         self,
-        params: Union[Tuple, Dict, str]
+        params: Union[tuple, dict, str]
     ) -> RResult:
         """
         Delete the data of table in the datebase.
@@ -254,8 +254,8 @@ class RDBExecute(object):
         Parameters
         ----------
         params : Update parameters.
-            - `Tuple`: Enter parameters in '(path, *params)' format.
-            - `Dict`: Enter parameters in '(path, **params)' format.
+            - `tuple`: Enter parameters in '(path, *params)' format.
+            - `dict`: Enter parameters in '(path, **params)' format.
             - `str`: Enter parameters in '(path, params)' format.
 
         Returns
@@ -277,7 +277,7 @@ class RDBExecute(object):
 
     def __mul__(
         self,
-        params: Union[Tuple, Dict, str]
+        params: Union[tuple, dict, str]
     ) -> RResult:
         """
         Copy record of table in the datebase.
@@ -285,8 +285,8 @@ class RDBExecute(object):
         Parameters
         ----------
         params : Update parameters.
-            - `Tuple`: Enter parameters in '(path, *params)' format.
-            - `Dict`: Enter parameters in '(path, **params)' format.
+            - `tuple`: Enter parameters in '(path, *params)' format.
+            - `dict`: Enter parameters in '(path, **params)' format.
             - `str`: Enter parameters in '(path, params)' format.
 
         Returns
@@ -308,7 +308,7 @@ class RDBExecute(object):
 
     def __contains__(
         self,
-        params: Union[Tuple, Dict, str]
+        params: Union[tuple, dict, str]
     ) -> bool:
         """
         Judge the exist of record.
@@ -316,8 +316,8 @@ class RDBExecute(object):
         Parameters
         ----------
         params : Update parameters.
-            - `Tuple`: Enter parameters in '(path, *params)' format.
-            - `Dict`: Enter parameters in '(path, **params)' format.
+            - `tuple`: Enter parameters in '(path, *params)' format.
+            - `dict`: Enter parameters in '(path, **params)' format.
             - `str`: Enter parameters in '(path, params)' format.
 
         Returns

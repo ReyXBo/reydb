@@ -9,7 +9,7 @@
 """
 
 
-from typing import Any, List, Tuple, Dict, Optional, Union, Literal, NoReturn, overload
+from typing import Any, Optional, Union, Literal, NoReturn, overload
 from reykit.rexception import throw
 from reykit.rstdout import rinput
 from reykit.rsystem import get_first_notnull
@@ -135,7 +135,7 @@ class RDBBuild(object):
     def _get_index_sql(
         self,
         name: str,
-        fields: Union[str, List[str]],
+        fields: Union[str, list[str]],
         type_: Literal['noraml', 'unique', 'fulltext', 'spatial'] = 'noraml',
         comment: Optional[str] = None
     ) -> str: ...
@@ -144,7 +144,7 @@ class RDBBuild(object):
     def _get_index_sql(
         self,
         name: str,
-        fields: Union[str, List[str]],
+        fields: Union[str, list[str]],
         type_: str = 'noraml',
         comment: Optional[str] = None
     ) -> NoReturn: ...
@@ -152,7 +152,7 @@ class RDBBuild(object):
     def _get_index_sql(
         self,
         name: str,
-        fields: Union[str, List[str]],
+        fields: Union[str, list[str]],
         type_: Literal['noraml', 'unique', 'fulltext', 'spatial'] = 'noraml',
         comment: Optional[str] = None
     ) -> str:
@@ -212,10 +212,10 @@ class RDBBuild(object):
 
     def create_table(
         self,
-        path: Union[str, Tuple[str, str]],
-        fields: Union[Dict, List[Dict]],
-        primary: Optional[Union[str, List[str]]] = None,
-        indexes: Optional[Union[Dict, List[Dict]]] = None,
+        path: Union[str, tuple[str, str]],
+        fields: Union[dict, list[dict]],
+        primary: Optional[Union[str, list[str]]] = None,
+        indexes: Optional[Union[dict, list[dict]]] = None,
         engine: str = 'InnoDB',
         increment: int = 1,
         charset: str = 'utf8mb3',
@@ -230,7 +230,7 @@ class RDBBuild(object):
         ----------
         path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
             - `str`: Automatic extract database name and table name.
-            - `Tuple[str, str]`: Database name and table name.
+            - `tuple[str, str]`: Database name and table name.
         fields : Fields set table.
             - `Key 'name'`: Field name, required.
             - `Key 'type' or 'type_'`: Field type, required.
@@ -242,12 +242,12 @@ class RDBBuild(object):
                 `str`: Use this value.
         primary : Primary key fields.
             - `str`: One field.
-            - `List[str]`: Multiple fileds.
+            - `list[str]`: Multiple fileds.
         indexes : Index set table.
             - `Key 'name'`: Index name, required.
             - `Key 'fields'`: Index fields, required.
                 `str`: One field.
-                `List[str]`: Multiple fileds.
+                `list[str]`: Multiple fileds.
             - `Key 'type' or 'type_'`: Index type.
                 `Literal['noraml']`: Noraml key.
                 `Literal['unique']`: Unique key.
@@ -358,7 +358,7 @@ class RDBBuild(object):
 
     def create_view(
         self,
-        path: Union[str, Tuple[str, str]],
+        path: Union[str, tuple[str, str]],
         select: str,
         execute: bool = True
     ) -> str:
@@ -369,7 +369,7 @@ class RDBBuild(object):
         ----------
         path : View name, can contain database name, otherwise use `self.rdatabase.database`.
             - `str`: Automatic extract database name and view name.
-            - `Tuple[str, str]`: Database name and view name.
+            - `tuple[str, str]`: Database name and view name.
         select : View select SQL.
         execute : Whether directly execute.
 
@@ -398,8 +398,8 @@ class RDBBuild(object):
 
     def create_view_stats(
         self,
-        path: Union[str, Tuple[str, str]],
-        items: List[Dict],
+        path: Union[str, tuple[str, str]],
+        items: list[dict],
         execute: bool = True
     ) -> str:
         """
@@ -409,7 +409,7 @@ class RDBBuild(object):
         ----------
         path : View name, can contain database name, otherwise use `self.rdatabase.database`.
             - `str`: Automatic extract database name and view name.
-            - `Tuple[str, str]`: Database name and view name.
+            - `tuple[str, str]`: Database name and view name.
         items : Items set table.
             - `Key 'name'`: Item name, required.
             - `Key 'select'`: Item select SQL, must only return one value, required.
@@ -491,7 +491,7 @@ class RDBBuild(object):
 
     def drop_table(
         self,
-        path: Union[str, Tuple[str, str]],
+        path: Union[str, tuple[str, str]],
         execute: bool = True
     ) -> str:
         """
@@ -501,7 +501,7 @@ class RDBBuild(object):
         ----------
         path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
             - `str`: Automatic extract database name and table name.
-            - `Tuple[str, str]`: Database name and table name.
+            - `tuple[str, str]`: Database name and table name.
         execute : Whether directly execute.
 
         Returns
@@ -528,7 +528,7 @@ class RDBBuild(object):
 
     def drop_view(
         self,
-        path: Union[str, Tuple[str, str]],
+        path: Union[str, tuple[str, str]],
         execute: bool = True
     ) -> str:
         """
@@ -538,7 +538,7 @@ class RDBBuild(object):
         ----------
         path : View name, can contain database name, otherwise use `self.rdatabase.database`.
             - `str`: Automatic extract database name and view name.
-            - `Tuple[str, str]`: Database name and view name.
+            - `tuple[str, str]`: Database name and view name.
         execute : Whether directly execute.
 
         Returns
@@ -615,10 +615,10 @@ class RDBBuild(object):
 
     def alter_table_add(
         self,
-        path: Union[str, Tuple[str, str]],
-        fields: Optional[Union[Dict, List[Dict]]] = None,
-        primary: Optional[Union[str, List[str]]] = None,
-        indexes: Optional[Union[Dict, List[Dict]]] = None,
+        path: Union[str, tuple[str, str]],
+        fields: Optional[Union[dict, list[dict]]] = None,
+        primary: Optional[Union[str, list[str]]] = None,
+        indexes: Optional[Union[dict, list[dict]]] = None,
         execute: bool = True
     ) -> str:
         """
@@ -628,7 +628,7 @@ class RDBBuild(object):
         ----------
         path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
             - `str`: Automatic extract database name and table name.
-            - `Tuple[str, str]`: Database name and table name.
+            - `tuple[str, str]`: Database name and table name.
         fields : Fields set table.
             - `Key 'name'`: Field name, required.
             - `Key 'type' or 'type_'`: Field type, required.
@@ -644,12 +644,12 @@ class RDBBuild(object):
                 `str`: After this field.
         primary : Primary key fields.
             - `str`: One field.
-            - `List[str]`: Multiple fileds.
+            - `list[str]`: Multiple fileds.
         indexes : Index set table.
             - `Key 'name'`: Index name, required.
             - `Key 'fields'`: Index fields, required.
                 `str`: One field.
-                `List[str]`: Multiple fileds.
+                `list[str]`: Multiple fileds.
             - `Key 'type' or 'type_'`: Index type.
                 `Literal['noraml']`: Noraml key.
                 `Literal['unique']`: Unique key.
@@ -750,10 +750,10 @@ class RDBBuild(object):
 
     def alter_table_drop(
         self,
-        path: Union[str, Tuple[str, str]],
-        fields: Optional[List[str]] = None,
+        path: Union[str, tuple[str, str]],
+        fields: Optional[list[str]] = None,
         primary: bool = False,
-        indexes: Optional[List[str]] = None,
+        indexes: Optional[list[str]] = None,
         execute: bool = True
     ) -> str:
         """
@@ -763,7 +763,7 @@ class RDBBuild(object):
         ----------
         path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
             - `str`: Automatic extract database name and table name.
-            - `Tuple[str, str]`: Database name and table name.
+            - `tuple[str, str]`: Database name and table name.
         fields : Delete fields name.
         primary : Whether delete primary key.
         indexes : Delete indexes name.
@@ -821,8 +821,8 @@ class RDBBuild(object):
 
     def alter_table_change(
         self,
-        path: Union[str, Tuple[str, str]],
-        fields: Optional[Union[Dict, List[Dict]]] = None,
+        path: Union[str, tuple[str, str]],
+        fields: Optional[Union[dict, list[dict]]] = None,
         rename: Optional[str] = None,
         engine: Optional[str] = None,
         increment: Optional[int] = None,
@@ -837,7 +837,7 @@ class RDBBuild(object):
         ----------
         path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
             - `str`: Automatic extract database name and table name.
-            - `Tuple[str, str]`: Database name and table name.
+            - `tuple[str, str]`: Database name and table name.
         fields : Fields set table.
             - `Key 'name'`: Field name, required.
             - `Key 'type' or 'type_'`: Field type, required.
@@ -952,7 +952,7 @@ class RDBBuild(object):
 
     def alter_view(
         self,
-        path: Union[str, Tuple[str, str]],
+        path: Union[str, tuple[str, str]],
         select: str,
         execute: bool = True
     ) -> str:
@@ -963,7 +963,7 @@ class RDBBuild(object):
         ----------
         path : View name, can contain database name, otherwise use `self.rdatabase.database`.
             - `str`: Automatic extract database name and view name.
-            - `Tuple[str, str]`: Database name and view name.
+            - `tuple[str, str]`: Database name and view name.
         select : View select SQL.
         execute : Whether directly execute.
 
@@ -991,7 +991,7 @@ class RDBBuild(object):
 
     def truncate_table(
         self,
-        path: Union[str, Tuple[str, str]],
+        path: Union[str, tuple[str, str]],
         execute: bool = True
     ) -> str:
         """
@@ -1001,7 +1001,7 @@ class RDBBuild(object):
         ----------
         path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
             - `str`: Automatic extract database name and table name.
-            - `Tuple[str, str]`: Database name and table name.
+            - `tuple[str, str]`: Database name and table name.
         execute : Whether directly execute.
 
         Returns
@@ -1028,7 +1028,7 @@ class RDBBuild(object):
 
     def exist(
         self,
-        path: Union[str, Tuple[str, Optional[str], Optional[str]]]
+        path: Union[str, tuple[str, Optional[str], Optional[str]]]
     ) -> bool:
         """
         Judge database or table or column exists.
@@ -1037,7 +1037,7 @@ class RDBBuild(object):
         ----------
         path : Database name and table name and column name.
             - `str`: Automatic extract.
-            - `Tuple[str, Optional[str], Optional[str]]`: Database name, table name and column name is optional.
+            - `tuple[str, Optional[str], Optional[str]]`: Database name, table name and column name is optional.
 
         Returns
         -------
@@ -1109,10 +1109,10 @@ class RDBBuild(object):
 
     def build(
         self,
-        databases: Optional[List[Dict]] = None,
-        tables: Optional[List[Dict]] = None,
-        views: Optional[List[Dict]] = None,
-        views_stats: Optional[List[Dict]] = None
+        databases: Optional[list[dict]] = None,
+        tables: Optional[list[dict]] = None,
+        views: Optional[list[dict]] = None,
+        views_stats: Optional[list[dict]] = None
     ) -> None:
         """
         Build databases or tables.

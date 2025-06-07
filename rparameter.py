@@ -9,7 +9,7 @@
 """
 
 
-from typing import Dict, Union, Optional, overload
+from typing import Union, Optional, overload
 
 from .rconnection import RDatabase, RDBConnection
 
@@ -89,12 +89,12 @@ class RDBPStatus(RDBParameter):
 
 
     @overload
-    def get(self, key: None = None) -> Dict[str, str]: ...
+    def get(self, key: None = None) -> dict[str, str]: ...
 
     @overload
     def get(self, key: str = None) -> Optional[str]: ...
 
-    def get(self, key: Optional[str] = None) -> Union[Dict[str, str], Optional[str]]:
+    def get(self, key: Optional[str] = None) -> Union[dict[str, str], Optional[str]]:
         """
         Get parameter.
 
@@ -138,7 +138,7 @@ class RDBPStatus(RDBParameter):
         return status
 
 
-    def update(self, params: Dict[str, Union[str, float]]) -> None:
+    def update(self, params: dict[str, Union[str, float]]) -> None:
         """
         Update parameter.
 
@@ -158,12 +158,12 @@ class RDBPVariable(RDBParameter):
 
 
     @overload
-    def get(self, key: None = None) -> Dict[str, str]: ...
+    def get(self, key: None = None) -> dict[str, str]: ...
 
     @overload
     def get(self, key: str = None) -> Optional[str]: ...
 
-    def get(self, key: Optional[str] = None) -> Union[Dict[str, str], Optional[str]]:
+    def get(self, key: Optional[str] = None) -> Union[dict[str, str], Optional[str]]:
         """
         Get parameter.
 
@@ -208,7 +208,7 @@ class RDBPVariable(RDBParameter):
 
 
 
-    def update(self, params: Dict[str, Union[str, float]]) -> None:
+    def update(self, params: dict[str, Union[str, float]]) -> None:
         """
         Update parameter.
 

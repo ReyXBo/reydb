@@ -10,8 +10,9 @@
 
 
 from __future__ import annotations
-from typing import Any, List, Dict, Tuple, Union, Optional, Literal, Iterable, Generator, NoReturn, Type, overload, override
+from typing import Any, Union, Optional, Literal, NoReturn, overload, override
 from types import TracebackType
+from collections.abc import Iterable, Generator
 from urllib.parse import quote as urllib_quote
 from sqlalchemy import create_engine as sqlalchemy_create_engine, text
 from sqlalchemy.engine.base import Engine, Connection
@@ -51,7 +52,7 @@ class RDatabase(object):
 
 
     # Values to be converted to 'NULL'.
-    nulls: Tuple = ('', ' ', b'', [], (), {}, set())
+    nulls: tuple = ('', ' ', b'', [], (), {}, set())
 
     # Default value.
     default_report: bool = False
@@ -222,7 +223,7 @@ class RDatabase(object):
             self.host: str = params['host']
             self.port: str = params['port']
             self.database: Optional[str] = params['database']
-            self.query: Dict = params['query']
+            self.query: dict = params['query']
             self.pool_size: int = params['pool_size']
             self.max_overflow: int = params['max_overflow']
             self.pool_timeout: float = params['pool_timeout']
@@ -255,7 +256,7 @@ class RDatabase(object):
             self.host: str = get_first_notnull(host, params['host'], default='exception')
             self.port: str = get_first_notnull(port, params['port'], default='exception')
             self.database: Optional[str] = get_first_notnull(database, params['database'])
-            self.query: Dict = get_first_notnull(query, params['query'])
+            self.query: dict = get_first_notnull(query, params['query'])
             self.pool_size = pool_size
             self.max_overflow = max_overflow
             self.pool_timeout = pool_timeout
@@ -272,7 +273,7 @@ class RDatabase(object):
                 self.engine = self.create_engine()
 
 
-    def extract_url(self, url: Union[str, URL]) -> Dict[
+    def extract_url(self, url: Union[str, URL]) -> dict[
         Literal['drivername', 'username', 'password', 'host', 'port', 'database', 'query'],
         Any
     ]:
@@ -337,7 +338,7 @@ class RDatabase(object):
         return params
 
 
-    def extract_engine(self, engine: Union[Engine, Connection]) -> Dict[
+    def extract_engine(self, engine: Union[Engine, Connection]) -> dict[
         Literal[
             'drivername', 'username', 'password', 'host', 'port', 'database', 'query',
             'pool_size', 'max_overflow', 'pool_timeout', 'pool_recycle'
@@ -396,20 +397,20 @@ class RDatabase(object):
         self,
         path: str,
         main: Literal['table'] = 'table'
-    ) -> Tuple[Optional[str], str, Optional[str]]: ...
+    ) -> tuple[Optional[str], str, Optional[str]]: ...
 
     @overload
     def extract_path(
         self,
         path: str,
         main: Literal['database'] = 'table'
-    ) -> Tuple[str, Optional[str], Optional[str]]: ...
+    ) -> tuple[str, Optional[str], Optional[str]]: ...
 
     def extract_path(
         self,
         path: str,
         main: Literal['table', 'database'] = 'table'
-    ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    ) -> tuple[Optional[str], Optional[str], Optional[str]]:
         """
         Extract table name and database name and column name from path.
 
@@ -530,7 +531,7 @@ class RDatabase(object):
 
 
     @property
-    def count(self) -> Tuple[int, int]:
+    def count(self) -> tuple[int, int]:
         """
         Count number of keep open and allowed overflow connection.
 
@@ -561,7 +562,7 @@ class RDatabase(object):
         self,
         data: Table,
         sql: Union[str, TextClause],
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Handle data based on the content of SQL.
 
@@ -617,7 +618,7 @@ class RDatabase(object):
         return data
 
 
-    def get_syntax(self, sql: Union[str, TextClause]) -> List[str]:
+    def get_syntax(self, sql: Union[str, TextClause]) -> list[str]:
         """
         Extract SQL syntax type for each segment form SQL.
 
@@ -670,7 +671,7 @@ class RDatabase(object):
         self,
         connection: Connection,
         sql: TextClause,
-        data: List[Dict],
+        data: list[dict],
         report: bool
     ) -> RResult:
         """
@@ -796,13 +797,13 @@ class RDatabase(object):
 
     def execute_select(
         self,
-        path: Union[str, Tuple[str, str]],
+        path: Union[str, tuple[str, str]],
         fields: Optional[Union[str, Iterable[str]]] = None,
         where: Optional[str] = None,
         group: Optional[str] = None,
         having: Optional[str] = None,
         order: Optional[str] = None,
-        limit: Optional[Union[int, str, Tuple[int, int]]] = None,
+        limit: Optional[Union[int, str, tuple[int, int]]] = None,
         report: Optional[bool] = None,
         **kwdata: Any
     ) -> RResult:
@@ -813,7 +814,7 @@ class RDatabase(object):
         ----------
         path : Table name, can contain database name, otherwise use `self.database`.
             - `str`: Automatic extract database name and table name.
-            - `Tuple[str, str]`: Database name and table name.
+            - `tuple[str, str]`: Database name and table name.
         fields : Select clause content.
             - `None`: Is `SELECT *`.
             - `str`: Join as `SELECT str`.
@@ -826,7 +827,7 @@ class RDatabase(object):
         order : Clause `ORDER BY` content, join as `ORDER BY str`.
         limit : Clause `LIMIT` content.
             - `Union[int, str]`: Join as `LIMIT int/str`.
-            - `Tuple[int, int]`: Join as `LIMIT int, int`.
+            - `tuple[int, int]`: Join as `LIMIT int, int`.
         report : Whether report SQL execute information.
             - `None`, Use attribute `report_execute_info`: of object `ROption`.
             - `int`: Use this value.
@@ -927,7 +928,7 @@ class RDatabase(object):
 
     def execute_insert(
         self,
-        path: Union[str, Tuple[str, str]],
+        path: Union[str, tuple[str, str]],
         data: Table,
         duplicate: Optional[Literal['ignore', 'update']] = None,
         report: Optional[bool] = None,
@@ -940,7 +941,7 @@ class RDatabase(object):
         ----------
         path : Table name, can contain database name, otherwise use `self.database`.
             - `str`: Automatic extract database name and table name.
-            - `Tuple[str, str]`: Database name and table name.
+            - `tuple[str, str]`: Database name and table name.
         data : Insert data.
         duplicate : Handle method when constraint error.
             - `None`: Not handled.
@@ -1080,7 +1081,7 @@ class RDatabase(object):
 
     def execute_update(
         self,
-        path: Union[str, Tuple[str, str]],
+        path: Union[str, tuple[str, str]],
         data: Table,
         where_fields: Optional[Union[str, Iterable[str]]] = None,
         report: Optional[bool] = None,
@@ -1093,14 +1094,14 @@ class RDatabase(object):
         ----------
         path : Table name, can contain database name, otherwise use `self.database`.
             - `str`: Automatic extract database name and table name.
-            - `Tuple[str, str]`: Database name and table name.
+            - `tuple[str, str]`: Database name and table name.
         data : Update data, clause `SET` and `WHERE` and `ORDER BY` and `LIMIT` content.
             - `Key`: Table field.
                 `literal['order']`: Clause `ORDER BY` content, join as `ORDER BY str`.
                 `literal['limit']`: Clause `LIMIT` content, join as `LIMIT str`.
                 `Other`: Clause `SET` and `WHERE` content.
             - `Value`: Table value.
-                `Union[List, Tuple]`: Join as `field IN :str`.
+                `Union[list, tuple]`: Join as `field IN :str`.
                 `Any`: Join as `field = :str`.
         where_fields : Clause `WHERE` content fields.
             - `None`: The first key value pair of each item is judged.
@@ -1255,7 +1256,7 @@ class RDatabase(object):
 
     def execute_delete(
         self,
-        path: Union[str, Tuple[str, str]],
+        path: Union[str, tuple[str, str]],
         where: Optional[str] = None,
         order: Optional[str] = None,
         limit: Optional[Union[int, str]] = None,
@@ -1269,7 +1270,7 @@ class RDatabase(object):
         ----------
         path : Table name, can contain database name, otherwise use `self.database`.
             - `str`: Automatic extract database name and table name.
-            - `Tuple[str, str]`: Database name and table name.
+            - `tuple[str, str]`: Database name and table name.
         where : Clause `WHERE` content, join as `WHERE str`.
         order : Clause `ORDER BY` content, join as `ORDER BY str`.
         limit : Clause `LIMIT` content, join as `LIMIT int/str`.
@@ -1334,9 +1335,9 @@ class RDatabase(object):
 
     def execute_copy(
         self,
-        path: Union[str, Tuple[str, str]],
+        path: Union[str, tuple[str, str]],
         where: Optional[str] = None,
-        limit: Optional[Union[int, str, Tuple[int, int]]] = None,
+        limit: Optional[Union[int, str, tuple[int, int]]] = None,
         report: Optional[bool] = None,
         **kwdata: Any
     ) -> RResult:
@@ -1347,11 +1348,11 @@ class RDatabase(object):
         ----------
         path : Table name, can contain database name, otherwise use `self.database`.
             - `str`: Automatic extract database name and table name.
-            - `Tuple[str, str]`: Database name and table name.
+            - `tuple[str, str]`: Database name and table name.
         where : Clause `WHERE` content, join as `WHERE str`.
         limit : Clause `LIMIT` content.
             - `Union[int, str]`: Join as `LIMIT int/str`.
-            - `Tuple[int, int]`: Join as `LIMIT int, int`.
+            - `tuple[int, int]`: Join as `LIMIT int, int`.
         report : Whether report SQL execute information.
             - `None`, Use attribute `report_execute_info`: of object `ROption`.
             - `int`: Use this value.
@@ -1385,7 +1386,7 @@ class RDatabase(object):
         database = get_first_notnull(database, self.database, default='exception')
 
         # Get parameter.
-        table_info: List[Dict] = self.info(database)(table)()
+        table_info: list[dict] = self.info(database)(table)()
         fields = [
             row['COLUMN_NAME']
             for row in table_info
@@ -1481,7 +1482,7 @@ class RDatabase(object):
 
     def execute_exist(
         self,
-        path: Union[str, Tuple[str, str]],
+        path: Union[str, tuple[str, str]],
         where: Optional[str] = None,
         report: Optional[bool] = None,
         **kwdata: Any
@@ -1493,7 +1494,7 @@ class RDatabase(object):
         ----------
         path : Table name, can contain database name, otherwise use `self.database`.
             - `str`: Automatic extract database name and table name.
-            - `Tuple[str, str]`: Database name and table name.
+            - `tuple[str, str]`: Database name and table name.
         where : Match condition, `WHERE` clause content, join as `WHERE str`.
             - `None`: Match all.
             - `str`: Match condition.
@@ -1535,7 +1536,7 @@ class RDatabase(object):
 
     def execute_count(
         self,
-        path: Union[str, Tuple[str, str]],
+        path: Union[str, tuple[str, str]],
         where: Optional[str] = None,
         report: Optional[bool] = None,
         **kwdata: Any
@@ -1547,7 +1548,7 @@ class RDatabase(object):
         ----------
         path : Table name, can contain database name, otherwise use `self.database`.
             - `str`: Automatic extract database name and table name.
-            - `Tuple[str, str]`: Database name and table name.
+            - `tuple[str, str]`: Database name and table name.
         where : Match condition, `WHERE` clause content, join as `WHERE str`.
             - `None`: Match all.
             - `str`: Match condition.
@@ -1726,7 +1727,7 @@ class RDatabase(object):
 
 
     @property
-    def schema(self) -> Dict[str, Dict[str, List]]:
+    def schema(self) -> dict[str, dict[str, list]]:
         """
         Get schemata of databases and tables and columns.
 
@@ -1758,13 +1759,13 @@ class RDatabase(object):
             if database not in database_dict:
                 database_dict[database] = {table: [column]}
                 continue
-            table_dict: Dict = database_dict[database]
+            table_dict: dict = database_dict[database]
 
             ## Index table. 
             if table not in table_dict:
                 table_dict[table] = [column]
                 continue
-            column_list: List = table_dict[table]
+            column_list: list = table_dict[table]
 
             ## Add column.
             column_list.append(column)
@@ -2072,7 +2073,7 @@ class RDBConnection(RDatabase):
         self,
         connection: Connection,
         sql: TextClause,
-        data: List[Dict],
+        data: list[dict],
         report: bool
     ) -> RResult:
         """
@@ -2250,7 +2251,7 @@ class RDBConnection(RDatabase):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
+        exc_type: Optional[type[BaseException]],
         exc_instance: Optional[BaseException],
         exc_traceback: Optional[TracebackType]
     ) -> None:

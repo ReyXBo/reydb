@@ -10,7 +10,7 @@
 
 
 from __future__ import annotations
-from typing import Any, List, Dict, Union, Literal, Optional, overload
+from typing import Any, Union, Literal, Optional, overload
 
 from .rconnection import RDatabase, RDBConnection
 
@@ -31,23 +31,23 @@ class RDBInformation(object):
 
 
     @overload
-    def __call__(self: RDBISchema, name: Optional[str] = None) -> Union[RDBIDatabase, List[Dict]]: ...
+    def __call__(self: RDBISchema, name: Optional[str] = None) -> Union[RDBIDatabase, list[dict]]: ...
 
     @overload
-    def __call__(self: RDBIDatabase, name: Optional[str] = None) -> Union[RDBITable, List[Dict]]: ...
+    def __call__(self: RDBIDatabase, name: Optional[str] = None) -> Union[RDBITable, list[dict]]: ...
 
     @overload
-    def __call__(self: RDBITable, name: Optional[str] = None) -> Union[RDBIColumn, List[Dict]]: ...
+    def __call__(self: RDBITable, name: Optional[str] = None) -> Union[RDBIColumn, list[dict]]: ...
 
     @overload
-    def __call__(self: RDBIColumn, name: Optional[str] = None) -> Dict: ...
+    def __call__(self: RDBIColumn, name: Optional[str] = None) -> dict: ...
 
     def __call__(self, name: Optional[str] = None) -> Union[
         RDBIDatabase,
         RDBITable,
         RDBIColumn,
-        List[Dict],
-        Dict
+        list[dict],
+        dict
     ]:
         """
         Get information table or subclass instance.
@@ -69,7 +69,7 @@ class RDBInformation(object):
                 raise AssertionError("class '%s' does not have this method" % self.__class__.__name__)
 
             ## Get.
-            result: List[Dict] = self._get_info_table()
+            result: list[dict] = self._get_info_table()
 
         # Subobject.
         else:
@@ -85,7 +85,7 @@ class RDBInformation(object):
 
 
     @overload
-    def __getitem__(self, key: Literal['*', 'all', 'ALL']) -> Dict: ...
+    def __getitem__(self, key: Literal['*', 'all', 'ALL']) -> dict: ...
 
     @overload
     def __getitem__(self, key: str) -> Any: ...
@@ -110,7 +110,7 @@ class RDBInformation(object):
             raise AssertionError("class '%s' does not have this method" % self.__class__.__name__)
 
         # Get.
-        info_attrs: Dict = self._get_info_attrs()
+        info_attrs: dict = self._get_info_attrs()
 
         # Return.
 
@@ -223,7 +223,7 @@ class RDBISchema(RDBInformation):
         self._rdatabase = rdatabase
 
 
-    def _get_info_table(self) -> List[Dict]:
+    def _get_info_table(self) -> list[dict]:
         """
         Get information table.
 
@@ -289,7 +289,7 @@ class RDBIDatabase(RDBInformation):
         self._database_name = database_name
 
 
-    def _get_info_attrs(self) -> Dict:
+    def _get_info_attrs(self) -> dict:
         """
         Get information attribute dictionary.
 
@@ -317,7 +317,7 @@ class RDBIDatabase(RDBInformation):
         return info_attrs
 
 
-    def _get_info_table(self) -> List[Dict]:
+    def _get_info_table(self) -> list[dict]:
         """
         Get information table.
 
@@ -386,7 +386,7 @@ class RDBITable(RDBInformation):
         self._table_name = table_name
 
 
-    def _get_info_attrs(self) -> Dict:
+    def _get_info_attrs(self) -> dict:
         """
         Get information attribute dictionary.
 
@@ -415,7 +415,7 @@ class RDBITable(RDBInformation):
         return info_attrs
 
 
-    def _get_info_table(self) -> List[Dict]:
+    def _get_info_table(self) -> list[dict]:
         """
         Get information table.
 
@@ -482,7 +482,7 @@ class RDBIColumn(RDBInformation):
         self._column_name = column_name
 
 
-    def _get_info_attrs(self) -> Dict:
+    def _get_info_attrs(self) -> dict:
         """
         Get information attribute dictionary.
 
