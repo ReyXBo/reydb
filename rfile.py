@@ -36,7 +36,7 @@ class RDBFile(object):
         rdatabase: Union[RDatabase, RDBConnection]
     ) -> None:
         """
-        Build `database file` instance.
+        Build `database file` attributes.
 
         Parameters
         ----------

@@ -10,7 +10,7 @@
 
 
 from __future__ import annotations
-from typing import Any, Union, Optional, Literal, NoReturn, overload, override
+from typing import Any, Union, Optional, Literal, NoReturn, Self, overload, override
 from types import TracebackType
 from collections.abc import Iterable, Generator
 from urllib.parse import quote as urllib_quote
@@ -171,7 +171,7 @@ class RDatabase(object):
         **query: str
     ) -> None:
         """
-        Build `database` instance.
+        Build `database` attributes.
 
         Parameters
         ----------
@@ -1636,7 +1636,7 @@ class RDatabase(object):
 
     def connect(self) -> RDBConnection:
         """
-        Build `database connection` instance.
+        Build `database connection` attributes.
 
         Returns
         -------
@@ -1655,7 +1655,7 @@ class RDatabase(object):
     @property
     def exe(self):
         """
-        Build `database execute` instance.
+        Build `database execute` attributes.
 
         Returns
         -------
@@ -1776,7 +1776,7 @@ class RDatabase(object):
     @property
     def info(self):
         """
-        Build `database schema information` instance.
+        Build `database schema information` attributes.
 
         Returns
         -------
@@ -1815,7 +1815,7 @@ class RDatabase(object):
     @property
     def build(self):
         """
-        Build `database build` instance.
+        Build `database build` attributes.
 
         Returns
         -------
@@ -1834,7 +1834,7 @@ class RDatabase(object):
     @property
     def file(self):
         """
-        Build `database file` instance.
+        Build `database file` attributes.
 
         Returns
         -------
@@ -1853,7 +1853,7 @@ class RDatabase(object):
     @property
     def status(self):
         """
-        Build `database status parameters` instance.
+        Build `database status parameters` attributes.
 
         Returns
         -------
@@ -1891,7 +1891,7 @@ class RDatabase(object):
     @property
     def variables(self):
         """
-        Build `database variable parameters` instance.
+        Build `database variable parameters` attributes.
 
         Returns
         -------
@@ -2044,7 +2044,7 @@ class RDBConnection(RDatabase):
         rdatabase: RDatabase
     ) -> None:
         """
-        Build `database connection` instance.
+        Build `database connection` attributes.
 
         Parameters
         ----------
@@ -2236,7 +2236,7 @@ class RDBConnection(RDatabase):
         self.connection.close()
 
 
-    def __enter__(self) -> RDBConnection:
+    def __enter__(self) -> Self:
         """
         Enter syntax `with`.
 
@@ -2245,7 +2245,6 @@ class RDBConnection(RDatabase):
         Self.
         """
 
-        # Return.
         return self
 
 

@@ -81,7 +81,7 @@ class RDBExecute(object):
 
     def __init__(self, rdatabase: Union[RDatabase, RDBConnection]) -> None:
         """
-        Build `database execute` instance.
+        Build `database execute` attributes.
 
         Parameters
         ----------

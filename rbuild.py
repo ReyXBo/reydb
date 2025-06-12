@@ -30,7 +30,7 @@ class RDBBuild(object):
 
     def __init__(self, rdatabase: Union[RDatabase, RDBConnection]) -> None:
         """
-        Build `database build` instance.
+        Build `database build` attributes.
 
         Parameters
         ----------
