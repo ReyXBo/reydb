@@ -9,7 +9,7 @@
 """
 
 
-from typing import TypedDict, Union, Optional, overload
+from typing import TypedDict, overload
 from os.path import join as os_join
 from datetime import datetime
 from reykit.ros import RFile, RFolder, get_md5
@@ -22,7 +22,7 @@ __all__ = (
 )
 
 
-FileInfo = TypedDict('FileInfo', {'create_time': datetime, 'md5': str, 'name': Optional[str], 'size': int, 'note': Optional[str]})
+FileInfo = TypedDict('FileInfo', {'create_time': datetime, 'md5': str, 'name': str | None, 'size': int, 'note': str | None})
 
 
 class RDBFile(object):
@@ -33,7 +33,7 @@ class RDBFile(object):
 
     def __init__(
         self,
-        rdatabase: Union[RDatabase, RDBConnection]
+        rdatabase: RDatabase | RDBConnection
     ) -> None:
         """
         Build `database file` attributes.
@@ -208,9 +208,9 @@ class RDBFile(object):
 
     def upload(
         self,
-        file: Union[str, bytes],
-        name: Optional[str] = None,
-        note: Optional[str] = None
+        file: str | bytes,
+        name: str | None = None,
+        note: str | None = None
     ) -> int:
         """
         Upload file.
@@ -315,8 +315,8 @@ class RDBFile(object):
     def download(
         self,
         file_id: int,
-        path: Optional[str] = None
-    ) -> Union[bytes, str]:
+        path: str | None = None
+    ) -> bytes | str:
         """
         Download file.
 

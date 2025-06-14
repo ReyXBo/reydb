@@ -10,7 +10,7 @@
 
 
 from __future__ import annotations
-from typing import Any, Union, Optional, Literal, NoReturn, Self, overload, override
+from typing import Any, Literal, NoReturn, Self, overload, override
 from types import TracebackType
 from collections.abc import Iterable, Generator
 from urllib.parse import quote as urllib_quote
@@ -62,15 +62,15 @@ class RDatabase(object):
     def __init__(
         self,
         host: None = None,
-        port: Optional[Union[str, int]] = None,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        database: Optional[str] = None,
-        drivername: Optional[str] = None,
+        port: str | int | None = None,
+        username: str | None = None,
+        password: str | None = None,
+        database: str | None = None,
+        drivername: str | None = None,
         pool_size: int = 5,
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
-        pool_recycle: Optional[int] = None,
+        pool_recycle: int | None = None,
         retry: bool = False,
         url: None = None,
         engine: None = None,
@@ -80,16 +80,16 @@ class RDatabase(object):
     @overload
     def __init__(
         self,
-        host: Optional[str] = None,
+        host: str | None = None,
         port: None = None,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        database: Optional[str] = None,
-        drivername: Optional[str] = None,
+        username: str | None = None,
+        password: str | None = None,
+        database: str | None = None,
+        drivername: str | None = None,
         pool_size: int = 5,
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
-        pool_recycle: Optional[int] = None,
+        pool_recycle: int | None = None,
         retry: bool = False,
         url: None = None,
         engine: None = None,
@@ -99,16 +99,16 @@ class RDatabase(object):
     @overload
     def __init__(
         self,
-        host: Optional[str] = None,
-        port: Optional[Union[str, int]] = None,
+        host: str | None = None,
+        port: str | int | None = None,
         username: None = None,
-        password: Optional[str] = None,
-        database: Optional[str] = None,
-        drivername: Optional[str] = None,
+        password: str | None = None,
+        database: str | None = None,
+        drivername: str | None = None,
         pool_size: int = 5,
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
-        pool_recycle: Optional[int] = None,
+        pool_recycle: int | None = None,
         retry: bool = False,
         url: None = None,
         engine: None = None,
@@ -118,16 +118,16 @@ class RDatabase(object):
     @overload
     def __init__(
         self,
-        host: Optional[str] = None,
-        port: Optional[Union[str, int]] = None,
-        username: Optional[str] = None,
+        host: str | None = None,
+        port: str | int | None = None,
+        username: str | None = None,
         password: None = None,
-        database: Optional[str] = None,
-        drivername: Optional[str] = None,
+        database: str | None = None,
+        drivername: str | None = None,
         pool_size: int = 5,
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
-        pool_recycle: Optional[int] = None,
+        pool_recycle: int | None = None,
         retry: bool = False,
         url: None = None,
         engine: None = None,
@@ -137,37 +137,37 @@ class RDatabase(object):
     @overload
     def __init__(
         self,
-        host: Optional[str] = None,
-        port: Optional[Union[str, int]] = None,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        database: Optional[str] = None,
-        drivername: Optional[str] = None,
+        host: str | None = None,
+        port: str | int | None = None,
+        username: str | None = None,
+        password: str | None = None,
+        database: str | None = None,
+        drivername: str | None = None,
         pool_size: int = 5,
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
-        pool_recycle: Optional[int] = None,
+        pool_recycle: int | None = None,
         retry: bool = False,
-        url: Optional[Union[str, URL]] = None,
-        engine: Optional[Union[Engine, Connection]] = None,
+        url: str | URL | None = None,
+        engine: Engine | Connection | None = None,
         **query: str
     ) -> None: ...
 
     def __init__(
         self,
-        host: Optional[str] = None,
-        port: Optional[Union[str, int]] = None,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        database: Optional[str] = None,
-        drivername: Optional[str] = None,
+        host: str | None = None,
+        port: str | int | None = None,
+        username: str | None = None,
+        password: str | None = None,
+        database: str | None = None,
+        drivername: str | None = None,
         pool_size: int = 5,
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
-        pool_recycle: Optional[int] = None,
+        pool_recycle: int | None = None,
         retry: bool = False,
-        url: Optional[Union[str, URL]] = None,
-        engine: Optional[Union[Engine, Connection]] = None,
+        url: str | URL | None = None,
+        engine: Engine | Connection | None = None,
         **query: str
     ) -> None:
         """
@@ -222,7 +222,7 @@ class RDatabase(object):
             self.password: str = params['password']
             self.host: str = params['host']
             self.port: str = params['port']
-            self.database: Optional[str] = params['database']
+            self.database: str | None = params['database']
             self.query: dict = params['query']
             self.pool_size: int = params['pool_size']
             self.max_overflow: int = params['max_overflow']
@@ -255,7 +255,7 @@ class RDatabase(object):
             self.password: str = get_first_notnull(password, params['password'], default='exception')
             self.host: str = get_first_notnull(host, params['host'], default='exception')
             self.port: str = get_first_notnull(port, params['port'], default='exception')
-            self.database: Optional[str] = get_first_notnull(database, params['database'])
+            self.database: str | None = get_first_notnull(database, params['database'])
             self.query: dict = get_first_notnull(query, params['query'])
             self.pool_size = pool_size
             self.max_overflow = max_overflow
@@ -273,7 +273,7 @@ class RDatabase(object):
                 self.engine = self.create_engine()
 
 
-    def extract_url(self, url: Union[str, URL]) -> dict[
+    def extract_url(self, url: str | URL) -> dict[
         Literal['drivername', 'username', 'password', 'host', 'port', 'database', 'query'],
         Any
     ]:
@@ -338,7 +338,7 @@ class RDatabase(object):
         return params
 
 
-    def extract_engine(self, engine: Union[Engine, Connection]) -> dict[
+    def extract_engine(self, engine: Engine | Connection) -> dict[
         Literal[
             'drivername', 'username', 'password', 'host', 'port', 'database', 'query',
             'pool_size', 'max_overflow', 'pool_timeout', 'pool_recycle'
@@ -397,20 +397,20 @@ class RDatabase(object):
         self,
         path: str,
         main: Literal['table'] = 'table'
-    ) -> tuple[Optional[str], str, Optional[str]]: ...
+    ) -> tuple[str | None, str, str | None]: ...
 
     @overload
     def extract_path(
         self,
         path: str,
         main: Literal['database'] = 'table'
-    ) -> tuple[str, Optional[str], Optional[str]]: ...
+    ) -> tuple[str, str | None, str | None]: ...
 
     def extract_path(
         self,
         path: str,
         main: Literal['table', 'database'] = 'table'
-    ) -> tuple[Optional[str], Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None, str | None]:
         """
         Extract table name and database name and column name from path.
 
@@ -561,7 +561,7 @@ class RDatabase(object):
     def handle_data(
         self,
         data: Table,
-        sql: Union[str, TextClause],
+        sql: str | TextClause,
     ) -> list[dict]:
         """
         Handle data based on the content of SQL.
@@ -618,7 +618,7 @@ class RDatabase(object):
         return data
 
 
-    def get_syntax(self, sql: Union[str, TextClause]) -> list[str]:
+    def get_syntax(self, sql: str | TextClause) -> list[str]:
         """
         Extract SQL syntax type for each segment form SQL.
 
@@ -644,7 +644,7 @@ class RDatabase(object):
         return syntax
 
 
-    def is_multi_sql(self, sql: Union[str, TextClause]) -> bool:
+    def is_multi_sql(self, sql: str | TextClause) -> bool:
         """
         Judge whether it is multi segment SQL.
 
@@ -719,9 +719,9 @@ class RDatabase(object):
 
     def execute(
         self,
-        sql: Union[str, TextClause],
-        data: Optional[Table] = None,
-        report: Optional[bool] = None,
+        sql: str | TextClause,
+        data: Table | None = None,
+        report: bool | None = None,
         **kwdata: Any
     ) -> RResult:
         """
@@ -797,14 +797,14 @@ class RDatabase(object):
 
     def execute_select(
         self,
-        path: Union[str, tuple[str, str]],
-        fields: Optional[Union[str, Iterable[str]]] = None,
-        where: Optional[str] = None,
-        group: Optional[str] = None,
-        having: Optional[str] = None,
-        order: Optional[str] = None,
-        limit: Optional[Union[int, str, tuple[int, int]]] = None,
-        report: Optional[bool] = None,
+        path: str | tuple[str, str],
+        fields: str | Iterable[str] | None = None,
+        where: str | None = None,
+        group: str | None = None,
+        having: str | None = None,
+        order: str | None = None,
+        limit: int | str | tuple[int, int] | None = None,
+        report: bool | None = None,
         **kwdata: Any
     ) -> RResult:
         """
@@ -826,7 +826,7 @@ class RDatabase(object):
         having : Clause `HAVING` content, join as `HAVING str`.
         order : Clause `ORDER BY` content, join as `ORDER BY str`.
         limit : Clause `LIMIT` content.
-            - `Union[int, str]`: Join as `LIMIT int/str`.
+            - `int | str`: Join as `LIMIT int/str`.
             - `tuple[int, int]`: Join as `LIMIT int, int`.
         report : Whether report SQL execute information.
             - `None`, Use attribute `report_execute_info`: of object `ROption`.
@@ -928,10 +928,10 @@ class RDatabase(object):
 
     def execute_insert(
         self,
-        path: Union[str, tuple[str, str]],
+        path: str | tuple[str, str],
         data: Table,
-        duplicate: Optional[Literal['ignore', 'update']] = None,
-        report: Optional[bool] = None,
+        duplicate: Literal['ignore', 'update'] | None = None,
+        report: bool | None = None,
         **kwdata: Any
     ) -> RResult:
         """
@@ -1081,10 +1081,10 @@ class RDatabase(object):
 
     def execute_update(
         self,
-        path: Union[str, tuple[str, str]],
+        path: str | tuple[str, str],
         data: Table,
-        where_fields: Optional[Union[str, Iterable[str]]] = None,
-        report: Optional[bool] = None,
+        where_fields: str | Iterable[str] | None = None,
+        report: bool | None = None,
         **kwdata: Any
     ) -> RResult:
         """
@@ -1101,7 +1101,7 @@ class RDatabase(object):
                 `literal['limit']`: Clause `LIMIT` content, join as `LIMIT str`.
                 `Other`: Clause `SET` and `WHERE` content.
             - `Value`: Table value.
-                `Union[list, tuple]`: Join as `field IN :str`.
+                `list | tuple`: Join as `field IN :str`.
                 `Any`: Join as `field = :str`.
         where_fields : Clause `WHERE` content fields.
             - `None`: The first key value pair of each item is judged.
@@ -1256,11 +1256,11 @@ class RDatabase(object):
 
     def execute_delete(
         self,
-        path: Union[str, tuple[str, str]],
-        where: Optional[str] = None,
-        order: Optional[str] = None,
-        limit: Optional[Union[int, str]] = None,
-        report: Optional[bool] = None,
+        path: str | tuple[str, str],
+        where: str | None = None,
+        order: str | None = None,
+        limit: int | str | None = None,
+        report: bool | None = None,
         **kwdata: Any
     ) -> RResult:
         """
@@ -1335,10 +1335,10 @@ class RDatabase(object):
 
     def execute_copy(
         self,
-        path: Union[str, tuple[str, str]],
-        where: Optional[str] = None,
-        limit: Optional[Union[int, str, tuple[int, int]]] = None,
-        report: Optional[bool] = None,
+        path: str | tuple[str, str],
+        where: str | None = None,
+        limit: int | str | tuple[int, int] | None = None,
+        report: bool | None = None,
         **kwdata: Any
     ) -> RResult:
         """
@@ -1351,7 +1351,7 @@ class RDatabase(object):
             - `tuple[str, str]`: Database name and table name.
         where : Clause `WHERE` content, join as `WHERE str`.
         limit : Clause `LIMIT` content.
-            - `Union[int, str]`: Join as `LIMIT int/str`.
+            - `int | str`: Join as `LIMIT int/str`.
             - `tuple[int, int]`: Join as `LIMIT int, int`.
         report : Whether report SQL execute information.
             - `None`, Use attribute `report_execute_info`: of object `ROption`.
@@ -1482,9 +1482,9 @@ class RDatabase(object):
 
     def execute_exist(
         self,
-        path: Union[str, tuple[str, str]],
-        where: Optional[str] = None,
-        report: Optional[bool] = None,
+        path: str | tuple[str, str],
+        where: str | None = None,
+        report: bool | None = None,
         **kwdata: Any
     ) -> bool:
         """
@@ -1536,9 +1536,9 @@ class RDatabase(object):
 
     def execute_count(
         self,
-        path: Union[str, tuple[str, str]],
-        where: Optional[str] = None,
-        report: Optional[bool] = None,
+        path: str | tuple[str, str],
+        where: str | None = None,
+        report: bool | None = None,
         **kwdata: Any
     ) -> int:
         """
@@ -1586,9 +1586,9 @@ class RDatabase(object):
 
     def execute_generator(
         self,
-        sql: Union[str, TextClause],
+        sql: str | TextClause,
         data: Table,
-        report: Optional[bool] = None,
+        report: bool | None = None,
         **kwdata: Any
     ) -> Generator[RResult, Any, None]:
         """
@@ -1929,9 +1929,9 @@ class RDatabase(object):
     @overload
     def __call__(
         self,
-        sql: Union[str, TextClause],
-        data: Optional[Table] = None,
-        report: Optional[bool] = None,
+        sql: str | TextClause,
+        data: Table | None = None,
+        report: bool | None = None,
         generator: Literal[False] = False,
         **kwdata: Any
     ) -> RResult: ...
@@ -1939,9 +1939,9 @@ class RDatabase(object):
     @overload
     def __call__(
         self,
-        sql: Union[str, TextClause],
+        sql: str | TextClause,
         data: Table = None,
-        report: Optional[bool] = None,
+        report: bool | None = None,
         generator: Literal[True] = False,
         **kwdata: Any
     ) -> Generator[RResult, Any, None]: ...
@@ -1949,21 +1949,21 @@ class RDatabase(object):
     @overload
     def __call__(
         self,
-        sql: Union[str, TextClause],
+        sql: str | TextClause,
         data: None = None,
-        report: Optional[bool] = None,
+        report: bool | None = None,
         generator: Literal[True] = False,
         **kwdata: Any
     ) -> NoReturn: ...
 
     def __call__(
         self,
-        sql: Union[str, TextClause],
-        data: Optional[Table] = None,
-        report: Optional[bool] = None,
+        sql: str | TextClause,
+        data: Table | None = None,
+        report: bool | None = None,
         generator: bool = False,
         **kwdata: Any
-    ) -> Union[RResult, Generator[RResult, Any, None]]:
+    ) -> RResult | Generator[RResult, Any, None]:
         """
         Execute SQL or return a generator that can execute SQL.
 
@@ -2129,9 +2129,9 @@ class RDBConnection(RDatabase):
     @override
     def execute(
         self,
-        sql: Union[str, TextClause],
-        data: Optional[Table] = None,
-        report: Optional[bool] = None,
+        sql: str | TextClause,
+        data: Table | None = None,
+        report: bool | None = None,
         **kwdata: Any
     ) -> RResult:
         """
@@ -2250,9 +2250,9 @@ class RDBConnection(RDatabase):
 
     def __exit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc_instance: Optional[BaseException],
-        exc_traceback: Optional[TracebackType]
+        exc_type: type[BaseException] | None,
+        exc_instance: BaseException | None,
+        exc_traceback: TracebackType | None
     ) -> None:
         """
         Exit syntax `with`.

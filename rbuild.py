@@ -9,7 +9,7 @@
 """
 
 
-from typing import Any, Optional, Union, Literal, NoReturn, overload
+from typing import Any, Literal, NoReturn, overload
 from reykit.rexception import throw
 from reykit.rstdout import rinput
 from reykit.rsystem import get_first_notnull
@@ -28,7 +28,7 @@ class RDBBuild(object):
     """
 
 
-    def __init__(self, rdatabase: Union[RDatabase, RDBConnection]) -> None:
+    def __init__(self, rdatabase: RDatabase | RDBConnection) -> None:
         """
         Build `database build` attributes.
 
@@ -78,9 +78,9 @@ class RDBBuild(object):
         name: str,
         type_: str,
         constraint: str = 'DEFAULT NULL',
-        comment: Optional[str] = None,
-        position: Optional[str] = None,
-        old_name: Optional[str] = None
+        comment: str | None = None,
+        position: str | None = None,
+        old_name: str | None = None
     ) -> str:
         """
         Get a field set SQL.
@@ -135,26 +135,26 @@ class RDBBuild(object):
     def _get_index_sql(
         self,
         name: str,
-        fields: Union[str, list[str]],
+        fields: str | list[str],
         type_: Literal['noraml', 'unique', 'fulltext', 'spatial'] = 'noraml',
-        comment: Optional[str] = None
+        comment: str | None = None
     ) -> str: ...
 
     @overload
     def _get_index_sql(
         self,
         name: str,
-        fields: Union[str, list[str]],
+        fields: str | list[str],
         type_: str = 'noraml',
-        comment: Optional[str] = None
+        comment: str | None = None
     ) -> NoReturn: ...
 
     def _get_index_sql(
         self,
         name: str,
-        fields: Union[str, list[str]],
+        fields: str | list[str],
         type_: Literal['noraml', 'unique', 'fulltext', 'spatial'] = 'noraml',
-        comment: Optional[str] = None
+        comment: str | None = None
     ) -> str:
         """
         Get a index set SQL.
@@ -212,15 +212,15 @@ class RDBBuild(object):
 
     def create_table(
         self,
-        path: Union[str, tuple[str, str]],
-        fields: Union[dict, list[dict]],
-        primary: Optional[Union[str, list[str]]] = None,
-        indexes: Optional[Union[dict, list[dict]]] = None,
+        path: str | tuple[str, str],
+        fields: dict | list[dict],
+        primary: str | list[str] | None = None,
+        indexes: dict | list[dict] | None = None,
         engine: str = 'InnoDB',
         increment: int = 1,
         charset: str = 'utf8mb3',
         collate: str = 'utf8mb3_general_ci',
-        comment: Optional[str] = None,
+        comment: str | None = None,
         execute: bool = True
     ) -> str:
         """
@@ -358,7 +358,7 @@ class RDBBuild(object):
 
     def create_view(
         self,
-        path: Union[str, tuple[str, str]],
+        path: str | tuple[str, str],
         select: str,
         execute: bool = True
     ) -> str:
@@ -398,7 +398,7 @@ class RDBBuild(object):
 
     def create_view_stats(
         self,
-        path: Union[str, tuple[str, str]],
+        path: str | tuple[str, str],
         items: list[dict],
         execute: bool = True
     ) -> str:
@@ -491,7 +491,7 @@ class RDBBuild(object):
 
     def drop_table(
         self,
-        path: Union[str, tuple[str, str]],
+        path: str | tuple[str, str],
         execute: bool = True
     ) -> str:
         """
@@ -528,7 +528,7 @@ class RDBBuild(object):
 
     def drop_view(
         self,
-        path: Union[str, tuple[str, str]],
+        path: str | tuple[str, str],
         execute: bool = True
     ) -> str:
         """
@@ -566,8 +566,8 @@ class RDBBuild(object):
     def alter_database(
         self,
         database: str,
-        character: Optional[str] = None,
-        collate: Optional[str] = None,
+        character: str | None = None,
+        collate: str | None = None,
         execute: bool = True
     ) -> str:
         """
@@ -615,10 +615,10 @@ class RDBBuild(object):
 
     def alter_table_add(
         self,
-        path: Union[str, tuple[str, str]],
-        fields: Optional[Union[dict, list[dict]]] = None,
-        primary: Optional[Union[str, list[str]]] = None,
-        indexes: Optional[Union[dict, list[dict]]] = None,
+        path: str | tuple[str, str],
+        fields: dict | list[dict] | None = None,
+        primary: str | list[str] | None = None,
+        indexes: dict | list[dict] | None = None,
         execute: bool = True
     ) -> str:
         """
@@ -750,10 +750,10 @@ class RDBBuild(object):
 
     def alter_table_drop(
         self,
-        path: Union[str, tuple[str, str]],
-        fields: Optional[list[str]] = None,
+        path: str | tuple[str, str],
+        fields: list[str] | None = None,
         primary: bool = False,
-        indexes: Optional[list[str]] = None,
+        indexes: list[str] | None = None,
         execute: bool = True
     ) -> str:
         """
@@ -821,13 +821,13 @@ class RDBBuild(object):
 
     def alter_table_change(
         self,
-        path: Union[str, tuple[str, str]],
-        fields: Optional[Union[dict, list[dict]]] = None,
-        rename: Optional[str] = None,
-        engine: Optional[str] = None,
-        increment: Optional[int] = None,
-        charset: Optional[str] = None,
-        collate: Optional[str] = None,
+        path: str | tuple[str, str],
+        fields: dict | list[dict] | None = None,
+        rename: str | None = None,
+        engine: str | None = None,
+        increment: int | None = None,
+        charset: str | None = None,
+        collate: str | None = None,
         execute: bool = True
     ) -> str:
         """
@@ -952,7 +952,7 @@ class RDBBuild(object):
 
     def alter_view(
         self,
-        path: Union[str, tuple[str, str]],
+        path: str | tuple[str, str],
         select: str,
         execute: bool = True
     ) -> str:
@@ -991,7 +991,7 @@ class RDBBuild(object):
 
     def truncate_table(
         self,
-        path: Union[str, tuple[str, str]],
+        path: str | tuple[str, str],
         execute: bool = True
     ) -> str:
         """
@@ -1028,7 +1028,7 @@ class RDBBuild(object):
 
     def exist(
         self,
-        path: Union[str, tuple[str, Optional[str], Optional[str]]]
+        path: str | tuple[str, str | None, str | None]
     ) -> bool:
         """
         Judge database or table or column exists.
@@ -1037,7 +1037,7 @@ class RDBBuild(object):
         ----------
         path : Database name and table name and column name.
             - `str`: Automatic extract.
-            - `tuple[str, Optional[str], Optional[str]]`: Database name, table name and column name is optional.
+            - `tuple[str, str | None, str | None]`: Database name, table name and column name is optional.
 
         Returns
         -------
@@ -1109,10 +1109,10 @@ class RDBBuild(object):
 
     def build(
         self,
-        databases: Optional[list[dict]] = None,
-        tables: Optional[list[dict]] = None,
-        views: Optional[list[dict]] = None,
-        views_stats: Optional[list[dict]] = None
+        databases: list[dict] | None = None,
+        tables: list[dict] | None = None,
+        views: list[dict] | None = None,
+        views_stats: list[dict] | None = None
     ) -> None:
         """
         Build databases or tables.

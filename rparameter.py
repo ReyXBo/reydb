@@ -9,7 +9,7 @@
 """
 
 
-from typing import Union, Optional, overload
+from typing import overload
 
 from .rconnection import RDatabase, RDBConnection
 
@@ -29,7 +29,7 @@ class RDBParameter(object):
 
     def __init__(
         self,
-        rdatabase: Union[RDatabase, RDBConnection],
+        rdatabase: RDatabase | RDBConnection,
         global_: bool
     ) -> None:
         """
@@ -46,7 +46,7 @@ class RDBParameter(object):
         self.global_ = global_
 
 
-    def __getitem__(self, key: str) -> Optional[str]:
+    def __getitem__(self, key: str) -> str | None:
         """
         Get item of parameter dictionary.
 
@@ -65,7 +65,7 @@ class RDBParameter(object):
         return value
 
 
-    def __setitem__(self, key: str, value: Union[str, float]) -> None:
+    def __setitem__(self, key: str, value: str | float) -> None:
         """
         Set item of parameter dictionary.
 
@@ -92,9 +92,9 @@ class RDBPStatus(RDBParameter):
     def get(self, key: None = None) -> dict[str, str]: ...
 
     @overload
-    def get(self, key: str = None) -> Optional[str]: ...
+    def get(self, key: str = None) -> str | None: ...
 
-    def get(self, key: Optional[str] = None) -> Union[dict[str, str], Optional[str]]:
+    def get(self, key: str | None = None) -> dict[str, str] | str | None:
         """
         Get parameter.
 
@@ -138,7 +138,7 @@ class RDBPStatus(RDBParameter):
         return status
 
 
-    def update(self, params: dict[str, Union[str, float]]) -> None:
+    def update(self, params: dict[str, str | float]) -> None:
         """
         Update parameter.
 
@@ -161,9 +161,9 @@ class RDBPVariable(RDBParameter):
     def get(self, key: None = None) -> dict[str, str]: ...
 
     @overload
-    def get(self, key: str = None) -> Optional[str]: ...
+    def get(self, key: str = None) -> str | None: ...
 
-    def get(self, key: Optional[str] = None) -> Union[dict[str, str], Optional[str]]:
+    def get(self, key: str | None = None) -> dict[str, str] | str | None:
         """
         Get parameter.
 
@@ -208,7 +208,7 @@ class RDBPVariable(RDBParameter):
 
 
 
-    def update(self, params: dict[str, Union[str, float]]) -> None:
+    def update(self, params: dict[str, str | float]) -> None:
         """
         Update parameter.
 

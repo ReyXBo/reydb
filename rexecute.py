@@ -10,7 +10,7 @@
 
 
 from __future__ import annotations
-from typing import Any, Union, Literal, overload
+from typing import Any, Literal, overload
 from reykit.rexception import throw
 from reykit.rtable import Table
 
@@ -79,7 +79,7 @@ class RDBExecute(object):
     """
 
 
-    def __init__(self, rdatabase: Union[RDatabase, RDBConnection]) -> None:
+    def __init__(self, rdatabase: RDatabase | RDBConnection) -> None:
         """
         Build `database execute` attributes.
 
@@ -94,7 +94,7 @@ class RDBExecute(object):
 
 
     @overload
-    def __getattr__(self, key: Literal['_rdatabase']) -> Union[RDatabase, RDBConnection]: ...
+    def __getattr__(self, key: Literal['_rdatabase']) -> RDatabase | RDBConnection: ...
 
     @overload
     def __getattr__(self, key: Literal['_path']) -> list[str]: ...
@@ -102,11 +102,7 @@ class RDBExecute(object):
     @overload
     def __getattr__(self, key: str) -> RDBExecute: ...
 
-    def __getattr__(self, key: str) -> Union[
-        Union[RDatabase, RDBConnection],
-        list[str],
-        RDBExecute
-    ]:
+    def __getattr__(self, key: str) -> RDatabase | RDBConnection | list[str] | RDBExecute:
         """
         Get attribute or set database name or set table name.
 
@@ -184,7 +180,7 @@ class RDBExecute(object):
 
     def __add__(
         self,
-        params: Union[tuple, dict, Table]
+        params: tuple | dict | Table
     ) -> RResult:
         """
         Insert the data of table in the datebase.
@@ -215,7 +211,7 @@ class RDBExecute(object):
 
     def __and__(
         self,
-        params: Union[tuple, dict, Table]
+        params: tuple | dict | Table
     ) -> RResult:
         """
         Update the data of table in the datebase.
@@ -246,7 +242,7 @@ class RDBExecute(object):
 
     def __sub__(
         self,
-        params: Union[tuple, dict, str]
+        params: tuple | dict | str
     ) -> RResult:
         """
         Delete the data of table in the datebase.
@@ -277,7 +273,7 @@ class RDBExecute(object):
 
     def __mul__(
         self,
-        params: Union[tuple, dict, str]
+        params: tuple | dict | str
     ) -> RResult:
         """
         Copy record of table in the datebase.
@@ -308,7 +304,7 @@ class RDBExecute(object):
 
     def __contains__(
         self,
-        params: Union[tuple, dict, str]
+        params: tuple | dict | str
     ) -> bool:
         """
         Judge the exist of record.

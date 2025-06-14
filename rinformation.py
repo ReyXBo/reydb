@@ -10,7 +10,7 @@
 
 
 from __future__ import annotations
-from typing import Any, Union, Literal, Optional, overload
+from typing import Any, Literal, overload
 
 from .rconnection import RDatabase, RDBConnection
 
@@ -31,24 +31,18 @@ class RDBInformation(object):
 
 
     @overload
-    def __call__(self: RDBISchema, name: Optional[str] = None) -> Union[RDBIDatabase, list[dict]]: ...
+    def __call__(self: RDBISchema, name: str | None = None) -> RDBIDatabase | list[dict]: ...
 
     @overload
-    def __call__(self: RDBIDatabase, name: Optional[str] = None) -> Union[RDBITable, list[dict]]: ...
+    def __call__(self: RDBIDatabase, name: str | None = None) -> RDBITable | list[dict]: ...
 
     @overload
-    def __call__(self: RDBITable, name: Optional[str] = None) -> Union[RDBIColumn, list[dict]]: ...
+    def __call__(self: RDBITable, name: str | None = None) -> RDBIColumn | list[dict]: ...
 
     @overload
-    def __call__(self: RDBIColumn, name: Optional[str] = None) -> dict: ...
+    def __call__(self: RDBIColumn, name: str | None = None) -> dict: ...
 
-    def __call__(self, name: Optional[str] = None) -> Union[
-        RDBIDatabase,
-        RDBITable,
-        RDBIColumn,
-        list[dict],
-        dict
-    ]:
+    def __call__(self, name: str | None = None) -> RDBIDatabase | RDBITable | RDBIColumn | list[dict] | dict:
         """
         Get information table or subclass instance.
 
@@ -127,7 +121,7 @@ class RDBInformation(object):
 
 
     @overload
-    def __getattr__(self, key: Literal['_rdatabase']) -> Union[RDatabase, RDBConnection]: ...
+    def __getattr__(self, key: Literal['_rdatabase']) -> RDatabase | RDBConnection: ...
 
     @overload
     def __getattr__(self, key: Literal['_database_name', '_table_name']) -> str: ...
@@ -141,13 +135,7 @@ class RDBInformation(object):
     @overload
     def __getattr__(self: RDBITable, key: str) -> RDBIColumn: ...
 
-    def __getattr__(self, key: str) -> Union[
-        Union[RDatabase, RDBConnection],
-        str,
-        RDBIDatabase,
-        RDBITable,
-        RDBIColumn
-    ]:
+    def __getattr__(self, key: str) -> RDatabase | RDBConnection | str | RDBIDatabase | RDBITable | RDBIColumn:
         """
         Get attribute or build subclass instance.
 
@@ -209,7 +197,7 @@ class RDBISchema(RDBInformation):
 
     def __init__(
         self,
-        rdatabase: Union[RDatabase, RDBConnection]
+        rdatabase: RDatabase | RDBConnection
     ) -> None:
         """
         Build `database information schema` attributes.
@@ -272,7 +260,7 @@ class RDBIDatabase(RDBInformation):
 
     def __init__(
         self,
-        rdatabase: Union[RDatabase, RDBConnection],
+        rdatabase: RDatabase | RDBConnection,
         database_name: str
     ) -> None:
         """
@@ -366,7 +354,7 @@ class RDBITable(RDBInformation):
 
     def __init__(
         self,
-        rdatabase: Union[RDatabase, RDBConnection],
+        rdatabase: RDatabase | RDBConnection,
         database_name: str,
         table_name: str
     ) -> None:
@@ -459,7 +447,7 @@ class RDBIColumn(RDBInformation):
 
     def __init__(
         self,
-        rdatabase: Union[RDatabase, RDBConnection],
+        rdatabase: RDatabase | RDBConnection,
         database_name: str,
         table_name: str,
         column_name: str
