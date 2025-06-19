@@ -1,0 +1,23 @@
+[project]
+name = "reydb"
+version = "1.0.2"
+description = "Rey's database method set."
+readme = "README.md"
+requires-python = ">=3.12"
+license = {file = "LICENSE"}
+keywords = ["rey", "reyxbo", "db", "database"]
+authors = [
+    {name = "Rey", email = "reyxbo@163.com"}
+]
+dependencies = [
+    "pymysql",
+    "reykit",
+    "sqlalchemy"
+]
+
+[project.urls]
+homepage = "https://github.com/reyxbo/reydb/"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
