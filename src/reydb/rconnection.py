@@ -10,7 +10,7 @@
 
 
 from __future__ import annotations
-from typing import Any, Literal, NoReturn, Self, overload, override
+from typing import Any, Literal, Self, overload, override
 from types import TracebackType
 from collections.abc import Iterable, Generator
 from urllib.parse import quote as urllib_quote
@@ -61,48 +61,29 @@ class RDatabase(object):
     @overload
     def __init__(
         self,
+        host: str = None,
+        port: str | int = None,
+        username: str = None,
+        password: str = None,
+        database: str | None = None,
+        drivername: str | None = None,
+        pool_size: int = 5,
+        max_overflow: int = 10,
+        pool_timeout: float = 30.0,
+        pool_recycle: int | None = None,
+        retry: bool = False,
+        url: None = None,
+        engine: None = None,
+        **query: str
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
         host: None = None,
-        port: str | int | None = None,
-        username: str | None = None,
-        password: str | None = None,
-        database: str | None = None,
-        drivername: str | None = None,
-        pool_size: int = 5,
-        max_overflow: int = 10,
-        pool_timeout: float = 30.0,
-        pool_recycle: int | None = None,
-        retry: bool = False,
-        url: None = None,
-        engine: None = None,
-        **query: str
-    ) -> NoReturn: ...
-
-    @overload
-    def __init__(
-        self,
-        host: str | None = None,
         port: None = None,
-        username: str | None = None,
-        password: str | None = None,
-        database: str | None = None,
-        drivername: str | None = None,
-        pool_size: int = 5,
-        max_overflow: int = 10,
-        pool_timeout: float = 30.0,
-        pool_recycle: int | None = None,
-        retry: bool = False,
-        url: None = None,
-        engine: None = None,
-        **query: str
-    ) -> NoReturn: ...
-
-    @overload
-    def __init__(
-        self,
-        host: str | None = None,
-        port: str | int | None = None,
         username: None = None,
-        password: str | None = None,
+        password: None = None,
         database: str | None = None,
         drivername: str | None = None,
         pool_size: int = 5,
@@ -110,17 +91,17 @@ class RDatabase(object):
         pool_timeout: float = 30.0,
         pool_recycle: int | None = None,
         retry: bool = False,
-        url: None = None,
+        url: str | URL = None,
         engine: None = None,
         **query: str
-    ) -> NoReturn: ...
+    ) -> None: ...
 
     @overload
     def __init__(
         self,
-        host: str | None = None,
-        port: str | int | None = None,
-        username: str | None = None,
+        host: None = None,
+        port: None = None,
+        username: None = None,
         password: None = None,
         database: str | None = None,
         drivername: str | None = None,
@@ -130,26 +111,7 @@ class RDatabase(object):
         pool_recycle: int | None = None,
         retry: bool = False,
         url: None = None,
-        engine: None = None,
-        **query: str
-    ) -> NoReturn: ...
-
-    @overload
-    def __init__(
-        self,
-        host: str | None = None,
-        port: str | int | None = None,
-        username: str | None = None,
-        password: str | None = None,
-        database: str | None = None,
-        drivername: str | None = None,
-        pool_size: int = 5,
-        max_overflow: int = 10,
-        pool_timeout: float = 30.0,
-        pool_recycle: int | None = None,
-        retry: bool = False,
-        url: str | URL | None = None,
-        engine: Engine | Connection | None = None,
+        engine: Engine | Connection = None,
         **query: str
     ) -> None: ...
 
@@ -1945,16 +1907,6 @@ class RDatabase(object):
         generator: Literal[True] = False,
         **kwdata: Any
     ) -> Generator[RResult, Any, None]: ...
-
-    @overload
-    def __call__(
-        self,
-        sql: str | TextClause,
-        data: None = None,
-        report: bool | None = None,
-        generator: Literal[True] = False,
-        **kwdata: Any
-    ) -> NoReturn: ...
 
     def __call__(
         self,

@@ -9,7 +9,7 @@
 """
 
 
-from typing import Any, Literal, NoReturn, overload
+from typing import Literal
 from reykit.rexception import throw
 from reykit.rstdout import rinput
 from reykit.rsystem import get_first_notnull
@@ -130,24 +130,6 @@ class RDBBuild(object):
 
         return sql
 
-
-    @overload
-    def _get_index_sql(
-        self,
-        name: str,
-        fields: str | list[str],
-        type_: Literal['noraml', 'unique', 'fulltext', 'spatial'] = 'noraml',
-        comment: str | None = None
-    ) -> str: ...
-
-    @overload
-    def _get_index_sql(
-        self,
-        name: str,
-        fields: str | list[str],
-        type_: str = 'noraml',
-        comment: str | None = None
-    ) -> NoReturn: ...
 
     def _get_index_sql(
         self,
