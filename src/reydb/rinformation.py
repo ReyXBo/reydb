@@ -31,16 +31,19 @@ class RDBInformation(object):
 
 
     @overload
-    def __call__(self: RDBISchema, name: str | None = None) -> RDBIDatabase | list[dict]: ...
+    def __call__(self: RDBISchema | RDBISchema | RDBIDatabase | RDBITable, name: None = None) -> list[dict]: ...
 
     @overload
-    def __call__(self: RDBIDatabase, name: str | None = None) -> RDBITable | list[dict]: ...
+    def __call__(self: RDBISchema, name: str = None) -> RDBIDatabase: ...
 
     @overload
-    def __call__(self: RDBITable, name: str | None = None) -> RDBIColumn | list[dict]: ...
+    def __call__(self: RDBIDatabase, name: str = None) -> RDBITable: ...
 
     @overload
-    def __call__(self: RDBIColumn, name: str | None = None) -> dict: ...
+    def __call__(self: RDBITable, name: str = None) -> RDBIColumn: ...
+
+    @overload
+    def __call__(self: RDBIColumn) -> dict: ...
 
     def __call__(self, name: str | None = None) -> RDBIDatabase | RDBITable | RDBIColumn | list[dict] | dict:
         """
@@ -121,45 +124,35 @@ class RDBInformation(object):
 
 
     @overload
-    def __getattr__(self, key: Literal['_rdatabase']) -> RDatabase | RDBConnection: ...
+    def __getattr__(self: RDBISchema, name: str) -> RDBIDatabase: ...
 
     @overload
-    def __getattr__(self, key: Literal['_database_name', '_table_name']) -> str: ...
+    def __getattr__(self: RDBIDatabase, name: str) -> RDBITable: ...
 
     @overload
-    def __getattr__(self: RDBISchema, key: str) -> RDBIDatabase: ...
+    def __getattr__(self: RDBITable, name: str) -> RDBIColumn: ...
 
-    @overload
-    def __getattr__(self: RDBIDatabase, key: str) -> RDBITable: ...
-
-    @overload
-    def __getattr__(self: RDBITable, key: str) -> RDBIColumn: ...
-
-    def __getattr__(self, key: str) -> RDatabase | RDBConnection | str | RDBIDatabase | RDBITable | RDBIColumn:
+    def __getattr__(self, name: str) -> RDBIDatabase | RDBITable | RDBIColumn:
         """
-        Get attribute or build subclass instance.
+        Build subclass instance.
 
         Parameters
         ----------
-        key : Attribute key or table name.
+        key : Table name.
 
         Returns
         -------
-        Attribute or subclass instance.
+        Subclass instance.
         """
-
-        # Filter private
-        if key in ('_rdatabase', '_database_name', '_table_name'):
-            return self.__dict__[key]
 
         # Build.
         match self:
             case RDBISchema():
-                rtable = RDBIDatabase(self._rdatabase, key)
+                rtable = RDBIDatabase(self._rdatabase, name)
             case RDBIDatabase():
-                rtable = RDBITable(self._rdatabase, self._database_name, key)
+                rtable = RDBITable(self._rdatabase, self._database_name, name)
             case RDBITable():
-                rtable = RDBIColumn(self._rdatabase, self._database_name, self._table_name, key)
+                rtable = RDBIColumn(self._rdatabase, self._database_name, self._table_name, name)
             case _:
                 raise AssertionError("class '%s' does not have this method" % self.__class__.__name__)
 

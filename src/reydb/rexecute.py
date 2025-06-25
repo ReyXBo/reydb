@@ -10,7 +10,7 @@
 
 
 from __future__ import annotations
-from typing import Any, Literal, overload
+from typing import Any, Self
 from reykit.rexception import throw
 from reykit.rtable import Table
 
@@ -93,38 +93,25 @@ class RDBExecute(object):
         self._path: list[str] = []
 
 
-    @overload
-    def __getattr__(self, key: Literal['_rdatabase']) -> RDatabase | RDBConnection: ...
-
-    @overload
-    def __getattr__(self, key: Literal['_path']) -> list[str]: ...
-
-    @overload
-    def __getattr__(self, key: str) -> RDBExecute: ...
-
-    def __getattr__(self, key: str) -> RDatabase | RDBConnection | list[str] | RDBExecute:
+    def __getattr__(self, name: str) -> Self:
         """
-        Get attribute or set database name or set table name.
+        Set database name or set table name.
 
         Parameters
         ----------
-        key : Attribute key or database name or table name.
+        name : Database name or table name.
 
         Returns
         -------
-        Value of attribute or self.
+        Self.
         """
 
-        # Filter private.
-        if key in ('_rdatabase', '_path'):
-            return self.__dict__[key]
-
-        # Check parameter.
+        # Check.
         if len(self._path) not in (0, 1):
-            throw(AssertionError)
+            throw(AssertionError, self._path)
 
-        # Set parameter.
-        self._path.append(key)
+        # Set.
+        self._path.append(name)
 
         return self
 
