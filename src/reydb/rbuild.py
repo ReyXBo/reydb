@@ -9,7 +9,7 @@
 """
 
 
-from typing import Literal
+from typing import TypedDict, Literal
 from reykit.rexception import throw
 from reykit.rstdout import rinput
 from reykit.rsystem import get_first_notnull
@@ -19,6 +19,28 @@ from .rconnection import RDatabase, RDBConnection
 
 __all__ = (
     'RDBBuild',
+)
+
+
+FieldSet = TypedDict(
+    'FieldSet',
+    {
+        'name': str,
+        'type' | 'type_': str,
+        'constraint': str | None,
+        'comment': str | None,
+        'position': Literal['first'] | str | None
+    }
+)
+IndexType = Literal['noraml', 'unique', 'fulltext', 'spatial']
+IndexSet = TypedDict(
+    'IndexSet',
+    {
+        'name': str,
+        'fields' : str | list[str],
+        'type' | 'type_': IndexType,
+        'comment': str | None
+    }
 )
 
 
@@ -135,7 +157,7 @@ class RDBBuild(object):
         self,
         name: str,
         fields: str | list[str],
-        type_: Literal['noraml', 'unique', 'fulltext', 'spatial'] = 'noraml',
+        type_: IndexType,
         comment: str | None = None
     ) -> str:
         """
@@ -195,9 +217,9 @@ class RDBBuild(object):
     def create_table(
         self,
         path: str | tuple[str, str],
-        fields: dict | list[dict],
+        fields: FieldSet | list[FieldSet],
         primary: str | list[str] | None = None,
-        indexes: dict | list[dict] | None = None,
+        indexes: IndexSet | list[IndexSet] | None = None,
         engine: str = 'InnoDB',
         increment: int = 1,
         charset: str = 'utf8mb3',
@@ -222,6 +244,10 @@ class RDBBuild(object):
             - `Key 'comment'`: Field comment.
                 `Empty or None`: Not comment.
                 `str`: Use this value.
+            - `Key 'position'`: Field position.
+                `None`: Last.
+                `Literal['first']`: First.
+                `str`: After this field.
         primary : Primary key fields.
             - `str`: One field.
             - `list[str]`: Multiple fileds.
@@ -598,9 +624,9 @@ class RDBBuild(object):
     def alter_table_add(
         self,
         path: str | tuple[str, str],
-        fields: dict | list[dict] | None = None,
+        fields: FieldSet | list[FieldSet] | None = None,
         primary: str | list[str] | None = None,
-        indexes: dict | list[dict] | None = None,
+        indexes: IndexSet | list[IndexSet] | None = None,
         execute: bool = True
     ) -> str:
         """
@@ -733,9 +759,9 @@ class RDBBuild(object):
     def alter_table_drop(
         self,
         path: str | tuple[str, str],
-        fields: list[str] | None = None,
+        fields: str | list[str] | None = None,
         primary: bool = False,
-        indexes: list[str] | None = None,
+        indexes: str | list[str] | None = None,
         execute: bool = True
     ) -> str:
         """
@@ -762,6 +788,10 @@ class RDBBuild(object):
         else:
             database, table = path
         database = get_first_notnull(database, self.rdatabase.database, default='exception')
+        if fields.__class__ == str:
+            fields = [fields]
+        if indexes.__class__ == str:
+            indexes = [indexes]
 
         # Generate.
         sql_content = []
@@ -804,7 +834,7 @@ class RDBBuild(object):
     def alter_table_change(
         self,
         path: str | tuple[str, str],
-        fields: dict | list[dict] | None = None,
+        fields: FieldSet | list[FieldSet] | None = None,
         rename: str | None = None,
         engine: str | None = None,
         increment: int | None = None,

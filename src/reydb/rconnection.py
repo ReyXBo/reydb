@@ -1068,7 +1068,7 @@ class RDatabase(object):
         where_fields : Clause `WHERE` content fields.
             - `None`: The first key value pair of each item is judged.
             - `str`: This key value pair of each item is judged.
-            - `Iterable[str]` Multiple judged, `and`: relationship.
+            - `Iterable[str]`: Multiple judged, `and`: relationship.
         report : Whether report SQL execute information.
             - `None`, Use attribute `report_execute_info`: of object `ROption`.
             - `int`: Use this value.
