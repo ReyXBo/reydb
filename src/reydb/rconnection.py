@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import Any, Literal, Self, overload, override
 from types import TracebackType
 from collections.abc import Iterable, Generator
+from enum import EnumType
 from urllib.parse import quote as urllib_quote
 from sqlalchemy import create_engine as sqlalchemy_create_engine, text
 from sqlalchemy.engine.base import Engine, Connection
@@ -576,6 +577,10 @@ class RDatabase(object):
                 ):
                     value= to_json(value)
                     row[key] = value
+
+                # Enum.
+                elif isinstance(value.__class__, EnumType):
+                    row[key] = value.value
 
         return data
 

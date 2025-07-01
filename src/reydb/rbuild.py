@@ -10,6 +10,7 @@
 
 
 from typing import TypedDict, Literal
+from copy import deepcopy
 from reykit.rexception import throw
 from reykit.rstdout import rinput
 from reykit.rsystem import get_first_notnull
@@ -26,7 +27,7 @@ FieldSet = TypedDict(
     'FieldSet',
     {
         'name': str,
-        'type' | 'type_': str,
+        'type': str,
         'constraint': str | None,
         'comment': str | None,
         'position': Literal['first'] | str | None
@@ -38,7 +39,7 @@ IndexSet = TypedDict(
     {
         'name': str,
         'fields' : str | list[str],
-        'type' | 'type_': IndexType,
+        'type': IndexType,
         'comment': str | None
     }
 )
@@ -237,7 +238,7 @@ class RDBBuild(object):
             - `tuple[str, str]`: Database name and table name.
         fields : Fields set table.
             - `Key 'name'`: Field name, required.
-            - `Key 'type' or 'type_'`: Field type, required.
+            - `Key 'type'`: Field type, required.
             - `Key 'constraint'`: Field constraint.
                 `Empty or None`: Use 'DEFAULT NULL'.
                 `str`: Use this value.
@@ -256,7 +257,7 @@ class RDBBuild(object):
             - `Key 'fields'`: Index fields, required.
                 `str`: One field.
                 `list[str]`: Multiple fileds.
-            - `Key 'type' or 'type_'`: Index type.
+            - `Key 'type'`: Index type.
                 `Literal['noraml']`: Noraml key.
                 `Literal['unique']`: Unique key.
                 `Literal['fulltext']`: Full text key.
@@ -292,29 +293,13 @@ class RDBBuild(object):
             indexes = [indexes]
 
         ## Compatible dictionary key name.
-        fields = [
-            {
-                (
-                    'type_'
-                    if key == 'type'
-                    else key
-                ): value
-                for key, value in row.items()
-            }
-            for row in fields
-        ]
+        fields = deepcopy(fields)
+        for row in fields:
+            row['type_'] = row.pop('type')
         if indexes is not None:
-            indexes = [
-                {
-                    (
-                        'type_'
-                        if key == 'type'
-                        else key
-                    ): value
-                    for key, value in row.items()
-                }
-                for row in indexes
-            ]
+            indexes = deepcopy(indexes)
+            for row in indexes:
+                row['type_'] = row.pop('type')
 
         # Generate.
 
@@ -639,7 +624,7 @@ class RDBBuild(object):
             - `tuple[str, str]`: Database name and table name.
         fields : Fields set table.
             - `Key 'name'`: Field name, required.
-            - `Key 'type' or 'type_'`: Field type, required.
+            - `Key 'type'`: Field type, required.
             - `Key 'constraint'`: Field constraint.
                 `Empty or None`: Use 'DEFAULT NULL'.
                 `str`: Use this value.
@@ -658,7 +643,7 @@ class RDBBuild(object):
             - `Key 'fields'`: Index fields, required.
                 `str`: One field.
                 `list[str]`: Multiple fileds.
-            - `Key 'type' or 'type_'`: Index type.
+            - `Key 'type'`: Index type.
                 `Literal['noraml']`: Noraml key.
                 `Literal['unique']`: Unique key.
                 `Literal['fulltext']`: Full text key.
@@ -688,29 +673,13 @@ class RDBBuild(object):
             indexes = [indexes]
 
         ## Compatible dictionary key name.
-        fields = [
-            {
-                (
-                    'type_'
-                    if key == 'type'
-                    else key
-                ): value
-                for key, value in row.items()
-            }
-            for row in fields
-        ]
+        fields = deepcopy(fields)
+        for row in fields:
+            row['type_'] = row.pop('type')
         if indexes is not None:
-            indexes = [
-                {
-                    (
-                        'type_'
-                        if key == 'type'
-                        else key
-                    ): value
-                    for key, value in row.items()
-                }
-                for row in indexes
-            ]
+            indexes = deepcopy(indexes)
+            for row in indexes:
+                row['type_'] = row.pop('type')
 
         # Generate.
         sql_content = []
@@ -852,7 +821,7 @@ class RDBBuild(object):
             - `tuple[str, str]`: Database name and table name.
         fields : Fields set table.
             - `Key 'name'`: Field name, required.
-            - `Key 'type' or 'type_'`: Field type, required.
+            - `Key 'type'`: Field type, required.
             - `Key 'constraint'`: Field constraint.
                 `Empty or None`: Use 'DEFAULT NULL'.
                 `str`: Use this value.
@@ -886,17 +855,9 @@ class RDBBuild(object):
             fields = [fields]
 
         ## Compatible dictionary key name.
-        fields = [
-            {
-                (
-                    'type_'
-                    if key == 'type'
-                    else key
-                ): value
-                for key, value in row.items()
-            }
-            for row in fields
-        ]
+        fields = deepcopy(fields)
+        for row in fields:
+            row['type_'] = row.pop('type')
 
         # Generate.
         sql_content = []
