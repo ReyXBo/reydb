@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import Any, Self
 from reykit.rexception import throw
 from reykit.rtable import Table
+from reykit.rtype import RBase
 
 from .rconnection import RDatabase, RDBConnection, RResult
 
@@ -22,7 +23,7 @@ __all__ = (
 )
 
 
-class RDBExecute(object):
+class RDBExecute(RBase):
     """
     Rey's `database execute` type.
 

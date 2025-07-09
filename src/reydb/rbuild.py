@@ -14,6 +14,7 @@ from copy import deepcopy
 from reykit.rexception import throw
 from reykit.rstdout import rinput
 from reykit.rsystem import get_first_notnull
+from reykit.rtype import RBase
 
 from .rconnection import RDatabase, RDBConnection
 
@@ -45,7 +46,7 @@ IndexSet = TypedDict(
 )
 
 
-class RDBBuild(object):
+class RDBBuild(RBase):
     """
     Rey's `database build` type.
     """

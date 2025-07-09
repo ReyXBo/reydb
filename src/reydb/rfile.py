@@ -13,6 +13,7 @@ from typing import TypedDict, overload
 from os.path import join as os_join
 from datetime import datetime
 from reykit.ros import RFile, RFolder, get_md5
+from reykit.rtype import RBase
 
 from .rconnection import RDatabase, RDBConnection
 
@@ -25,7 +26,7 @@ __all__ = (
 FileInfo = TypedDict('FileInfo', {'create_time': datetime, 'md5': str, 'name': str | None, 'size': int, 'note': str | None})
 
 
-class RDBFile(object):
+class RDBFile(RBase):
     """
     Rey's `database file` type.
     """

@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 from typing import Any, Literal, overload
+from reykit.rtype import RBase
 
 from .rconnection import RDatabase, RDBConnection
 
@@ -24,7 +25,7 @@ __all__ = (
 )
 
 
-class RDBInformation(object):
+class RDBInformation(RBase):
     """
     Rey's `database base information` type.
     """

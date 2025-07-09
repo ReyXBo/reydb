@@ -30,6 +30,7 @@ from reykit.rstdout import echo
 from reykit.rsystem import get_first_notnull
 from reykit.rtable import Table, to_table
 from reykit.rtext import join_data_text, to_json
+from reykit.rtype import RBase
 from reykit.rwrap import wrap_runtime, wrap_retry
 
 
@@ -46,7 +47,7 @@ RResult = monkey_result_type
 monkey_patch_sqlalchemy_row_index_field()
 
 
-class RDatabase(object):
+class RDatabase(RBase):
     """
     Rey's `database` type.
     """

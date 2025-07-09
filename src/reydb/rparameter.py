@@ -10,6 +10,7 @@
 
 
 from typing import overload
+from reykit.rtype import RBase
 
 from .rconnection import RDatabase, RDBConnection
 
@@ -21,7 +22,7 @@ __all__ = (
 )
 
 
-class RDBParameter(object):
+class RDBParameter(RBase):
     """
     Rey's `database parameters` type.
     """
