@@ -34,7 +34,7 @@ class RDBParameter(RBase):
         global_: bool
     ) -> None:
         """
-        Build `database parameters` attributes.
+        Build `database parameters` instance attributes.
 
         Parameters
         ----------

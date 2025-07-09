@@ -194,7 +194,7 @@ class RDBISchema(RDBInformation):
         rdatabase: RDatabase | RDBConnection
     ) -> None:
         """
-        Build `database information schema` attributes.
+        Build `database information schema` instance attributes.
 
         Parameters
         ----------
@@ -258,7 +258,7 @@ class RDBIDatabase(RDBInformation):
         database_name: str
     ) -> None:
         """
-        Build `database information database` attributes.
+        Build `database information database` instance attributes.
 
         Parameters
         ----------
@@ -353,7 +353,7 @@ class RDBITable(RDBInformation):
         table_name: str
     ) -> None:
         """
-        Build `database information table` attributes.
+        Build `database information table` instance attributes.
 
         Parameters
         ----------
@@ -447,7 +447,7 @@ class RDBIColumn(RDBInformation):
         column_name: str
     ) -> None:
         """
-        Build `database information column` attributes.
+        Build `database information column` instance attributes.
 
         Parameters
         ----------

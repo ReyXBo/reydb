@@ -54,7 +54,7 @@ class RDBBuild(RBase):
 
     def __init__(self, rdatabase: RDatabase | RDBConnection) -> None:
         """
-        Build `database build` attributes.
+        Build `database build` instance attributes.
 
         Parameters
         ----------

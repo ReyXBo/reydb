@@ -82,7 +82,7 @@ class RDBExecute(RBase):
 
     def __init__(self, rdatabase: RDatabase | RDBConnection) -> None:
         """
-        Build `database execute` attributes.
+        Build `database execute` instance attributes.
 
         Parameters
         ----------

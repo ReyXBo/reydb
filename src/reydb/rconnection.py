@@ -135,7 +135,7 @@ class RDatabase(RBase):
         **query: str
     ) -> None:
         """
-        Build `database` attributes.
+        Build `database` instance attributes.
 
         Parameters
         ----------
@@ -1604,7 +1604,7 @@ class RDatabase(RBase):
 
     def connect(self) -> RDBConnection:
         """
-        Build `database connection` attributes.
+        Build `database connection` instance attributes.
 
         Returns
         -------
@@ -1623,7 +1623,7 @@ class RDatabase(RBase):
     @property
     def exe(self):
         """
-        Build `database execute` attributes.
+        Build `database execute` instance attributes.
 
         Returns
         -------
@@ -1744,7 +1744,7 @@ class RDatabase(RBase):
     @property
     def info(self):
         """
-        Build `database schema information` attributes.
+        Build `database schema information` instance attributes.
 
         Returns
         -------
@@ -1783,7 +1783,7 @@ class RDatabase(RBase):
     @property
     def build(self):
         """
-        Build `database build` attributes.
+        Build `database build` instance attributes.
 
         Returns
         -------
@@ -1802,7 +1802,7 @@ class RDatabase(RBase):
     @property
     def file(self):
         """
-        Build `database file` attributes.
+        Build `database file` instance attributes.
 
         Returns
         -------
@@ -1821,7 +1821,7 @@ class RDatabase(RBase):
     @property
     def status(self):
         """
-        Build `database status parameters` attributes.
+        Build `database status parameters` instance attributes.
 
         Returns
         -------
@@ -1859,7 +1859,7 @@ class RDatabase(RBase):
     @property
     def variables(self):
         """
-        Build `database variable parameters` attributes.
+        Build `database variable parameters` instance attributes.
 
         Returns
         -------
@@ -2002,7 +2002,7 @@ class RDBConnection(RDatabase):
         rdatabase: RDatabase
     ) -> None:
         """
-        Build `database connection` attributes.
+        Build `database connection` instance attributes.
 
         Parameters
         ----------

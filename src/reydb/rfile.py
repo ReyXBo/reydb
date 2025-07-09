@@ -37,7 +37,7 @@ class RDBFile(RBase):
         rdatabase: RDatabase | RDBConnection
     ) -> None:
         """
-        Build `database file` attributes.
+        Build `database file` instance attributes.
 
         Parameters
         ----------
