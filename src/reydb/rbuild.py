@@ -9,7 +9,7 @@
 """
 
 
-from typing import TypedDict, Literal
+from typing import TypedDict, NotRequired, Literal
 from copy import deepcopy
 from reykit.rexception import throw
 from reykit.rstdout import rinput
@@ -29,9 +29,9 @@ FieldSet = TypedDict(
     {
         'name': str,
         'type': str,
-        'constraint': str | None,
-        'comment': str | None,
-        'position': Literal['first'] | str | None
+        'constraint': NotRequired[str | None],
+        'comment': NotRequired[str | None],
+        'position': NotRequired[Literal['first'] | str | None]
     }
 )
 IndexType = Literal['noraml', 'unique', 'fulltext', 'spatial']
@@ -41,7 +41,7 @@ IndexSet = TypedDict(
         'name': str,
         'fields' : str | list[str],
         'type': IndexType,
-        'comment': str | None
+        'comment': NotRequired[str | None]
     }
 )
 
@@ -60,6 +60,11 @@ class RDBBuild(RBase):
         ----------
         rdatabase : RDatabase or RDBConnection instance.
         """
+
+        # Check.
+        if rdatabase.drivername == 'sqlite':
+            text='not suitable for SQLite databases'
+            throw(AssertionError, text=text)
 
         # Set attribute.
         self.rdatabase = rdatabase
