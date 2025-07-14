@@ -74,7 +74,6 @@ class RDBExecute(RBase):
     >>> result = len(RDBExecute.database.table)
 
     Default database.
-    >>> field = ['id', 'value']
     >>> engine = RDatabase(**server, database)
     >>> result = engine.exe.table()
     """

@@ -129,7 +129,7 @@ class RDBPStatus(RDBParameter):
         ## Value.
         else:
             sql += ' LIKE :key'
-            result = self.rdatabase(sql, key=key)
+            result = self.rdatabase.execute(sql, key=key)
             row = result.first()
             if row is None:
                 status = None
@@ -198,7 +198,7 @@ class RDBPVariable(RDBParameter):
         ## Value.
         else:
             sql += ' LIKE :key'
-            result = self.rdatabase(sql, key=key)
+            result = self.rdatabase.execute(sql, key=key)
             row = result.first()
             if row is None:
                 variables = None
@@ -206,7 +206,6 @@ class RDBPVariable(RDBParameter):
                 variables = row['Value']
 
         return variables
-
 
 
     def update(self, params: dict[str, str | float]) -> None:
@@ -232,7 +231,7 @@ class RDBPVariable(RDBParameter):
         ]
         sql_set = ',\n    '.join(sql_set_list)
 
-        # Global.
+        ## Global.
         if self.global_:
             sql = f'SET GLOBAL {sql_set}'
 
@@ -241,4 +240,80 @@ class RDBPVariable(RDBParameter):
             sql = f'SET {sql_set}'
 
         # Execute SQL.
-        self.rdatabase(sql)
+        self.rdatabase.execute(sql)
+
+
+class RDBPPragma(RDBParameter):
+    """
+    Rey's `database parameter pragma` type.
+    """
+
+
+    def __init__(
+        self,
+        rdatabase: RDatabase | RDBConnection
+    ) -> None:
+        """
+        Build `database parameters` instance attributes.
+
+        Parameters
+        ----------
+        rdatabase : RDatabase or RDBConnection instance.
+        """
+
+        # Set parameter.
+        self.rdatabase = rdatabase
+
+
+    def get(self, key: str) -> str | None:
+        """
+        Get parameter.
+
+        Parameters
+        ----------
+        key : Parameter key.
+
+        Returns
+        -------
+        Variables of database.
+        """
+
+        # Generate SQL.
+        sql = f'PRAGMA %s' % key
+
+        # Execute SQL.
+        result = self.rdatabase.execute(sql)
+        row = result.first()
+        if row is None:
+            variables = None
+        else:
+            variables = row[0]
+
+        return variables
+
+
+    def update(self, params: dict[str, str | float]) -> None:
+        """
+        Update parameter.
+
+        Parameters
+        ----------
+        params : Update parameter key value pairs.
+        """
+
+        # Generate SQL.
+        sql_set_list = [
+            'PRAGMA %s = %s' % (
+                key,
+                (
+                    value
+                    if value.__class__ in (int, float)
+                    else "'%s'" % value
+                )
+            )
+            for key, value in params.items()
+        ]
+        sql = ';\n'.join(sql_set_list)
+
+        # Execute SQL.
+        self.rdatabase.execute(sql)

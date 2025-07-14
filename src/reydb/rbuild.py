@@ -92,7 +92,7 @@ class RDBBuild(RBase):
 
         # Execute.
         if execute:
-            self.rdatabase(sql)
+            self.rdatabase.execute(sql)
 
         return sql
 
@@ -279,11 +279,7 @@ class RDBBuild(RBase):
         """
 
         # Handle parameter.
-        if path.__class__ == str:
-            database, table, _ = self.rdatabase.extract_path(path)
-        else:
-            database, table = path
-        database = get_first_notnull(database, self.rdatabase.database, default='exception')
+        database, table, _ = self.rdatabase.extract_path(path)
         if fields.__class__ == dict:
             fields = [fields]
         if primary.__class__ == str:
@@ -345,7 +341,7 @@ class RDBBuild(RBase):
 
         # Execute.
         if execute:
-            self.rdatabase(sql)
+            self.rdatabase.execute(sql)
 
         return sql
 
@@ -373,11 +369,7 @@ class RDBBuild(RBase):
         """
 
         # Handle parameter.
-        if path.__class__ == str:
-            database, view, _ = self.rdatabase.extract_path(path)
-        else:
-            database, view = path
-        database = get_first_notnull(database, self.rdatabase.database, default='exception')
+        database, view, _ = self.rdatabase.extract_path(path)
 
         # Generate SQL.
         select = select.replace('\n', '\n    ')
@@ -385,7 +377,7 @@ class RDBBuild(RBase):
 
         # Execute.
         if execute:
-            self.rdatabase(sql)
+            self.rdatabase.execute(sql)
 
         return sql
 
@@ -421,7 +413,7 @@ class RDBBuild(RBase):
 
         # Generate select SQL.
         item_first = items[0]
-        select_first = "SELECT '%s' AS `Item`,\n(\n    %s\n) AS `Value`,\n%s AS `Comment`" % (
+        select_first = "SELECT '%s' AS `item`,\n(\n    %s\n) AS `value`,\n%s AS `comment`" % (
             item_first['name'],
             item_first['select'].replace('\n', '\n    '),
             (
@@ -478,7 +470,7 @@ class RDBBuild(RBase):
 
         # Execute.
         if execute:
-            self.rdatabase(sql)
+            self.rdatabase.execute(sql)
 
         return sql
 
@@ -504,18 +496,14 @@ class RDBBuild(RBase):
         """
 
         # Handle parameter.
-        if path.__class__ == str:
-            database, table, _ = self.rdatabase.extract_path(path)
-        else:
-            database, table = path
-        database = get_first_notnull(database, self.rdatabase.database, default='exception')
+        database, table, _ = self.rdatabase.extract_path(path)
 
         # Generate.
         sql = f'DROP TABLE `{database}`.`{table}`'
 
         # Execute.
         if execute:
-            self.rdatabase(sql)
+            self.rdatabase.execute(sql)
 
         return sql
 
@@ -541,18 +529,14 @@ class RDBBuild(RBase):
         """
 
         # Handle parameter.
-        if path.__class__ == str:
-            database, view, _ = self.rdatabase.extract_path(path)
-        else:
-            database, view = path
-        database = get_first_notnull(database, self.rdatabase.database, default='exception')
+        database, view, _ = self.rdatabase.extract_path(path)
 
         # Generate SQL.
         sql = 'DROP VIEW `%s`.`%s`' % (database, view)
 
         # Execute.
         if execute:
-            self.rdatabase(sql)
+            self.rdatabase.execute(sql)
 
         return sql
 
@@ -602,7 +586,7 @@ class RDBBuild(RBase):
 
         # Execute.
         if execute:
-            self.rdatabase(sql)
+            self.rdatabase.execute(sql)
 
         return sql
 
@@ -659,11 +643,7 @@ class RDBBuild(RBase):
         """
 
         # Handle parameter.
-        if path.__class__ == str:
-            database, table, _ = self.rdatabase.extract_path(path)
-        else:
-            database, table = path
-        database = get_first_notnull(database, self.rdatabase.database, default='exception')
+        database, table, _ = self.rdatabase.extract_path(path)
         if fields.__class__ == dict:
             fields = [fields]
         if primary.__class__ == str:
@@ -721,7 +701,7 @@ class RDBBuild(RBase):
 
         # Execute.
         if execute:
-            self.rdatabase(sql)
+            self.rdatabase.execute(sql)
 
         return sql
 
@@ -753,11 +733,7 @@ class RDBBuild(RBase):
         """
 
         # Handle parameter.
-        if path.__class__ == str:
-            database, table, _ = self.rdatabase.extract_path(path)
-        else:
-            database, table = path
-        database = get_first_notnull(database, self.rdatabase.database, default='exception')
+        database, table, _ = self.rdatabase.extract_path(path)
         if fields.__class__ == str:
             fields = [fields]
         if indexes.__class__ == str:
@@ -796,7 +772,7 @@ class RDBBuild(RBase):
 
         # Execute.
         if execute:
-            self.rdatabase(sql)
+            self.rdatabase.execute(sql)
 
         return sql
 
@@ -847,11 +823,7 @@ class RDBBuild(RBase):
         """
 
         # Handle parameter.
-        if path.__class__ == str:
-            database, table, _ = self.rdatabase.extract_path(path)
-        else:
-            database, table = path
-        database = get_first_notnull(database, self.rdatabase.database, default='exception')
+        database, table, _ = self.rdatabase.extract_path(path)
         if fields.__class__ == dict:
             fields = [fields]
 
@@ -919,7 +891,7 @@ class RDBBuild(RBase):
 
         # Execute.
         if execute:
-            self.rdatabase(sql)
+            self.rdatabase.execute(sql)
 
         return sql
 
@@ -947,18 +919,14 @@ class RDBBuild(RBase):
         """
 
         # Handle parameter.
-        if path.__class__ == str:
-            database, view, _ = self.rdatabase.extract_path(path)
-        else:
-            database, view = path
-        database = get_first_notnull(database, self.rdatabase.database, default='exception')
+        database, view, _ = self.rdatabase.extract_path(path)
 
         # Generate SQL.
         sql = 'ALTER VIEW `%s`.`%s` AS\n%s' % (database, view, select)
 
         # Execute.
         if execute:
-            self.rdatabase(sql)
+            self.rdatabase.execute(sql)
 
         return sql
 
@@ -984,18 +952,14 @@ class RDBBuild(RBase):
         """
 
         # Handle parameter.
-        if path.__class__ == str:
-            database, table, _ = self.rdatabase.extract_path(path)
-        else:
-            database, table = path
-        database = get_first_notnull(database, self.rdatabase.database, default='exception')
+        database, table, _ = self.rdatabase.extract_path(path)
 
         # Generate.
         sql = f'TRUNCATE TABLE `{database}`.`{table}`'
 
         # Execute.
         if execute:
-            self.rdatabase(sql)
+            self.rdatabase.execute(sql)
 
         return sql
 
@@ -1019,10 +983,7 @@ class RDBBuild(RBase):
         """
 
         # Handle parameter.
-        if path.__class__ == str:
-            database, table, column = self.rdatabase.extract_path(path, 'database')
-        else:
-            database, table, column = path
+        database, table, column = self.rdatabase.extract_path(path, 'database')
 
         # Judge.
         if table is None:
@@ -1111,97 +1072,97 @@ class RDBBuild(RBase):
 
         # Database.
         for params in databases:
+
+            ## SQLite.
+            if self.rdatabase.drivername == 'sqlite':
+                break
+
             database = params['database']
 
-            # Exist.
+            ## Exist.
             exist = self.rdatabase.build.exist((database, None, None))
             if exist: continue
 
-            # Create.
+            ## Create.
             sql = self.create_database(**params, execute=False)
 
-            # Confirm.
+            ## Confirm.
             self.input_confirm_build(sql)
 
-            # Execute.
-            self.rdatabase(sql)
+            ## Execute.
+            self.rdatabase.execute(sql)
 
-            # Report.
+            ## Report.
             text = f"Database '{database}' build completed."
             print(text)
 
         # Table.
         for params in tables:
             path = params['path']
-            if path.__class__ == str:
-                database, table, _ = self.rdatabase.extract_path(path)
-            else:
-                database, table = path
+            database, table, _ = self.rdatabase.extract_path(path)
 
-            # Exist.
+            ## Exist.
             exist = self.rdatabase.build.exist((database, table, None))
             if exist: continue
 
-            # Create.
+            ## Create.
             sql = self.create_table(**params, execute=False)
 
-            # Confirm.
+            ## Confirm.
             self.input_confirm_build(sql)
 
-            # Execute.
-            self.rdatabase(sql)
+            ## Execute.
+            self.rdatabase.execute(sql)
 
-            # Report.
+            ## Report.
             text = f"Table '{table}' of database '{database}' build completed."
             print(text)
 
         # View.
         for params in views:
             path = params['path']
-            if path.__class__ == str:
-                database, view, _ = self.rdatabase.extract_path(path)
-            else:
-                database, view = path
+            database, view, _ = self.rdatabase.extract_path(path)
 
-            # Exist.
+            ## SQLite.
+            if self.rdatabase.drivername == 'sqlite':
+                database = 'main'
+
+            ## Exist.
             exist = self.rdatabase.build.exist((database, view, None))
             if exist: continue
 
-            # Create.
+            ## Create.
             sql = self.create_view(**params, execute=False)
 
-            # Confirm.
+            ## Confirm.
             self.input_confirm_build(sql)
 
-            # Execute.
-            self.rdatabase(sql)
+            ## Execute.
+            self.rdatabase.execute(sql)
 
-            # Report.
+            ## Report.
             text = f"View '{view}' of database '{database}' build completed."
             print(text)
 
         # View stats.
         for params in views_stats:
             path = params['path']
-            if path.__class__ == str:
-                database, view, _ = self.rdatabase.extract_path(path)
-            else:
-                database, view = path
+            database, view, _ = self.rdatabase.extract_path(path)
 
-            # Exist.
+            ## Exist.
             exist = self.rdatabase.build.exist((database, view, None))
             if exist: continue
 
-            # Create.
+            ## Create.
             sql = self.create_view_stats(**params, execute=False)
 
-            # Confirm.
+            ## Confirm.
             self.input_confirm_build(sql)
 
-            # Execute.
-            self.rdatabase(sql)
+            ## Execute.
+            self.rdatabase.execute(sql)
 
-            # Report.
+            ## Report.
             text = f"View '{view}' of database '{database}' build completed."
             print(text)
 

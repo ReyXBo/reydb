@@ -10,7 +10,7 @@
 
 
 from __future__ import annotations
-from typing import Any, Literal, Self, overload, override
+from typing import Any, Literal, Self, overload
 from types import TracebackType
 from collections.abc import Iterable, Generator
 from enum import EnumType
@@ -86,6 +86,25 @@ class RDatabase(RBase):
         port: None = None,
         username: None = None,
         password: None = None,
+        database: str = None,
+        drivername: str | None = None,
+        pool_size: int = 5,
+        max_overflow: int = 10,
+        pool_timeout: float = 30.0,
+        pool_recycle: int | None = None,
+        retry: bool = False,
+        url: None = None,
+        engine: None = None,
+        **query: str
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        host: None = None,
+        port: None = None,
+        username: None = None,
+        password: None = None,
         database: str | None = None,
         drivername: str | None = None,
         pool_size: int = 5,
@@ -143,7 +162,7 @@ class RDatabase(RBase):
         port : Server port.
         username : Server username.
         password : Server password.
-        database : Database name in the server.
+        database : Database name in the server or local database file path.
         drivername : Database backend and driver name.
             - `None`: Automatic select and try.
             - `str`: Use this value.
@@ -215,23 +234,39 @@ class RDatabase(RBase):
 
             ## Set parameters by priority.
             self.drivername: str = get_first_notnull(drivername, params['drivername'])
-            self.username: str = get_first_notnull(username, params['username'], default='exception')
-            self.password: str = get_first_notnull(password, params['password'], default='exception')
-            self.host: str = get_first_notnull(host, params['host'], default='exception')
-            self.port: str = get_first_notnull(port, params['port'], default='exception')
+            self.username: str = get_first_notnull(username, params['username'])
+            self.password: str = get_first_notnull(password, params['password'])
+            self.host: str = get_first_notnull(host, params['host'])
+            self.port: str = get_first_notnull(port, params['port'])
             self.database: str | None = get_first_notnull(database, params['database'])
             self.query: dict = get_first_notnull(query, params['query'])
             self.pool_size = pool_size
             self.max_overflow = max_overflow
             self.pool_timeout = pool_timeout
 
+            ### SQLite.
+            if (
+                    (
+                    self.username is None
+                    or self.password is None
+                    or self.host is None
+                    or self.port is None
+                ) and self.database is not None
+                and self.drivername is None
+            ):
+                self.drivername = 'sqlite'
+
             ## Create Engine object.
             if pool_recycle is None:
                 self.pool_recycle = -1
                 self.engine = self.create_engine()
-                wait_timeout = int(self.variables['wait_timeout'])
-                self.pool_recycle = wait_timeout
-                self.engine.pool._recycle = wait_timeout
+
+                ### Remote.
+                if self.drivername != 'sqlite':
+                    wait_timeout = int(self.variables['wait_timeout'])
+                    self.pool_recycle = wait_timeout
+                    self.engine.pool._recycle = wait_timeout
+
             else:
                 self.pool_recycle = pool_recycle
                 self.engine = self.create_engine()
@@ -258,23 +293,40 @@ class RDatabase(RBase):
 
             ## When str object.
             case str():
-                pattern = r'^([\w\+]+)://(\w+):(\w+)@(\d+\.\d+\.\d+\.\d+):(\d+)[/]?([\w/]+)?[\?]?([\w&=]+)?$'
-                result = search(pattern, url)
-                if result is None:
+                pattern_remote = r'^([\w\+]+)://(\w+):(\w+)@(\d+\.\d+\.\d+\.\d+):(\d+)[/]?([^\?]+)?[\?]?(\S+)?$'
+                pattern_local = r'^([\w\+]+):////?([^\?]+)[\?]?(\S+)?$'
+
+                ### Remote.
+                if (result_remote := search(pattern_remote, url)) is not None:
+                    (
+                        drivername,
+                        username,
+                        password,
+                        host,
+                        port,
+                        database,
+                        query_str
+                    ) = result_remote
+
+                ### SQLite.
+                elif (result_local := search(pattern_local, url)) is not None:
+                    username = password = host = port = None
+                    (
+                        drivername,
+                        database,
+                        query_str
+                    ) = result_local
+
+                ### Throw exception.
+                else:
                     throw(ValueError, url)
-                (
-                    drivername,
-                    username,
-                    password,
-                    host,
-                    port,
-                    database,
-                    query_str
-                ) = result
+
                 if query_str is not None:
-                    pattern = r'(\w+)=(\w+)'
-                    query_findall = findall(pattern, query_str)
-                    query = {key: value for key, value in query_findall}
+                    query = {
+                        key: value
+                        for query_item_str in query_str.split('&')
+                        for key, value in (query_item_str.split('=', 1),)
+                    }
                 else:
                     query = {}
 
@@ -360,29 +412,33 @@ class RDatabase(RBase):
     def extract_path(
         self,
         path: str,
-        main: Literal['table'] = 'table'
-    ) -> tuple[str | None, str, str | None]: ...
+        main: Literal['table', 'database'] = 'table'
+    ) -> tuple[str, str, str | None]: ...
 
     @overload
     def extract_path(
         self,
-        path: str,
-        main: Literal['database'] = 'table'
+        path: tuple[str | None, str | None] | tuple[str | None, str | None, str | None],
+        main: Literal['table', 'database'] = 'table'
     ) -> tuple[str, str | None, str | None]: ...
 
     def extract_path(
         self,
-        path: str,
+        path: str | tuple[str | None, str | None] | tuple[str | None, str | None, str | None],
         main: Literal['table', 'database'] = 'table'
-    ) -> tuple[str | None, str | None, str | None]:
+    ) -> tuple[str, str | None, str | None]:
         """
         Extract table name and database name and column name from path.
 
         Parameters
         ----------
+        path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
+            - `str`: Automatic extract database name and table name.
+                Not contain '.' or contain '`': Main name.
+                Contain '.': Database name and table name, column name is optional. Example 'database.table[.column]'.
+            - `tuple[str, str]`: Database name and table name.
+            - `tuple[str, str | None, str | None]`: Database name and table name and column name.
         path : Automatic extract.
-            ```Not contain '.' or contain '`'```: Main name.
-            `Contain '.'`: Database name and table name, column name is optional. Example 'database.table[.column]'.
         main : Priority main name, 'table' or 'database'.
 
         Returns
@@ -390,24 +446,45 @@ class RDatabase(RBase):
         Database name and table name and column name.
         """
 
-        # Extract.
-        if (
-            '.' not in path
-            or '`' in path
-        ):
-            name = path.replace('`', '')
-            match main:
-                case 'table':
-                    names = (None, name, None)
-                case 'database':
-                    names = (name, None, None)
-                case _:
-                    throw(ValueError, main)
+        # String.
+        if path.__class__ == str:
+
+            ## Single.
+            if (
+                '.' not in path
+                or '`' in path
+            ):
+                name = path.replace('`', '')
+                match main:
+                    case 'table':
+                        names = (self.database, name, None)
+                    case 'database':
+                        names = (name, None, None)
+                    case _:
+                        throw(ValueError, main)
+
+            ## Multiple.
+            else:
+                names = path.split('.', 2)
+                if len(names) == 2:
+                    names.append(None)
+                names = tuple(names)
+
+        # Tuple.
         else:
-            names = path.split('.', 2)
-            if len(names) == 2:
-                names.append(None)
-            names = tuple(names)
+            if len(path) == 2:
+                path += (None,)
+            if path[0] is None:
+                path = (self.database,) + names[1:]
+            names = path
+
+        # SQLite.
+        if self.drivername == 'sqlite':
+            names = ('main',) + names[1:]
+
+        # Check.
+        if names[0] is None:
+            throw(ValueError, names)
 
         return names
 
@@ -423,12 +500,24 @@ class RDatabase(RBase):
         """
 
         # Generate URL.
-        password = urllib_quote(self.password)
-        _url = f'{self.drivername}://{self.username}:{password}@{self.host}:{self.port}'
 
-        # Add database path.
-        if self.database is not None:
-            _url = f'{_url}/{self.database}'
+        ## SQLite.
+        if (
+            self.username is None
+            or self.password is None
+            or self.host is None
+            or self.port is None
+        ) and self.database is not None:
+            url_ = f'{self.drivername}:///{self.database}'
+
+        ## Remote.
+        else:
+            password = urllib_quote(self.password)
+            url_ = f'{self.drivername}://{self.username}:{password}@{self.host}:{self.port}'
+
+            ### Add database path.
+            if self.database is not None:
+                url_ = f'{url_}/{self.database}'
 
         # Add Server parameter.
         if self.query != {}:
@@ -438,9 +527,9 @@ class RDatabase(RBase):
                     for key, value in self.query.items()
                 ]
             )
-            _url = f'{_url}?{query}'
+            url_ = f'{url_}?{query}'
 
-        return _url
+        return url_
 
 
     def create_engine(self, **kwargs) -> Engine:
@@ -821,13 +910,7 @@ class RDatabase(RBase):
         """
 
         # Handle parameter.
-        if path.__class__ == str:
-            database, table, _ = self.extract_path(path)
-        else:
-            database, table = path
-
-        # Get parameter by priority.
-        database = get_first_notnull(database, self.database, default='exception')
+        database, table, _ = self.extract_path(path)
 
         # Generate SQL.
         sql_list = []
@@ -940,13 +1023,7 @@ class RDatabase(RBase):
         """
 
         # Handle parameter.
-        if path.__class__ == str:
-            database, table, _ = self.extract_path(path)
-        else:
-            database, table = path
-
-        # Get parameter by priority.
-        database = get_first_notnull(database, self.database, default='exception')
+        database, table, _ = self.extract_path(path)
 
         # Handle parameter.
 
@@ -1100,13 +1177,7 @@ class RDatabase(RBase):
         """
 
         # Handle parameter.
-        if path.__class__ == str:
-            database, table, _ = self.extract_path(path)
-        else:
-            database, table = path
-
-        # Get parameter by priority.
-        database = get_first_notnull(database, self.database, default='exception')
+        database, table, _ = self.extract_path(path)
 
         # Handle parameter.
 
@@ -1262,13 +1333,7 @@ class RDatabase(RBase):
         """
 
         # Handle parameter.
-        if path.__class__ == str:
-            database, table, _ = self.extract_path(path)
-        else:
-            database, table = path
-
-        # Get parameter by priority.
-        database = get_first_notnull(database, self.database, default='exception')
+        database, table, _ = self.extract_path(path)
 
         # Generate SQL.
         sqls = []
@@ -1345,18 +1410,21 @@ class RDatabase(RBase):
         """
 
         # Handle parameter.
-        if path.__class__ == str:
-            database, table, _ = self.extract_path(path)
-        else:
-            database, table = path
-
-        # Get parameter by priority.
-        database = get_first_notnull(database, self.database, default='exception')
+        database, table, _ = self.extract_path(path)
 
         # Get parameter.
         table_info: list[dict] = self.info(database)(table)()
+
+        ## SQLite.
+        if self.drivername == 'sqlite':
+            field_key = 'name'
+
+        ## Remote.
+        else:
+            field_key = 'COLUMN_NAME'
+
         fields = [
-            row['COLUMN_NAME']
+            row[field_key]
             for row in table_info
         ]
         pattern = '(?<!\\\\):(\\w+)'
@@ -1448,6 +1516,53 @@ class RDatabase(RBase):
         return result
 
 
+    def execute_count(
+        self,
+        path: str | tuple[str, str],
+        where: str | None = None,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> int:
+        """
+        Count records.
+
+        Parameters
+        ----------
+        path : Table name, can contain database name, otherwise use `self.database`.
+            - `str`: Automatic extract database name and table name.
+            - `tuple[str, str]`: Database name and table name.
+        where : Match condition, `WHERE` clause content, join as `WHERE str`.
+            - `None`: Match all.
+            - `str`: Match condition.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
+
+        Returns
+        -------
+        Record count.
+
+        Examples
+        --------
+        Parameter `where` and `kwdata`.
+        >>> where = '`id` IN :ids'
+        >>> ids = (1, 2)
+        >>> result = RDatabase.execute_count('database.table', where, ids=ids)
+        >>> print(result)
+        2
+        """
+
+        # Handle parameter.
+        database, table, _ = self.extract_path(path)
+
+        # Execute.
+        result = self.execute_select((database, table), '1', where=where, report=report, **kwdata)
+        count = len(tuple(result))
+
+        return count
+
+
     def execute_exist(
         self,
         path: str | tuple[str, str],
@@ -1488,68 +1603,15 @@ class RDatabase(RBase):
         """
 
         # Handle parameter.
-        if path.__class__ == str:
-            database, table, _ = self.extract_path(path)
-        else:
-            database, table = path
+        database, table, _ = self.extract_path(path)
 
         # Execute.
-        result = self.execute_select((database, table), '1', where=where, limit=1, report=report, **kwdata)
+        result = self.execute_count(path, where, report, **kwdata)
 
         # Judge.
-        judge = result.exist
+        judge = result != 0
 
         return judge
-
-
-    def execute_count(
-        self,
-        path: str | tuple[str, str],
-        where: str | None = None,
-        report: bool | None = None,
-        **kwdata: Any
-    ) -> int:
-        """
-        Count records.
-
-        Parameters
-        ----------
-        path : Table name, can contain database name, otherwise use `self.database`.
-            - `str`: Automatic extract database name and table name.
-            - `tuple[str, str]`: Database name and table name.
-        where : Match condition, `WHERE` clause content, join as `WHERE str`.
-            - `None`: Match all.
-            - `str`: Match condition.
-        report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
-        kwdata : Keyword parameters for filling.
-
-        Returns
-        -------
-        Record count.
-
-        Examples
-        --------
-        Parameter `where` and `kwdata`.
-        >>> where = '`id` IN :ids'
-        >>> ids = (1, 2)
-        >>> result = RDatabase.execute_count('database.table', where, ids=ids)
-        >>> print(result)
-        2
-        """
-
-        # Handle parameter.
-        if path.__class__ == str:
-            database, table, _ = self.extract_path(path)
-        else:
-            database, table = path
-
-        # Execute.
-        result = self.execute_select((database, table), '1', where=where, report=report, **kwdata)
-        count = result.rowcount
-
-        return count
 
 
     def execute_generator(
@@ -1575,17 +1637,6 @@ class RDatabase(RBase):
         -------
         Generator.
         """
-
-        # Handle parameter.
-        match data:
-            case dict():
-                data = [data]
-            case CursorResult():
-                data = to_table(data)
-            case DataFrame():
-                data = to_table(data)
-            case _:
-                data = data.copy()
 
         # Instance.
         rgenerator = RGenerator(
@@ -1703,6 +1754,10 @@ class RDatabase(RBase):
         -------
         Schemata of databases and tables and columns.
         """
+
+        # Check.
+        if self.drivername == 'sqlite':
+            throw(AssertionError, self.drivername)
 
         # Select.
         filter_db = (
@@ -1829,12 +1884,19 @@ class RDatabase(RBase):
         """
 
         # Import.
-        from .rparameter import RDBPStatus
+        from .rparameter import RDBPStatus, RDBPPragma
 
         # Build.
-        rdbpstatus = RDBPStatus(self, False)
 
-        return rdbpstatus
+        ## SQLite.
+        if self.drivername == 'sqlite':
+            rdbp = RDBPPragma(self)
+
+        ## Remote.
+        else:
+            rdbp = RDBPStatus(self, False)
+
+        return rdbp
 
 
     @property
@@ -1848,12 +1910,19 @@ class RDatabase(RBase):
         """
 
         # Import.
-        from .rparameter import RDBPStatus
+        from .rparameter import RDBPStatus, RDBPPragma
 
         # Build.
-        rdbpstatus = RDBPStatus(self, True)
 
-        return rdbpstatus
+        ## SQLite.
+        if self.drivername == 'sqlite':
+            rdbp = RDBPPragma(self)
+
+        ## Remote.
+        else:
+            rdbp = RDBPStatus(self, True)
+
+        return rdbp
 
 
     @property
@@ -1867,12 +1936,19 @@ class RDatabase(RBase):
         """
 
         # Import.
-        from .rparameter import RDBPVariable
+        from .rparameter import RDBPVariable, RDBPPragma
 
         # Build.
-        rdbpvariable = RDBPVariable(self, False)
 
-        return rdbpvariable
+        ## SQLite.
+        if self.drivername == 'sqlite':
+            rdbp = RDBPPragma(self)
+
+        ## Remote.
+        else:
+            rdbp = RDBPVariable(self, False)
+
+        return rdbp
 
 
     @property
@@ -1886,75 +1962,22 @@ class RDatabase(RBase):
         """
 
         # Import.
-        from .rparameter import RDBPVariable
+        from .rparameter import RDBPVariable, RDBPPragma
 
         # Build.
-        rdbpvariable = RDBPVariable(self, True)
 
-        return rdbpvariable
+        ## SQLite.
+        if self.drivername == 'sqlite':
+            rdbp = RDBPPragma(self)
 
-
-    @overload
-    def __call__(
-        self,
-        sql: str | TextClause,
-        data: Table | None = None,
-        report: bool | None = None,
-        generator: Literal[False] = False,
-        **kwdata: Any
-    ) -> RResult: ...
-
-    @overload
-    def __call__(
-        self,
-        sql: str | TextClause,
-        data: Table = None,
-        report: bool | None = None,
-        generator: Literal[True] = False,
-        **kwdata: Any
-    ) -> Generator[RResult, Any, None]: ...
-
-    def __call__(
-        self,
-        sql: str | TextClause,
-        data: Table | None = None,
-        report: bool | None = None,
-        generator: bool = False,
-        **kwdata: Any
-    ) -> RResult | Generator[RResult, Any, None]:
-        """
-        Execute SQL or return a generator that can execute SQL.
-
-        Parameters
-        ----------
-        sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
-        data : Data set for filling.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `default_report`.
-            - `bool`: Use this value.
-        generator : whether return a generator that can execute SQL, otherwise execute SQL.
-        kwdata : Keyword parameters for filling.
-
-        Returns
-        -------
-        Result object or generator.
-        """
-
-        # Get parameter.
-        if generator:
-            func = self.execute_generator
+        ## Remote.
         else:
-            func = self.execute
+            rdbp = RDBPVariable(self, True)
 
-        # Execute.
-        result = func(
-            sql,
-            data,
-            report,
-            **kwdata
-        )
+        return rdbp
 
-        return result
+
+    __call__ = execute
 
 
     def __str__(self) -> str:
@@ -2026,7 +2049,6 @@ class RDBConnection(RDatabase):
         self.retry = rdatabase.retry
 
 
-    @override
     def executor(
         self,
         connection: Connection,
@@ -2084,7 +2106,6 @@ class RDBConnection(RDatabase):
         return result
 
 
-    @override
     def execute(
         self,
         sql: str | TextClause,

@@ -12,6 +12,7 @@
 from typing import TypedDict, overload
 from os.path import join as os_join
 from datetime import datetime
+from reykit.rexception import throw
 from reykit.ros import RFile, RFolder, get_md5
 from reykit.rtype import RBase
 
@@ -43,6 +44,11 @@ class RDBFile(RBase):
         ----------
         rdatabase : RDatabase or RDBConnection instance.
         """
+
+        # Check.
+        if rdatabase.drivername == 'sqlite':
+            text='not suitable for SQLite databases'
+            throw(AssertionError, text=text)
 
         # Set attribute.
         self.rdatabase = rdatabase
@@ -349,7 +355,7 @@ class RDBFile(RBase):
         )
 
         # Execute SQL.
-        result = self.rdatabase(sql, file_id=file_id)
+        result = self.rdatabase.execute(sql, file_id=file_id)
 
         # Check.
         if result.empty:

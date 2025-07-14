@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 from typing import Any, Literal, overload
+from reykit.rexception import throw
 from reykit.rtype import RBase
 
 from .rconnection import RDatabase, RDBConnection
@@ -214,11 +215,16 @@ class RDBISchema(RDBInformation):
         Information table.
         """
 
+        # Check.
+        if self._rdatabase.drivername == 'sqlite':
+            throw(AssertionError, self._rdatabase.drivername)
+
         # Select.
-        result = self._rdatabase.execute_select(
-            'information_schema.SCHEMATA',
-            order='`schema_name`'
-        )
+        else:
+            result = self._rdatabase.execute_select(
+                'information_schema.SCHEMATA',
+                order='`schema_name`'
+            )
 
         # Convert.
         info_table = result.fetch_table()
@@ -266,6 +272,13 @@ class RDBIDatabase(RDBInformation):
         database_name : Database name.
         """
 
+        # Check.
+        if (
+            rdatabase.drivername == 'sqlite'
+            and database_name != 'main'
+        ):
+            throw(ValueError, database_name)
+
         # Set parameter.
         self._rdatabase = rdatabase
         self._database_name = database_name
@@ -280,6 +293,10 @@ class RDBIDatabase(RDBInformation):
         Information attribute dictionary.
         """
 
+        # Check.
+        if self._rdatabase.drivername == 'sqlite':
+            throw(AssertionError, self._rdatabase.drivername)
+
         # Select.
         where = '`SCHEMA_NAME` = :database_name'
         result = self._rdatabase.execute_select(
@@ -289,11 +306,12 @@ class RDBIDatabase(RDBInformation):
             database_name=self._database_name
         )
 
-        # Check.
-        assert result.exist, "database '%s' not exist" % self._database_name
-
         # Convert.
         info_table = result.fetch_table()
+
+        ## Check.
+        assert len(info_table) != 0, "database '%s' not exist" % self._database_name
+
         info_attrs = info_table[0]
 
         return info_attrs
@@ -309,19 +327,26 @@ class RDBIDatabase(RDBInformation):
         """
 
         # Select.
-        where = '`TABLE_SCHEMA` = :database_name'
-        result = self._rdatabase.execute_select(
-            'information_schema.TABLES',
-            where=where,
-            order='`TABLE_NAME`',
-            database_name=self._database_name
-        )
 
-        # Check.
-        assert result.exist, "database '%s' not exist" % self._database_name
+        ## SQLite.
+        if self._rdatabase.drivername == 'sqlite':
+            result = self._rdatabase.execute_select('main.sqlite_master')
+
+        ## Remote.
+        else:
+            where = '`TABLE_SCHEMA` = :database_name'
+            result = self._rdatabase.execute_select(
+                'information_schema.TABLES',
+                where=where,
+                order='`TABLE_NAME`',
+                database_name=self._database_name
+            )
 
         # Convert.
         info_table = result.fetch_table()
+
+        ## Check.
+        assert len(info_table) != 0, "database '%s' not exist" % self._database_name
 
         return info_table
 
@@ -378,20 +403,34 @@ class RDBITable(RDBInformation):
         """
 
         # Select.
-        where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name'
-        result = self._rdatabase.execute_select(
-            'information_schema.TABLES',
-            where=where,
-            limit=1,
-            database_name=self._database_name,
-            table_name=self._table_name
-        )
 
-        # Check.
-        assert result.exist, "database '%s' or table '%s' not exist" % (self._database_name, self._table_name)
+        ## SQLite.
+        if self._rdatabase.drivername == 'sqlite':
+            where = '`name` = :name'
+            result = self._rdatabase.execute_select(
+                'main.sqlite_master',
+                where=where,
+                limit=1,
+                name=self._table_name
+            )
+
+        ## Remote.
+        else:
+            where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name'
+            result = self._rdatabase.execute_select(
+                'information_schema.TABLES',
+                where=where,
+                limit=1,
+                database_name=self._database_name,
+                table_name=self._table_name
+            )
 
         # Convert.
         info_table = result.fetch_table()
+
+        ## Check.
+        assert len(info_table) != 0, "database '%s' or table '%s' not exist" % (self._database_name, self._table_name)
+
         info_attrs = info_table[0]
 
         return info_attrs
@@ -407,20 +446,28 @@ class RDBITable(RDBInformation):
         """
 
         # Select.
-        where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name'
-        result = self._rdatabase.execute_select(
-            'information_schema.COLUMNS',
-            where=where,
-            order='`ORDINAL_POSITION`',
-            database_name=self._database_name,
-            table_name=self._table_name
-        )
 
-        # Check.
-        assert result.exist, "database '%s' or table '%s' not exist" % (self._database_name, self._table_name)
+        ## SQLite.
+        if self._rdatabase.drivername == 'sqlite':
+            sql = f'PRAGMA table_info("%s")' % self._table_name
+            result = self._rdatabase.execute(sql)
+
+        ## Remote.
+        else:
+            where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name'
+            result = self._rdatabase.execute_select(
+                'information_schema.COLUMNS',
+                where=where,
+                order='`ORDINAL_POSITION`',
+                database_name=self._database_name,
+                table_name=self._table_name
+            )
 
         # Convert.
         info_table = result.fetch_table()
+
+        ## Check.
+        assert len(info_table) != 0, "database '%s' or table '%s' not exist" % (self._database_name, self._table_name)
 
         return info_table
 
@@ -474,21 +521,36 @@ class RDBIColumn(RDBInformation):
         """
 
         # Select.
-        where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name AND `COLUMN_NAME` = :column_name'
-        result = self._rdatabase.execute_select(
-            'information_schema.COLUMNS',
-            where=where,
-            limit=1,
-            database_name=self._database_name,
-            table_name=self._table_name,
-            column_name=self._column_name
-        )
 
-        # Check.
-        assert result.exist, "database '%s' or table '%s' or column '%s' not exist" % (self._database_name, self._table_name, self._column_name)
+        ## SQLite.
+        if self._rdatabase.drivername == 'sqlite':
+            sql = f'PRAGMA table_info("%s")' % self._table_name
+            where = '`name` = :name'
+            result = self._rdatabase.execute(
+                sql,
+                where=where,
+                limit=1,
+                name=self._column_name
+            )
+
+        ## Remote.
+        else:
+            where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name AND `COLUMN_NAME` = :column_name'
+            result = self._rdatabase.execute_select(
+                'information_schema.COLUMNS',
+                where=where,
+                limit=1,
+                database_name=self._database_name,
+                table_name=self._table_name,
+                column_name=self._column_name
+            )
 
         # Convert.
         info_table = result.fetch_table()
+
+        ## Check.
+        assert len(info_table) != 0, "database '%s' or table '%s' or column '%s' not exist" % (self._database_name, self._table_name, self._column_name)
+
         info_attrs = info_table[0]
 
         return info_attrs
