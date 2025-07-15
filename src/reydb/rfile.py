@@ -45,8 +45,8 @@ class RDBFile(RBase):
         rdatabase : RDatabase or RDBConnection instance.
         """
 
-        # Check.
-        if rdatabase.drivername == 'sqlite':
+        # SQLite.
+        if rdatabase.backend == 'sqlite':
             text='not suitable for SQLite databases'
             throw(AssertionError, text=text)
 
@@ -250,7 +250,7 @@ class RDBFile(RBase):
 
             ## File bytes.
             case bytes() | bytearray():
-                if file.__class__ == bytearray:
+                if type(file) == bytearray:
                     file = bytes(file)
                 file_bytes = file
                 file_md5 = get_md5(file_bytes)

@@ -15,7 +15,7 @@ from types import TracebackType
 from collections.abc import Iterable, Generator
 from enum import EnumType
 from urllib.parse import quote as urllib_quote
-from sqlalchemy import create_engine as sqlalchemy_create_engine, text
+from sqlalchemy import create_engine as sqlalchemy_create_engine, text as sqlalchemy_text
 from sqlalchemy.engine.base import Engine, Connection
 from sqlalchemy.engine.cursor import CursorResult
 from sqlalchemy.engine.url import URL
@@ -27,7 +27,7 @@ from reykit.rexception import throw
 from reykit.rmonkey import monkey_patch_sqlalchemy_result_more_fetch, monkey_patch_sqlalchemy_row_index_field
 from reykit.rregex import search, findall
 from reykit.rstdout import echo
-from reykit.rsystem import get_first_notnull
+from reykit.rsystem import is_iterable, get_first_notnull
 from reykit.rtable import Table, to_table
 from reykit.rtext import join_data_text, to_json
 from reykit.rtype import RBase
@@ -52,10 +52,6 @@ class RDatabase(RBase):
     Rey's `database` type.
     """
 
-
-    # Values to be converted to 'NULL'.
-    nulls: tuple = ('', ' ', b'', [], (), {}, set())
-
     # Default value.
     default_report: bool = False
 
@@ -64,28 +60,24 @@ class RDatabase(RBase):
     def __init__(
         self,
         host: str = None,
-        port: str | int = None,
+        port: int | str = None,
         username: str = None,
         password: str = None,
         database: str | None = None,
         drivername: str | None = None,
+        *,
         pool_size: int = 5,
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
         pool_recycle: int | None = None,
         retry: bool = False,
-        url: None = None,
-        engine: None = None,
         **query: str
     ) -> None: ...
 
     @overload
     def __init__(
         self,
-        host: None = None,
-        port: None = None,
-        username: None = None,
-        password: None = None,
+        *,
         database: str = None,
         drivername: str | None = None,
         pool_size: int = 5,
@@ -93,64 +85,57 @@ class RDatabase(RBase):
         pool_timeout: float = 30.0,
         pool_recycle: int | None = None,
         retry: bool = False,
-        url: None = None,
-        engine: None = None,
         **query: str
     ) -> None: ...
 
     @overload
     def __init__(
         self,
-        host: None = None,
-        port: None = None,
-        username: None = None,
-        password: None = None,
-        database: str | None = None,
+        *,
         drivername: str | None = None,
         pool_size: int = 5,
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
         pool_recycle: int | None = None,
         retry: bool = False,
+        **query: str
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        *,
         url: str | URL = None,
-        engine: None = None,
-        **query: str
+        pool_size: int = 5,
+        max_overflow: int = 10,
+        pool_timeout: float = 30.0,
+        pool_recycle: int | None = None,
+        retry: bool = False
     ) -> None: ...
 
     @overload
     def __init__(
         self,
-        host: None = None,
-        port: None = None,
-        username: None = None,
-        password: None = None,
-        database: str | None = None,
-        drivername: str | None = None,
-        pool_size: int = 5,
-        max_overflow: int = 10,
-        pool_timeout: float = 30.0,
-        pool_recycle: int | None = None,
-        retry: bool = False,
-        url: None = None,
+        *,
         engine: Engine | Connection = None,
-        **query: str
+        retry: bool = False
     ) -> None: ...
 
     def __init__(
         self,
         host: str | None = None,
-        port: str | int | None = None,
+        port: int | str | None = None,
         username: str | None = None,
         password: str | None = None,
         database: str | None = None,
-        drivername: str | None = None,
+        drivername: str | Iterable[str] | None = None,
+        url: str | URL | None = None,
+        engine: Engine | Connection | None = None,
         pool_size: int = 5,
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
         pool_recycle: int | None = None,
         retry: bool = False,
-        url: str | URL | None = None,
-        engine: Engine | Connection | None = None,
         **query: str
     ) -> None:
         """
@@ -158,118 +143,106 @@ class RDatabase(RBase):
 
         Parameters
         ----------
-        host : Server host.
-        port : Server port.
-        username : Server username.
-        password : Server password.
-        database : Database name in the server or local database file path.
+        host : Remote server database host.
+        port : Remote server database port.
+        username : Remote server database username.
+        password : Remote server database password.
+        database : Remote server database name or local database file path or use memory.
+            When parameters `host`, `port`, `username`, `password`, `database` are all `None`, then is `:memory:`.
         drivername : Database backend and driver name.
-            - `None`: Automatic select and try.
+            - `None`: Automatic select.
+                When is remote server database, then is `mysql+mysqldb` and `mysql+pymysql`, `mysql+mysqlconnector`.
+                When is local database file or use memory, then is `sqlite`.
             - `str`: Use this value.
+            - `Iterable[str]`: Try one by one use, set value after success.
+        url : Get parameter from server `URL`.
+        engine : Use existing `Engine` or `Connection` object, and get parameter from it.
         pool_size : Number of connections `keep open`.
         max_overflow : Number of connections `allowed overflow`.
         pool_timeout : Number of seconds `wait create` connection.
         pool_recycle : Number of seconds `recycle` connection.
-            - `None`, Use database variable `wait_timeout`: value.
+            - `None`: Automatic select.
+                When is remote server database, then is database variable `wait_timeout` value.
+                When is local database file, then is `-1`.
             - `Literal[-1]`: No recycle.
             - `int`: Use this value.
         retry : Whether retry execute.
-        url: Get parameter from server `URL`, but preferred input parameters.
-            Parameters include `username`, `password`, `host`, `port`, `database`, `drivername`, `query`.
-        engine : Use existing `Engine` or `Connection` object, and get parameter from it.
-            Parameters include `username`, `password`, `host`, `port`, `database`, `drivername`, `query`,
-            `pool_size`, `max_overflow`, `pool_timeout`, `pool_recycle`.
-        query : Server parameters.
+        query : Remote server database parameters.
         """
 
+        # Get parameter.
+
+        ## From Engine or Connection.
+        if engine is not None:
+            if type(engine) == Connection:
+                engine = engine.engine
+            params = self.extract_engine(engine)
+            username: str | None = params['username']
+            password: str | None = params['password']
+            host: str | None = params['host']
+            port: int | None = params['port']
+            database: str | None = params['database']
+            drivername: str = params['drivername']
+            pool_size: int = params['pool_size']
+            max_overflow: int = params['max_overflow']
+            pool_timeout: float = params['pool_timeout']
+            pool_recycle: int = params['pool_recycle']
+            query: dict = params['query']
+
+        ## From URL.
+        elif url is not None:
+            params = self.extract_url(url)
+            username: str | None = params['username']
+            password: str | None = params['password']
+            host: str | None = params['host']
+            port: int | None = params['port']
+            database: str | None = params['database']
+            drivername: str = params['drivername']
+            query: dict = params['query']
+
         # Handle parameter.
-        if port.__class__ == int:
-            port = str(port)
+        if type(port) == str:
+            port = int(port)
 
         # Set attribute.
-        self.retry = retry
-
-        # From existing Engine or Connection object.
-        if engine is not None:
-
-            ## Extract Engine object from Connection boject.
-            if engine.__class__ == Connection:
-                engine = engine.engine
-
-            ## Extract parameter.
-            params = self.extract_engine(engine)
-
-            ## Set.
-            self.drivername: str = params['drivername']
-            self.username: str = params['username']
-            self.password: str = params['password']
-            self.host: str = params['host']
-            self.port: str = params['port']
-            self.database: str | None = params['database']
-            self.query: dict = params['query']
-            self.pool_size: int = params['pool_size']
-            self.max_overflow: int = params['max_overflow']
-            self.pool_timeout: float = params['pool_timeout']
-            self.pool_recycle: int = params['pool_recycle']
-            self.engine = engine
-
-        # From parameters create.
-        else:
-
-            ## Extract parameters from URL.
-            if url is not None:
-                params = self.extract_url(url)
+        self.username: str | None = username
+        self.password: str | None = password
+        self.host: str | None = host
+        self.port: int | None = port
+        self.database: str | None = database
+        self.drivername: str | Iterable[str] = drivername
+        self.engine: Engine | None = engine
+        self.pool_size: int = pool_size
+        self.max_overflow: int = max_overflow
+        self.pool_timeout: float = pool_timeout
+        self.pool_recycle: int | None = pool_recycle
+        self.retry: bool = retry
+        self.query: dict[str, str] = query
+        if (
+            self.database is None
+            and self.mode == 'memory'
+        ):
+            self.database = ':memory:'
+        if self.drivername is None:
+            if self.mode == 'server':
+                self.drivername = ('mysql+mysqldb', 'mysql+pymysql', 'mysql+mysqlconnector')
             else:
-                params = dict.fromkeys(
-                    (
-                        'drivername',
-                        'username',
-                        'password',
-                        'host',
-                        'port',
-                        'database',
-                        'query'
-                    )
-                )
-
-            ## Set parameters by priority.
-            self.drivername: str = get_first_notnull(drivername, params['drivername'])
-            self.username: str = get_first_notnull(username, params['username'])
-            self.password: str = get_first_notnull(password, params['password'])
-            self.host: str = get_first_notnull(host, params['host'])
-            self.port: str = get_first_notnull(port, params['port'])
-            self.database: str | None = get_first_notnull(database, params['database'])
-            self.query: dict = get_first_notnull(query, params['query'])
-            self.pool_size = pool_size
-            self.max_overflow = max_overflow
-            self.pool_timeout = pool_timeout
-
-            ### SQLite.
-            if (
-                    (
-                    self.username is None
-                    or self.password is None
-                    or self.host is None
-                    or self.port is None
-                ) and self.database is not None
-                and self.drivername is None
-            ):
                 self.drivername = 'sqlite'
 
-            ## Create Engine object.
-            if pool_recycle is None:
+        # Create engine.
+        if self.engine is None:
+            self.engine = self._create_engine()
+        self.drivername: str
+
+        # Handle attribute.
+        if self.pool_recycle is None:
+            if self.mode == 'server':
+                wait_timeout = self.variables['wait_timeout']
+                if wait_timeout is not None:
+                    self.pool_recycle = int(wait_timeout)
+            if self.pool_recycle is None:
                 self.pool_recycle = -1
-                self.engine = self.create_engine()
-
-                ### Remote.
-                if self.drivername != 'sqlite':
-                    wait_timeout = int(self.variables['wait_timeout'])
-                    self.pool_recycle = wait_timeout
-                    self.engine.pool._recycle = wait_timeout
-
-            else:
-                self.pool_recycle = pool_recycle
-                self.engine = self.create_engine()
+            self.engine.pool._recycle = self.pool_recycle
 
 
     def extract_url(self, url: str | URL) -> dict[
@@ -291,7 +264,7 @@ class RDatabase(RBase):
         # Extract.
         match url:
 
-            ## When str object.
+            ## Type str.
             case str():
                 pattern_remote = r'^([\w\+]+)://(\w+):(\w+)@(\d+\.\d+\.\d+\.\d+):(\d+)[/]?([^\?]+)?[\?]?(\S+)?$'
                 pattern_local = r'^([\w\+]+):////?([^\?]+)[\?]?(\S+)?$'
@@ -307,8 +280,9 @@ class RDatabase(RBase):
                         database,
                         query_str
                     ) = result_remote
+                    port = int(port)
 
-                ### SQLite.
+                ### Local.
                 elif (result_local := search(pattern_local, url)) is not None:
                     username = password = host = port = None
                     (
@@ -321,6 +295,7 @@ class RDatabase(RBase):
                 else:
                     throw(ValueError, url)
 
+                drivername: str
                 if query_str is not None:
                     query = {
                         key: value
@@ -330,7 +305,7 @@ class RDatabase(RBase):
                 else:
                     query = {}
 
-            ## When URL object.
+            ## Type URL.
             case URL():
                 drivername = url.drivername
                 username = url.username
@@ -374,21 +349,21 @@ class RDatabase(RBase):
         """
 
         ## Extract Engine object from Connection boject.
-        if engine.__class__ == Connection:
+        if type(engine) == Connection:
             engine = engine.engine
 
         ## Extract.
-        drivername = engine.url.drivername
-        username = engine.url.username
-        password = engine.url.password
-        host = engine.url.host
-        port = engine.url.port
-        database = engine.url.database
-        query = dict(engine.url.query)
-        pool_size = engine.pool._pool.maxsize
-        max_overflow = engine.pool._max_overflow
-        pool_timeout = engine.pool._timeout
-        pool_recycle = engine.pool._recycle
+        drivername: str = engine.url.drivername
+        username: str | None = engine.url.username
+        password: str | None = engine.url.password
+        host: str | None = engine.url.host
+        port: str | None = engine.url.port
+        database: str | None = engine.url.database
+        query: dict[str, str] = dict(engine.url.query)
+        pool_size: int = engine.pool._pool.maxsize
+        max_overflow: int = engine.pool._max_overflow
+        pool_timeout: float = engine.pool._timeout
+        pool_recycle: int = engine.pool._recycle
 
         # Generate parameter.
         params = {
@@ -446,8 +421,8 @@ class RDatabase(RBase):
         Database name and table name and column name.
         """
 
-        # String.
-        if path.__class__ == str:
+        # Type str.
+        if type(path) == str:
 
             ## Single.
             if (
@@ -470,7 +445,7 @@ class RDatabase(RBase):
                     names.append(None)
                 names = tuple(names)
 
-        # Tuple.
+        # Type tuple.
         else:
             if len(path) == 2:
                 path += (None,)
@@ -479,7 +454,7 @@ class RDatabase(RBase):
             names = path
 
         # SQLite.
-        if self.drivername == 'sqlite':
+        if self.backend == 'sqlite':
             names = ('main',) + names[1:]
 
         # Check.
@@ -487,6 +462,69 @@ class RDatabase(RBase):
             throw(ValueError, names)
 
         return names
+
+
+    @property
+    def backend(self) -> str:
+        """
+        Database backend name.
+
+        Returns
+        -------
+        Name.
+        """
+
+        # Get.
+        value, *_ = self.drivername.split('+', 1)
+        value = value.lower()
+
+        return value
+
+
+    @property
+    def driver(self) -> str | None:
+        """
+        Database driver name.
+
+        Returns
+        -------
+        name.
+        """
+
+        # Get.
+        if '+' in self.drivername:
+            _, value = self.drivername.split('+', 1)
+            value = value.lower()
+        else:
+            value = None
+
+        return value
+
+
+    @property
+    def mode(self) -> Literal['server', 'file', 'memory']:
+        """
+        Database store mode.
+
+        Returns
+        -------
+        Mode.
+        """
+
+        # Judge.
+        if (
+                self.username is not None
+                and self.password is not None
+                and self.host is not None
+                and self.port is not None
+        ):
+            value = 'server'
+        elif self.database not in (None, ':memory:'):
+            value = 'file'
+        else:
+            value = 'memory'
+
+        return value
 
 
     @property
@@ -501,23 +539,16 @@ class RDatabase(RBase):
 
         # Generate URL.
 
-        ## SQLite.
-        if (
-            self.username is None
-            or self.password is None
-            or self.host is None
-            or self.port is None
-        ) and self.database is not None:
-            url_ = f'{self.drivername}:///{self.database}'
-
-        ## Remote.
-        else:
+        ## Remove.
+        if self.mode == 'server':
             password = urllib_quote(self.password)
             url_ = f'{self.drivername}://{self.username}:{password}@{self.host}:{self.port}'
-
-            ### Add database path.
             if self.database is not None:
                 url_ = f'{url_}/{self.database}'
+
+        ## File or memory.
+        else:
+            url_ = f'{self.drivername}:///{self.database}'
 
         # Add Server parameter.
         if self.query != {}:
@@ -532,13 +563,9 @@ class RDatabase(RBase):
         return url_
 
 
-    def create_engine(self, **kwargs) -> Engine:
+    def _create_engine(self) -> Engine:
         """
         Create database `Engine` object.
-
-        Parameters
-        ----------
-        kwargs : Keyword arguments of create engine method.
 
         Returns
         -------
@@ -546,26 +573,29 @@ class RDatabase(RBase):
         """
 
         # Handle parameter.
-        if self.drivername is None:
-            drivernames = ('mysql+mysqldb', 'mysql+pymysql', 'mysql+mysqlconnector')
-        else:
+        if type(self.drivername) == str:
             drivernames = (self.drivername,)
-
-        # Create Engine object.
-        for drivername in drivernames:
-
-            ## Set engine parameter.
-            self.drivername = drivername
+        else:
+            drivernames = self.drivername
+        if self.mode == 'memory':
+            engine_params = {
+                'url': self.url,
+                'pool_recycle': self.pool_recycle
+            }
+        else:
             engine_params = {
                 'url': self.url,
                 'pool_size': self.pool_size,
                 'max_overflow': self.max_overflow,
                 'pool_timeout': self.pool_timeout,
-                'pool_recycle': self.pool_recycle,
-                **kwargs
+                'pool_recycle': self.pool_recycle
             }
 
-            ## Try create.
+        # Create Engine.
+        for drivername in drivernames:
+            self.drivername = drivername
+
+            ## Try.
             try:
                 engine = sqlalchemy_create_engine(**engine_params)
             except ModuleNotFoundError:
@@ -635,7 +665,7 @@ class RDatabase(RBase):
                 data = [data]
             case list():
                 data = to_table(data)
-        if sql.__class__ == TextClause:
+        if type(sql) == TextClause:
             sql = sql.text
 
         # Extract keys.
@@ -655,22 +685,23 @@ class RDatabase(RBase):
 
                 # Fill.
                 if (
-                    value is None
-                    or value in self.nulls
+                    not bool(value)
+                    and is_iterable(value)
                 ):
-                    row[key] = None
+                    value = None
 
                 # Convert.
                 elif (
-                    value.__class__ in (list, dict)
+                    type(value) in (list, dict)
                     and key not in sql_keys_in
                 ):
-                    value= to_json(value)
-                    row[key] = value
+                    value = to_json(value)
 
                 # Enum.
-                elif isinstance(value.__class__, EnumType):
-                    row[key] = value.value
+                elif isinstance(type(value), EnumType):
+                    value = value.value
+
+                row[key] = value
 
         return data
 
@@ -689,7 +720,7 @@ class RDatabase(RBase):
         """
 
         # Handle parameter.
-        if sql.__class__ == TextClause:
+        if type(sql) == TextClause:
             sql = sql.text
 
         # Extract.
@@ -715,7 +746,7 @@ class RDatabase(RBase):
         """
 
         # Handle parameter.
-        if sql.__class__ == TextClause:
+        if type(sql) == TextClause:
             sql = sql.text
 
         # Judge.
@@ -802,8 +833,8 @@ class RDatabase(RBase):
         report = get_first_notnull(report, self.default_report, default='exception')
 
         # Handle parameter.
-        if sql.__class__ == str:
-            sql = text(sql)
+        if type(sql) == str:
+            sql = sqlalchemy_text(sql)
         if data is None:
             if kwdata == {}:
                 data = []
@@ -918,7 +949,7 @@ class RDatabase(RBase):
         ## Part 'SELECT' syntax.
         if fields is None:
             fields = '*'
-        elif fields.__class__ != str:
+        elif type(fields) != str:
             fields = ', '.join(
                 [
                     field[1:]
@@ -959,7 +990,7 @@ class RDatabase(RBase):
 
         ## Part 'LIMIT' syntax.
         if limit is not None:
-            if limit.__class__ in (str, int):
+            if type(limit) in (str, int):
                 sql_limit = f'LIMIT {limit}'
             else:
                 if len(limit) == 2:
@@ -1045,7 +1076,7 @@ class RDatabase(RBase):
         kwdata_replace = {}
         for key, value in kwdata.items():
             if (
-                value.__class__ == str
+                type(value) == str
                 and value.startswith(':')
                 and value != ':'
             ):
@@ -1199,7 +1230,7 @@ class RDatabase(RBase):
         kwdata_replace = {}
         for key, value in kwdata.items():
             if (
-                value.__class__ == str
+                type(value) == str
                 and value.startswith(':')
                 and value != ':'
             ):
@@ -1223,7 +1254,7 @@ class RDatabase(RBase):
             no_where = True
         else:
             no_where = False
-            if where_fields.__class__ == str:
+            if type(where_fields) == str:
                 where_fields = [where_fields]
         sqls_list = []
         sql_update = f'UPDATE `{database}`.`{table}`'
@@ -1260,7 +1291,7 @@ class RDatabase(RBase):
             for field in where_fields:
                 index_field = f'{index}_{field}'
                 index_value = data_flatten[index_field]
-                if index_value.__class__ in (list, tuple):
+                if type(index_value) in (list, tuple):
                     sql_where_part = f'`{field}` IN :{index_field}'
                 else:
                     sql_where_part = f'`{field}` = :{index_field}'
@@ -1416,10 +1447,10 @@ class RDatabase(RBase):
         table_info: list[dict] = self.info(database)(table)()
 
         ## SQLite.
-        if self.drivername == 'sqlite':
+        if self.backend == 'sqlite':
             field_key = 'name'
 
-        ## Remote.
+        ## Other.
         else:
             field_key = 'COLUMN_NAME'
 
@@ -1428,7 +1459,7 @@ class RDatabase(RBase):
             for row in table_info
         ]
         pattern = '(?<!\\\\):(\\w+)'
-        if where.__class__ == str:
+        if type(where) == str:
             where_keys = findall(pattern, where)
         else:
             where_keys = ()
@@ -1469,7 +1500,7 @@ class RDatabase(RBase):
             sql_values_kwdata = ', '.join(
                 value[1:]
                 if (
-                    value.__class__ == str
+                    type(value) == str
                     and value.startswith(':')
                     and value != ':'
                 )
@@ -1498,7 +1529,7 @@ class RDatabase(RBase):
 
         ## Part 'LIMIT' syntax.
         if limit is not None:
-            if limit.__class__ in (str, int):
+            if type(limit) in (str, int):
                 sql_limit = f'LIMIT {limit}'
             else:
                 if len(limit) == 2:
@@ -1755,8 +1786,8 @@ class RDatabase(RBase):
         Schemata of databases and tables and columns.
         """
 
-        # Check.
-        if self.drivername == 'sqlite':
+        # SQLite.
+        if self.backend == 'sqlite':
             throw(AssertionError, self.drivername)
 
         # Select.
@@ -1889,10 +1920,10 @@ class RDatabase(RBase):
         # Build.
 
         ## SQLite.
-        if self.drivername == 'sqlite':
+        if self.backend == 'sqlite':
             rdbp = RDBPPragma(self)
 
-        ## Remote.
+        ## Other.
         else:
             rdbp = RDBPStatus(self, False)
 
@@ -1915,10 +1946,10 @@ class RDatabase(RBase):
         # Build.
 
         ## SQLite.
-        if self.drivername == 'sqlite':
+        if self.backend == 'sqlite':
             rdbp = RDBPPragma(self)
 
-        ## Remote.
+        ## Other.
         else:
             rdbp = RDBPStatus(self, True)
 
@@ -1941,10 +1972,10 @@ class RDatabase(RBase):
         # Build.
 
         ## SQLite.
-        if self.drivername == 'sqlite':
+        if self.backend == 'sqlite':
             rdbp = RDBPPragma(self)
 
-        ## Remote.
+        ## Other.
         else:
             rdbp = RDBPVariable(self, False)
 
@@ -1967,10 +1998,10 @@ class RDatabase(RBase):
         # Build.
 
         ## SQLite.
-        if self.drivername == 'sqlite':
+        if self.backend == 'sqlite':
             rdbp = RDBPPragma(self)
 
-        ## Remote.
+        ## Other.
         else:
             rdbp = RDBPVariable(self, True)
 
@@ -2134,8 +2165,8 @@ class RDBConnection(RDatabase):
         report = get_first_notnull(report, self.default_report, default='exception')
 
         # Handle parameter.
-        if sql.__class__ == str:
-            sql = text(sql)
+        if type(sql) == str:
+            sql = sqlalchemy_text(sql)
         if data is None:
             if kwdata == {}:
                 data = []

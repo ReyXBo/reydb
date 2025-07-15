@@ -223,7 +223,7 @@ class RDBPVariable(RDBParameter):
                 key,
                 (
                     value
-                    if value.__class__ in (int, float)
+                    if type(value) in (int, float)
                     else "'%s'" % value
                 )
             )
@@ -307,7 +307,7 @@ class RDBPPragma(RDBParameter):
                 key,
                 (
                     value
-                    if value.__class__ in (int, float)
+                    if type(value) in (int, float)
                     else "'%s'" % value
                 )
             )

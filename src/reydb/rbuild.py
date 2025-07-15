@@ -61,8 +61,8 @@ class RDBBuild(RBase):
         rdatabase : RDatabase or RDBConnection instance.
         """
 
-        # Check.
-        if rdatabase.drivername == 'sqlite':
+        # SQLite.
+        if rdatabase.backend == 'sqlite':
             text='not suitable for SQLite databases'
             throw(AssertionError, text=text)
 
@@ -1077,11 +1077,6 @@ class RDBBuild(RBase):
 
         # Database.
         for params in databases:
-
-            ## SQLite.
-            if self.rdatabase.drivername == 'sqlite':
-                break
-
             database = params['database']
 
             ## Exist.
@@ -1127,10 +1122,6 @@ class RDBBuild(RBase):
         for params in views:
             path = params['path']
             database, view, _ = self.rdatabase.extract_path(path)
-
-            ## SQLite.
-            if self.rdatabase.drivername == 'sqlite':
-                database = 'main'
 
             ## Exist.
             exist = self.rdatabase.build.exist((database, view, None))

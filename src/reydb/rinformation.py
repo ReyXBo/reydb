@@ -65,7 +65,7 @@ class RDBInformation(RBase):
 
             ## Break.
             if not hasattr(self, '_get_info_table'):
-                raise AssertionError("class '%s' does not have this method" % self.__class__.__name__)
+                raise AssertionError("class '%s' does not have this method" % type(self).__name__)
 
             ## Get.
             result: list[dict] = self._get_info_table()
@@ -75,7 +75,7 @@ class RDBInformation(RBase):
 
             ## Break.
             if not hasattr(self, '__getattr__'):
-                raise AssertionError("class '%s' does not have this method" % self.__class__.__name__)
+                raise AssertionError("class '%s' does not have this method" % type(self).__name__)
 
             ## Get.
             result = self.__getattr__(name)
@@ -106,7 +106,7 @@ class RDBInformation(RBase):
 
         # Break.
         if not hasattr(self, '_get_info_attrs'):
-            raise AssertionError("class '%s' does not have this method" % self.__class__.__name__)
+            raise AssertionError("class '%s' does not have this method" % type(self).__name__)
 
         # Get.
         info_attrs: dict = self._get_info_attrs()
@@ -156,7 +156,7 @@ class RDBInformation(RBase):
             case RDBITable():
                 rtable = RDBIColumn(self._rdatabase, self._database_name, self._table_name, name)
             case _:
-                raise AssertionError("class '%s' does not have this method" % self.__class__.__name__)
+                raise AssertionError("class '%s' does not have this method" % type(self).__name__)
 
         return rtable
 
@@ -215,8 +215,8 @@ class RDBISchema(RDBInformation):
         Information table.
         """
 
-        # Check.
-        if self._rdatabase.drivername == 'sqlite':
+        # SQLite.
+        if self._rdatabase.backend == 'sqlite':
             throw(AssertionError, self._rdatabase.drivername)
 
         # Select.
@@ -272,9 +272,9 @@ class RDBIDatabase(RDBInformation):
         database_name : Database name.
         """
 
-        # Check.
+        # SQLite.
         if (
-            rdatabase.drivername == 'sqlite'
+            rdatabase.backend == 'sqlite'
             and database_name != 'main'
         ):
             throw(ValueError, database_name)
@@ -293,8 +293,8 @@ class RDBIDatabase(RDBInformation):
         Information attribute dictionary.
         """
 
-        # Check.
-        if self._rdatabase.drivername == 'sqlite':
+        # SQLite.
+        if self._rdatabase.backend == 'sqlite':
             throw(AssertionError, self._rdatabase.drivername)
 
         # Select.
@@ -329,10 +329,10 @@ class RDBIDatabase(RDBInformation):
         # Select.
 
         ## SQLite.
-        if self._rdatabase.drivername == 'sqlite':
+        if self._rdatabase.backend == 'sqlite':
             result = self._rdatabase.execute_select('main.sqlite_master')
 
-        ## Remote.
+        ## Other.
         else:
             where = '`TABLE_SCHEMA` = :database_name'
             result = self._rdatabase.execute_select(
@@ -405,7 +405,7 @@ class RDBITable(RDBInformation):
         # Select.
 
         ## SQLite.
-        if self._rdatabase.drivername == 'sqlite':
+        if self._rdatabase.backend == 'sqlite':
             where = '`name` = :name'
             result = self._rdatabase.execute_select(
                 'main.sqlite_master',
@@ -414,7 +414,7 @@ class RDBITable(RDBInformation):
                 name=self._table_name
             )
 
-        ## Remote.
+        ## Other.
         else:
             where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name'
             result = self._rdatabase.execute_select(
@@ -448,11 +448,11 @@ class RDBITable(RDBInformation):
         # Select.
 
         ## SQLite.
-        if self._rdatabase.drivername == 'sqlite':
+        if self._rdatabase.backend == 'sqlite':
             sql = f'PRAGMA table_info("%s")' % self._table_name
             result = self._rdatabase.execute(sql)
 
-        ## Remote.
+        ## Other.
         else:
             where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name'
             result = self._rdatabase.execute_select(
@@ -523,7 +523,7 @@ class RDBIColumn(RDBInformation):
         # Select.
 
         ## SQLite.
-        if self._rdatabase.drivername == 'sqlite':
+        if self._rdatabase.backend == 'sqlite':
             sql = f'PRAGMA table_info("%s")' % self._table_name
             where = '`name` = :name'
             result = self._rdatabase.execute(
@@ -533,7 +533,7 @@ class RDBIColumn(RDBInformation):
                 name=self._column_name
             )
 
-        ## Remote.
+        ## Other.
         else:
             where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name AND `COLUMN_NAME` = :column_name'
             result = self._rdatabase.execute_select(
