@@ -5,17 +5,16 @@
 @Time    : 2022-12-05 14:10:02
 @Author  : Rey
 @Contact : reyxbo@163.com
-@Explain : Database execute methods.
+@Explain : Database path methods.
 """
 
 
-from __future__ import annotations
 from typing import Any, Self
-from reykit.rexception import throw
+from reykit.rexc import throw
 from reykit.rtable import Table
 from reykit.rtype import RBase
 
-from .rconnection import RDatabase, RDBConnection, RResult
+from .rconn import RDatabase, RDBConnection, RResult
 
 
 __all__ = (

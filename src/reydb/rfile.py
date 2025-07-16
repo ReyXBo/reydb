@@ -12,11 +12,11 @@
 from typing import TypedDict, overload
 from os.path import join as os_join
 from datetime import datetime
-from reykit.rexception import throw
+from reykit.rexc import throw
 from reykit.ros import RFile, RFolder, get_md5
 from reykit.rtype import RBase
 
-from .rconnection import RDatabase, RDBConnection
+from .rconn import RDatabase, RDBConnection
 
 
 __all__ = (

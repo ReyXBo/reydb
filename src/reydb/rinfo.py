@@ -11,10 +11,10 @@
 
 from __future__ import annotations
 from typing import Any, Literal, overload
-from reykit.rexception import throw
+from reykit.rexc import throw
 from reykit.rtype import RBase
 
-from .rconnection import RDatabase, RDBConnection
+from .rconn import RDatabase, RDBConnection
 
 
 __all__ = (

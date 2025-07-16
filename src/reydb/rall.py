@@ -10,8 +10,9 @@
 
 
 from .rbuild import *
-from .rconnection import *
-from .rexecute import *
+from .rconn import *
+from .rdb import *
+from .rexe import *
 from .rfile import *
-from .rinformation import *
-from .rparameter import *
+from .rinfo import *
+from .rparam import *

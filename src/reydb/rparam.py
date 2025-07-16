@@ -12,7 +12,7 @@
 from typing import overload
 from reykit.rtype import RBase
 
-from .rconnection import RDatabase, RDBConnection
+from .rconn import RDatabase, RDBConnection
 
 
 __all__ = (

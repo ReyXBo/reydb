@@ -11,12 +11,11 @@
 
 from typing import TypedDict, NotRequired, Literal
 from copy import deepcopy
-from reykit.rexception import throw
+from reykit.rexc import throw
 from reykit.rstdout import rinput
-from reykit.rsystem import get_first_notnull
 from reykit.rtype import RBase
 
-from .rconnection import RDatabase, RDBConnection
+from .rconn import RDatabase, RDBConnection
 
 
 __all__ = (

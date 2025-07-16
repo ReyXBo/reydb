@@ -11,9 +11,10 @@ Modules
 -------
 rall : All methods.
 rbuild : Database build methods.
-rdatabase : Database connection methods.
-rexecute : Database execute methods.
+rconn : Database connection methods.
+rdb : Database methods.
+rexe : Database execute methods.
 rfile : Database file methods.
-rinformation : Database information methods.
-rparameter : Database parameter methods.
+rinfo : Database information methods.
+rparam : Database parameter methods.
 """
