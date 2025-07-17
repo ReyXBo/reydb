@@ -23,32 +23,32 @@ from reykit.rsys import get_first_notnull
 from reykit.rtable import Table, to_table
 from reykit.rwrap import wrap_runtime, wrap_retry
 
-from .rdb import RResult, RDatabase
+from .rdb import Result, Database
 
 
 __all__ = (
-    'RDBConnection',
+    'DBConnection',
 )
 
 
-class RDBConnection(RDatabase):
+class DBConnection(Database):
     """
-    Rey's `database connection` type.
+    Database connection type.
     """
 
 
     def __init__(
         self,
         connection: Connection,
-        rdatabase: RDatabase
+        rdatabase: Database
     ) -> None:
         """
-        Build `database connection` instance attributes.
+        Build instance attributes.
 
         Parameters
         ----------
         connection : Connection object.
-        rdatabase : RDatabase object.
+        rdatabase : Database object.
         """
 
         # Set parameter.
@@ -73,7 +73,7 @@ class RDBConnection(RDatabase):
         sql: TextClause,
         data: list[dict],
         report: bool
-    ) -> RResult:
+    ) -> Result:
         """
         SQL executor.
 
@@ -130,7 +130,7 @@ class RDBConnection(RDatabase):
         data: Table | None = None,
         report: bool | None = None,
         **kwdata: Any
-    ) -> RResult:
+    ) -> Result:
         """
         Execute SQL.
 

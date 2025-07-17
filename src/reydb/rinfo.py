@@ -12,42 +12,42 @@
 from __future__ import annotations
 from typing import Any, Literal, overload
 from reykit.rexc import throw
-from reykit.rtype import RBase
+from reykit.rtype import Base
 
-from .rconn import RDatabase, RDBConnection
+from .rconn import Database, DBConnection
 
 
 __all__ = (
-    'RDBInformation',
-    'RDBISchema',
-    'RDBIDatabase',
-    'RDBITable',
-    'RDBIColumn'
+    'DBInformation',
+    'DBISchema',
+    'DBIDatabase',
+    'DBITable',
+    'DBIColumn'
 )
 
 
-class RDBInformation(RBase):
+class DBInformation(Base):
     """
-    Rey's `database base information` type.
+    Database base information type.
     """
 
 
     @overload
-    def __call__(self: RDBISchema | RDBISchema | RDBIDatabase | RDBITable, name: None = None) -> list[dict]: ...
+    def __call__(self: DBISchema | DBISchema | DBIDatabase | DBITable, name: None = None) -> list[dict]: ...
 
     @overload
-    def __call__(self: RDBISchema, name: str = None) -> RDBIDatabase: ...
+    def __call__(self: DBISchema, name: str = None) -> DBIDatabase: ...
 
     @overload
-    def __call__(self: RDBIDatabase, name: str = None) -> RDBITable: ...
+    def __call__(self: DBIDatabase, name: str = None) -> DBITable: ...
 
     @overload
-    def __call__(self: RDBITable, name: str = None) -> RDBIColumn: ...
+    def __call__(self: DBITable, name: str = None) -> DBIColumn: ...
 
     @overload
-    def __call__(self: RDBIColumn) -> dict: ...
+    def __call__(self: DBIColumn) -> dict: ...
 
-    def __call__(self, name: str | None = None) -> RDBIDatabase | RDBITable | RDBIColumn | list[dict] | dict:
+    def __call__(self, name: str | None = None) -> DBIDatabase | DBITable | DBIColumn | list[dict] | dict:
         """
         Get information table or subclass instance.
 
@@ -126,15 +126,15 @@ class RDBInformation(RBase):
 
 
     @overload
-    def __getattr__(self: RDBISchema, name: str) -> RDBIDatabase: ...
+    def __getattr__(self: DBISchema, name: str) -> DBIDatabase: ...
 
     @overload
-    def __getattr__(self: RDBIDatabase, name: str) -> RDBITable: ...
+    def __getattr__(self: DBIDatabase, name: str) -> DBITable: ...
 
     @overload
-    def __getattr__(self: RDBITable, name: str) -> RDBIColumn: ...
+    def __getattr__(self: DBITable, name: str) -> DBIColumn: ...
 
-    def __getattr__(self, name: str) -> RDBIDatabase | RDBITable | RDBIColumn:
+    def __getattr__(self, name: str) -> DBIDatabase | DBITable | DBIColumn:
         """
         Build subclass instance.
 
@@ -149,57 +149,57 @@ class RDBInformation(RBase):
 
         # Build.
         match self:
-            case RDBISchema():
-                rtable = RDBIDatabase(self._rdatabase, name)
-            case RDBIDatabase():
-                rtable = RDBITable(self._rdatabase, self._database_name, name)
-            case RDBITable():
-                rtable = RDBIColumn(self._rdatabase, self._database_name, self._table_name, name)
+            case DBISchema():
+                rtable = DBIDatabase(self._rdatabase, name)
+            case DBIDatabase():
+                rtable = DBITable(self._rdatabase, self._database_name, name)
+            case DBITable():
+                rtable = DBIColumn(self._rdatabase, self._database_name, self._table_name, name)
             case _:
                 raise AssertionError("class '%s' does not have this method" % type(self).__name__)
 
         return rtable
 
 
-class RDBISchema(RDBInformation):
+class DBISchema(DBInformation):
     """
-    Rey's `database information schema` type.
+    Database information schema type.
 
     Examples
     --------
     Get databases information of server.
-    >>> databases_info = RDBISchema()
+    >>> databases_info = DBISchema()
 
     Get tables information of database.
-    >>> tables_info = RDBISchema.database()
+    >>> tables_info = DBISchema.database()
 
     Get columns information of table.
-    >>> columns_info = RDBISchema.database.table()
+    >>> columns_info = DBISchema.database.table()
 
     Get column information.
-    >>> column_info = RDBISchema.database.table.column()
+    >>> column_info = DBISchema.database.table.column()
 
     Get database attribute.
-    >>> database_attr = RDBISchema.database['attribute']
+    >>> database_attr = DBISchema.database['attribute']
 
     Get table attribute.
-    >>> database_attr = RDBISchema.database.table['attribute']
+    >>> database_attr = DBISchema.database.table['attribute']
 
     Get column attribute.
-    >>> database_attr = RDBISchema.database.table.column['attribute']
+    >>> database_attr = DBISchema.database.table.column['attribute']
     """
 
 
     def __init__(
         self,
-        rdatabase: RDatabase | RDBConnection
+        rdatabase: Database | DBConnection
     ) -> None:
         """
-        Build `database information schema` instance attributes.
+        Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : RDatabase or RDBConnection instance.
+        rdatabase : Database or DBConnection instance.
         """
 
         # Set parameter.
@@ -232,43 +232,43 @@ class RDBISchema(RDBInformation):
         return info_table
 
 
-class RDBIDatabase(RDBInformation):
+class DBIDatabase(DBInformation):
     """
-    Rey's `database information database` type.
+    Database information database type.
 
     Examples
     --------
     Get tables information of database.
-    >>> tables_info = RDBIDatabase()
+    >>> tables_info = DBIDatabase()
 
     Get columns information of table.
-    >>> columns_info = RDBIDatabase.table()
+    >>> columns_info = DBIDatabase.table()
 
     Get column information.
-    >>> column_info = RDBIDatabase.table.column()
+    >>> column_info = DBIDatabase.table.column()
 
     Get database attribute.
-    >>> database_attr = RDBIDatabase['attribute']
+    >>> database_attr = DBIDatabase['attribute']
 
     Get table attribute.
-    >>> database_attr = RDBIDatabase.table['attribute']
+    >>> database_attr = DBIDatabase.table['attribute']
 
     Get column attribute.
-    >>> database_attr = RDBIDatabase.table.column['attribute']
+    >>> database_attr = DBIDatabase.table.column['attribute']
     """
 
 
     def __init__(
         self,
-        rdatabase: RDatabase | RDBConnection,
+        rdatabase: Database | DBConnection,
         database_name: str
     ) -> None:
         """
-        Build `database information database` instance attributes.
+        Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : RDatabase or RDBConnection instance.
+        rdatabase : Database or DBConnection instance.
         database_name : Database name.
         """
 
@@ -351,38 +351,38 @@ class RDBIDatabase(RDBInformation):
         return info_table
 
 
-class RDBITable(RDBInformation):
+class DBITable(DBInformation):
     """
-    Rey's `database information table` type.
+    Database information table type.
 
     Examples
     --------
     Get columns information of table.
-    >>> columns_info = RDBITable()
+    >>> columns_info = DBITable()
 
     Get column information.
-    >>> column_info = RDBITable.column()
+    >>> column_info = DBITable.column()
 
     Get table attribute.
-    >>> database_attr = RDBITable['attribute']
+    >>> database_attr = DBITable['attribute']
 
     Get column attribute.
-    >>> database_attr = RDBITable.column['attribute']
+    >>> database_attr = DBITable.column['attribute']
     """
 
 
     def __init__(
         self,
-        rdatabase: RDatabase | RDBConnection,
+        rdatabase: Database | DBConnection,
         database_name: str,
         table_name: str
     ) -> None:
         """
-        Build `database information table` instance attributes.
+        Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : RDatabase or RDBConnection instance.
+        rdatabase : Database or DBConnection instance.
         database_name : Database name.
         table_name : Table name.
         """
@@ -472,33 +472,33 @@ class RDBITable(RDBInformation):
         return info_table
 
 
-class RDBIColumn(RDBInformation):
+class DBIColumn(DBInformation):
     """
-    Rey's `database information column` type.
+    Database information column type.
 
     Examples
     --------
     Get column information.
-    >>> column_info = RDBIColumn()
+    >>> column_info = DBIColumn()
 
     Get column attribute.
-    >>> database_attr = RDBIColumn['attribute']
+    >>> database_attr = DBIColumn['attribute']
     """
 
 
     def __init__(
         self,
-        rdatabase: RDatabase | RDBConnection,
+        rdatabase: Database | DBConnection,
         database_name: str,
         table_name: str,
         column_name: str
     ) -> None:
         """
-        Build `database information column` instance attributes.
+        Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : RDatabase or RDBConnection instance.
+        rdatabase : Database or DBConnection instance.
         database_name : Database name.
         table_name : Table name.
         column_name : Column name.

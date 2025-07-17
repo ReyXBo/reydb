@@ -10,35 +10,35 @@
 
 
 from typing import overload
-from reykit.rtype import RBase
+from reykit.rtype import Base
 
-from .rconn import RDatabase, RDBConnection
+from .rconn import Database, DBConnection
 
 
 __all__ = (
-    'RDBParameter',
-    'RDBPStatus',
-    'RDBPVariable'
+    'DBParameter',
+    'DBPStatus',
+    'DBPVariable'
 )
 
 
-class RDBParameter(RBase):
+class DBParameter(Base):
     """
-    Rey's `database parameters` type.
+    Database parameters type.
     """
 
 
     def __init__(
         self,
-        rdatabase: RDatabase | RDBConnection,
+        rdatabase: Database | DBConnection,
         global_: bool
     ) -> None:
         """
-        Build `database parameters` instance attributes.
+        Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : RDatabase or RDBConnection instance.
+        rdatabase : Database or DBConnection instance.
         global_ : Whether base global.
         """
 
@@ -83,9 +83,9 @@ class RDBParameter(RBase):
         self.update(params)
 
 
-class RDBPStatus(RDBParameter):
+class DBPStatus(DBParameter):
     """
-    Rey's `database parameter status` type.
+    Database parameter status type.
     """
 
 
@@ -152,9 +152,9 @@ class RDBPStatus(RDBParameter):
         raise AssertionError('database status not update')
 
 
-class RDBPVariable(RDBParameter):
+class DBPVariable(DBParameter):
     """
-    Rey's `database parameter variable` type.
+    Database parameter variable type.
     """
 
 
@@ -243,22 +243,22 @@ class RDBPVariable(RDBParameter):
         self.rdatabase.execute(sql)
 
 
-class RDBPPragma(RDBParameter):
+class DBPPragma(DBParameter):
     """
-    Rey's `database parameter pragma` type.
+    Database parameter pragma type.
     """
 
 
     def __init__(
         self,
-        rdatabase: RDatabase | RDBConnection
+        rdatabase: Database | DBConnection
     ) -> None:
         """
-        Build `database parameters` instance attributes.
+        Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : RDatabase or RDBConnection instance.
+        rdatabase : Database or DBConnection instance.
         """
 
         # Set parameter.

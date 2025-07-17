@@ -13,36 +13,36 @@ from typing import TypedDict, overload
 from os.path import join as os_join
 from datetime import datetime
 from reykit.rexc import throw
-from reykit.ros import RFile, RFolder, get_md5
-from reykit.rtype import RBase
+from reykit.ros import File, Folder, get_md5
+from reykit.rtype import Base
 
-from .rconn import RDatabase, RDBConnection
+from .rconn import Database, DBConnection
 
 
 __all__ = (
-    'RDBFile',
+    'DBFile',
 )
 
 
 FileInfo = TypedDict('FileInfo', {'create_time': datetime, 'md5': str, 'name': str | None, 'size': int, 'note': str | None})
 
 
-class RDBFile(RBase):
+class DBFile(Base):
     """
-    Rey's `database file` type.
+    Database file type.
     """
 
 
     def __init__(
         self,
-        rdatabase: RDatabase | RDBConnection
+        rdatabase: Database | DBConnection
     ) -> None:
         """
-        Build `database file` instance attributes.
+        Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : RDatabase or RDBConnection instance.
+        rdatabase : Database or DBConnection instance.
         """
 
         # SQLite.
@@ -243,7 +243,7 @@ class RDBFile(RBase):
 
             ## File path.
             case str():
-                rfile = RFile(file)
+                rfile = File(file)
                 file_bytes = rfile.bytes
                 file_md5 = get_md5(file_bytes)
                 file_name = rfile.name_suffix
@@ -369,10 +369,10 @@ class RDBFile(RBase):
 
         # Save.
         else:
-            rfolder = RFolder(path)
+            rfolder = Folder(path)
             if rfolder:
                 path = os_join(path, file_name)
-            rfile = RFile(path)
+            rfile = File(path)
             rfile(file_bytes)
             return rfile.path
 

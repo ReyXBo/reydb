@@ -13,13 +13,13 @@ from typing import TypedDict, NotRequired, Literal
 from copy import deepcopy
 from reykit.rexc import throw
 from reykit.rstdout import rinput
-from reykit.rtype import RBase
+from reykit.rtype import Base
 
-from .rconn import RDatabase, RDBConnection
+from .rconn import Database, DBConnection
 
 
 __all__ = (
-    'RDBBuild',
+    'DBBuild',
 )
 
 
@@ -45,19 +45,19 @@ IndexSet = TypedDict(
 )
 
 
-class RDBBuild(RBase):
+class DBBuild(Base):
     """
-    Rey's `database build` type.
+    Database build type.
     """
 
 
-    def __init__(self, rdatabase: RDatabase | RDBConnection) -> None:
+    def __init__(self, rdatabase: Database | DBConnection) -> None:
         """
-        Build `database build` instance attributes.
+        Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : RDatabase or RDBConnection instance.
+        rdatabase : Database or DBConnection instance.
         """
 
         # SQLite.

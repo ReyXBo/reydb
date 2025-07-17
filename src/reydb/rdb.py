@@ -9,7 +9,7 @@
 """
 
 
-from typing import Any, Literal, overload
+from typing import Any, Literal, Type, overload
 from collections.abc import Iterable, Generator
 from enum import EnumType
 from urllib.parse import quote as urllib_quote
@@ -20,7 +20,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.exc import OperationalError
 from pandas import DataFrame
-from reykit.rdata import RGenerator
+from reykit.rdata import Generator
 from reykit.rexc import throw
 from reykit.rmonkey import monkey_patch_sqlalchemy_result_more_fetch, monkey_patch_sqlalchemy_row_index_field
 from reykit.rre import search, findall
@@ -28,32 +28,32 @@ from reykit.rstdout import echo
 from reykit.rsys import is_iterable, get_first_notnull
 from reykit.rtable import Table, to_table
 from reykit.rtext import join_data_text, to_json
-from reykit.rtype import RBase
+from reykit.rtype import Base
 from reykit.rwrap import wrap_runtime, wrap_retry
 
 
 __all__ = (
-    'RResult',
-    'RDatabase'
+    'Result',
+    'Database'
 )
 
 
 # Monkey path.
-monkey_result_type = monkey_patch_sqlalchemy_result_more_fetch()
-RResult = monkey_result_type
+Result_ = monkey_patch_sqlalchemy_result_more_fetch()
+Result = Result_
 monkey_patch_sqlalchemy_row_index_field()
 
 
-class RDatabase(RBase):
+class Database(Base):
     """
-    Rey's `database` type.
+    Database type.
 
     Examples
     --------
-    >>> rdb = RDatabase()
+    >>> rdb = Database()
     >>> result = rdb.execute('SELECT 1 as `a`')
     >>> result.fetch_table()
-    ... [{'a': 1}]
+    [{'a': 1}]
     """
 
     # Default value.
@@ -143,7 +143,7 @@ class RDatabase(RBase):
         **query: str
     ) -> None:
         """
-        Build `database` instance attributes.
+        Build instance attributes.
 
         Parameters
         ----------
@@ -631,7 +631,7 @@ class RDatabase(RBase):
         if hasattr(self, 'engine'):
             rdatabase = self
         else:
-            rdatabase: RDatabase = self.rdatabase
+            rdatabase: Database = self.rdatabase
 
         # Count.
         _overflow = rdatabase.engine.pool._overflow
@@ -765,7 +765,7 @@ class RDatabase(RBase):
         sql: TextClause,
         data: list[dict],
         report: bool
-    ) -> RResult:
+    ) -> Result:
         """
         SQL executor.
 
@@ -815,7 +815,7 @@ class RDatabase(RBase):
         data: Table | None = None,
         report: bool | None = None,
         **kwdata: Any
-    ) -> RResult:
+    ) -> Result:
         """
         Execute SQL.
 
@@ -898,7 +898,7 @@ class RDatabase(RBase):
         limit: int | str | tuple[int, int] | None = None,
         report: bool | None = None,
         **kwdata: Any
-    ) -> RResult:
+    ) -> Result:
         """
         Execute select SQL.
 
@@ -933,13 +933,13 @@ class RDatabase(RBase):
         --------
         Parameter `fields`.
         >>> fields = ['id', ':`id` + 1 AS `id_`']
-        >>> result = RDatabase.execute_select('database.table', fields)
+        >>> result = Database.execute_select('database.table', fields)
         >>> print(result.to_table())
         [{'id': 1, 'id_': 2}, ...]
 
         Parameter `kwdata`.
         >>> fields = '`id`, `id` + :value AS `id_`'
-        >>> result = RDatabase.execute_select('database.table', fields, value=1)
+        >>> result = Database.execute_select('database.table', fields, value=1)
         >>> print(result.to_table())
         [{'id': 1, 'id_': 2}, ...]
         """
@@ -1019,7 +1019,7 @@ class RDatabase(RBase):
         duplicate: Literal['ignore', 'update'] | None = None,
         report: bool | None = None,
         **kwdata: Any
-    ) -> RResult:
+    ) -> Result:
         """
         Insert the data of table in the datebase.
 
@@ -1049,10 +1049,10 @@ class RDatabase(RBase):
         Parameter `data` and `kwdata`.
         >>> data = [{'key': 'a'}, {'key': 'b'}]
         >>> kwdata = {'value1': 1, 'value2': ':(SELECT 2)'}
-        >>> result = RDatabase.execute_insert('database.table', data, **kwdata)
+        >>> result = Database.execute_insert('database.table', data, **kwdata)
         >>> print(result.rowcount)
         2
-        >>> result = RDatabase.execute_select('database.table')
+        >>> result = Database.execute_select('database.table')
         >>> print(result.to_table())
         [{'key': 'a', 'value1': 1, 'value2': 2}, {'key': 'b', 'value1': 1, 'value2': 2}]
         """
@@ -1166,7 +1166,7 @@ class RDatabase(RBase):
         where_fields: str | Iterable[str] | None = None,
         report: bool | None = None,
         **kwdata: Any
-    ) -> RResult:
+    ) -> Result:
         """
         Update the data of table in the datebase.
 
@@ -1203,10 +1203,10 @@ class RDatabase(RBase):
         Parameter `data` and `kwdata`.
         >>> data = [{'key': 'a'}, {'key': 'b'}]
         >>> kwdata = {'value': 1, 'name': ':`key`'}
-        >>> result = RDatabase.execute_update('database.table', data, **kwdata)
+        >>> result = Database.execute_update('database.table', data, **kwdata)
         >>> print(result.rowcount)
         2
-        >>> result = RDatabase.execute_select('database.table')
+        >>> result = Database.execute_select('database.table')
         >>> print(result.to_table())
         [{'key': 'a', 'value': 1, 'name': 'a'}, {'key': 'b', 'value': 1, 'name': 'b'}]
         """
@@ -1336,7 +1336,7 @@ class RDatabase(RBase):
         limit: int | str | None = None,
         report: bool | None = None,
         **kwdata: Any
-    ) -> RResult:
+    ) -> Result:
         """
         Delete the data of table in the datebase.
 
@@ -1362,7 +1362,7 @@ class RDatabase(RBase):
         Parameter `where` and `kwdata`.
         >>> where = '`id` IN :ids'
         >>> ids = (1, 2)
-        >>> result = RDatabase.execute_delete('database.table', where, ids=ids)
+        >>> result = Database.execute_delete('database.table', where, ids=ids)
         >>> print(result.rowcount)
         2
         """
@@ -1408,7 +1408,7 @@ class RDatabase(RBase):
         limit: int | str | tuple[int, int] | None = None,
         report: bool | None = None,
         **kwdata: Any
-    ) -> RResult:
+    ) -> Result:
         """
         Copy record of table in the datebase.
 
@@ -1439,7 +1439,7 @@ class RDatabase(RBase):
         Parameter `where` and `kwdata`.
         >>> where = '`id` IN :ids'
         >>> ids = (1, 2, 3)
-        >>> result = RDatabase.execute_copy('database.table', where, 2, ids=ids, id=None, time=':NOW()')
+        >>> result = Database.execute_copy('database.table', where, 2, ids=ids, id=None, time=':NOW()')
         >>> print(result.rowcount)
         2
         """
@@ -1583,7 +1583,7 @@ class RDatabase(RBase):
         Parameter `where` and `kwdata`.
         >>> where = '`id` IN :ids'
         >>> ids = (1, 2)
-        >>> result = RDatabase.execute_count('database.table', where, ids=ids)
+        >>> result = Database.execute_count('database.table', where, ids=ids)
         >>> print(result)
         2
         """
@@ -1629,10 +1629,10 @@ class RDatabase(RBase):
         --------
         Parameter `where` and `kwdata`.
         >>> data = [{'id': 1}]
-        >>> RDatabase.execute_insert('database.table', data)
+        >>> Database.execute_insert('database.table', data)
         >>> where = '`id` = :id_'
         >>> id_ = 1
-        >>> result = RDatabase.execute_exist('database.table', where, id_=id_)
+        >>> result = Database.execute_exist('database.table', where, id_=id_)
         >>> print(result)
         True
         """
@@ -1655,7 +1655,7 @@ class RDatabase(RBase):
         data: Table,
         report: bool | None = None,
         **kwdata: Any
-    ) -> Generator[RResult, Any, None]:
+    ) -> Generator[Result, Any, None]:
         """
         Return a generator that can execute SQL.
 
@@ -1674,7 +1674,7 @@ class RDatabase(RBase):
         """
 
         # Instance.
-        rgenerator = RGenerator(
+        rgenerator = Generator(
             self.execute,
             sql=sql,
             report=report,
@@ -1690,7 +1690,7 @@ class RDatabase(RBase):
 
     def connect(self):
         """
-        Build `database connection` instance attributes.
+        Build instance attributes.
 
         Returns
         -------
@@ -1698,10 +1698,10 @@ class RDatabase(RBase):
         """
 
         # Import.
-        from .rconn import RDBConnection
+        from .rconn import DBConnection
 
         # Build.
-        rdbconnection = RDBConnection(
+        rdbconnection = DBConnection(
             self.engine.connect(),
             self
         )
@@ -1722,63 +1722,63 @@ class RDatabase(RBase):
         --------
         Execute.
         >>> sql = 'select :value'
-        >>> result = RDBExecute(sql, value=1)
+        >>> result = DBExecute(sql, value=1)
 
         Select.
         >>> field = ['id', 'value']
         >>> where = '`id` = ids'
         >>> ids = (1, 2)
-        >>> result = RDBExecute.database.table(field, where, ids=ids)
+        >>> result = DBExecute.database.table(field, where, ids=ids)
 
         Insert.
         >>> data = [{'id': 1}, {'id': 2}]
         >>> duplicate = 'ignore'
-        >>> result = RDBExecute.database.table + data
-        >>> result = RDBExecute.database.table + (data, duplicate)
-        >>> result = RDBExecute.database.table + {'data': data, 'duplicate': duplicate}
+        >>> result = DBExecute.database.table + data
+        >>> result = DBExecute.database.table + (data, duplicate)
+        >>> result = DBExecute.database.table + {'data': data, 'duplicate': duplicate}
 
         Update.
         >>> data = [{'name': 'a', 'id': 1}, {'name': 'b', 'id': 2}]
         >>> where_fields = 'id'
-        >>> result = RDBExecute.database.table & data
-        >>> result = RDBExecute.database.table & (data, where_fields)
-        >>> result = RDBExecute.database.table & {'data': data, 'where_fields': where_fields}
+        >>> result = DBExecute.database.table & data
+        >>> result = DBExecute.database.table & (data, where_fields)
+        >>> result = DBExecute.database.table & {'data': data, 'where_fields': where_fields}
 
         Delete.
         >>> where = '`id` IN (1, 2)'
         >>> report = True
-        >>> result = RDBExecute.database.table - where
-        >>> result = RDBExecute.database.table - (where, report)
-        >>> result = RDBExecute.database.table - {'where': where, 'report': report}
+        >>> result = DBExecute.database.table - where
+        >>> result = DBExecute.database.table - (where, report)
+        >>> result = DBExecute.database.table - {'where': where, 'report': report}
 
         Copy.
         >>> where = '`id` IN (1, 2)'
         >>> limit = 1
-        >>> result = RDBExecute.database.table * where
-        >>> result = RDBExecute.database.table * (where, limit)
-        >>> result = RDBExecute.database.table * {'where': where, 'limit': limit}
+        >>> result = DBExecute.database.table * where
+        >>> result = DBExecute.database.table * (where, limit)
+        >>> result = DBExecute.database.table * {'where': where, 'limit': limit}
 
         Exist.
         >>> where = '`id` IN (1, 2)'
         >>> report = True
-        >>> result = where in RDBExecute.database.table
-        >>> result = (where, report) in RDBExecute.database.table
-        >>> result = {'where': where, 'report': report} in RDBExecute.database.table
+        >>> result = where in DBExecute.database.table
+        >>> result = (where, report) in DBExecute.database.table
+        >>> result = {'where': where, 'report': report} in DBExecute.database.table
 
         Count.
-        >>> result = len(RDBExecute.database.table)
+        >>> result = len(DBExecute.database.table)
 
         Default database.
         >>> field = ['id', 'value']
-        >>> engine = RDatabase(**server, database)
+        >>> engine = Database(**server, database)
         >>> result = engine.exe.table()
         """
 
         # Import.
-        from .rexe import RDBExecute
+        from .rexe import DBExecute
 
         # Build.
-        rdbexecute = RDBExecute(self)
+        rdbexecute = DBExecute(self)
 
         return rdbexecute
 
@@ -1837,7 +1837,7 @@ class RDatabase(RBase):
     @property
     def info(self):
         """
-        Build `database schema information` instance attributes.
+        Build instance attributes.
 
         Returns
         -------
@@ -1846,29 +1846,29 @@ class RDatabase(RBase):
         Examples
         --------
         Get databases information of server.
-        >>> databases_info = RDBISchema()
+        >>> databases_info = DBISchema()
 
         Get tables information of database.
-        >>> tables_info = RDBISchema.database()
+        >>> tables_info = DBISchema.database()
 
         Get columns information of table.
-        >>> columns_info = RDBISchema.database.table()
+        >>> columns_info = DBISchema.database.table()
 
         Get database attribute.
-        >>> database_attr = RDBISchema.database['attribute']
+        >>> database_attr = DBISchema.database['attribute']
 
         Get table attribute.
-        >>> database_attr = RDBISchema.database.table['attribute']
+        >>> database_attr = DBISchema.database.table['attribute']
 
         Get column attribute.
-        >>> database_attr = RDBISchema.database.table.column['attribute']
+        >>> database_attr = DBISchema.database.table.column['attribute']
         """
 
         # Import.
-        from .rinfo import RDBISchema
+        from .rinfo import DBISchema
 
         # Build.
-        rdbischema = RDBISchema(self)
+        rdbischema = DBISchema(self)
 
         return rdbischema
 
@@ -1876,7 +1876,7 @@ class RDatabase(RBase):
     @property
     def build(self):
         """
-        Build `database build` instance attributes.
+        Build instance attributes.
 
         Returns
         -------
@@ -1884,10 +1884,10 @@ class RDatabase(RBase):
         """
 
         # Import.
-        from .rbuild import RDBBuild
+        from .rbuild import DBBuild
 
         # Build.
-        rdbbuild = RDBBuild(self)
+        rdbbuild = DBBuild(self)
 
         return rdbbuild
 
@@ -1895,7 +1895,7 @@ class RDatabase(RBase):
     @property
     def file(self):
         """
-        Build `database file` instance attributes.
+        Build instance attributes.
 
         Returns
         -------
@@ -1903,10 +1903,10 @@ class RDatabase(RBase):
         """
 
         # Import.
-        from .rfile import RDBFile
+        from .rfile import DBFile
 
         # Build.
-        rdbfile = RDBFile(self)
+        rdbfile = DBFile(self)
 
         return rdbfile
 
@@ -1914,7 +1914,7 @@ class RDatabase(RBase):
     @property
     def status(self):
         """
-        Build `database status parameters` instance attributes.
+        Build instance attributes.
 
         Returns
         -------
@@ -1922,17 +1922,17 @@ class RDatabase(RBase):
         """
 
         # Import.
-        from .rparam import RDBPStatus, RDBPPragma
+        from .rparam import DBPStatus, DBPPragma
 
         # Build.
 
         ## SQLite.
         if self.backend == 'sqlite':
-            rdbp = RDBPPragma(self)
+            rdbp = DBPPragma(self)
 
         ## Other.
         else:
-            rdbp = RDBPStatus(self, False)
+            rdbp = DBPStatus(self, False)
 
         return rdbp
 
@@ -1948,17 +1948,17 @@ class RDatabase(RBase):
         """
 
         # Import.
-        from .rparam import RDBPStatus, RDBPPragma
+        from .rparam import DBPStatus, DBPPragma
 
         # Build.
 
         ## SQLite.
         if self.backend == 'sqlite':
-            rdbp = RDBPPragma(self)
+            rdbp = DBPPragma(self)
 
         ## Other.
         else:
-            rdbp = RDBPStatus(self, True)
+            rdbp = DBPStatus(self, True)
 
         return rdbp
 
@@ -1966,7 +1966,7 @@ class RDatabase(RBase):
     @property
     def variables(self):
         """
-        Build `database variable parameters` instance attributes.
+        Build instance attributes.
 
         Returns
         -------
@@ -1974,17 +1974,17 @@ class RDatabase(RBase):
         """
 
         # Import.
-        from .rparam import RDBPVariable, RDBPPragma
+        from .rparam import DBPVariable, DBPPragma
 
         # Build.
 
         ## SQLite.
         if self.backend == 'sqlite':
-            rdbp = RDBPPragma(self)
+            rdbp = DBPPragma(self)
 
         ## Other.
         else:
-            rdbp = RDBPVariable(self, False)
+            rdbp = DBPVariable(self, False)
 
         return rdbp
 
@@ -2000,17 +2000,17 @@ class RDatabase(RBase):
         """
 
         # Import.
-        from .rparam import RDBPVariable, RDBPPragma
+        from .rparam import DBPVariable, DBPPragma
 
         # Build.
 
         ## SQLite.
         if self.backend == 'sqlite':
-            rdbp = RDBPPragma(self)
+            rdbp = DBPPragma(self)
 
         ## Other.
         else:
-            rdbp = RDBPVariable(self, True)
+            rdbp = DBPVariable(self, True)
 
         return rdbp
 
@@ -2027,7 +2027,7 @@ class RDatabase(RBase):
         if hasattr(self, 'engine'):
             attr_dict = self.__dict__
         else:
-            rdatabase: RDatabase = self.rdatabase
+            rdatabase: Database = self.rdatabase
             attr_dict = {
                 **self.__dict__,
                 **rdatabase.__dict__

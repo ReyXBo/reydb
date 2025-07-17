@@ -12,19 +12,19 @@
 from typing import Any, Self
 from reykit.rexc import throw
 from reykit.rtable import Table
-from reykit.rtype import RBase
+from reykit.rtype import Base
 
-from .rconn import RDatabase, RDBConnection, RResult
+from .rconn import Database, DBConnection, Result
 
 
 __all__ = (
-    'RDBExecute',
+    'DBExecute',
 )
 
 
-class RDBExecute(RBase):
+class DBExecute(Base):
     """
-    Rey's `database execute` type.
+    Database execute type.
 
     Examples
     --------
@@ -32,59 +32,59 @@ class RDBExecute(RBase):
     >>> field = ['id', 'value']
     >>> where = '`id` = ids'
     >>> ids = (1, 2)
-    >>> result = RDBExecute.database.table(field, where, ids=ids)
+    >>> result = DBExecute.database.table(field, where, ids=ids)
 
     Insert.
     >>> data = [{'id': 1}, {'id': 2}]
     >>> duplicate = 'ignore'
-    >>> result = RDBExecute.database.table + data
-    >>> result = RDBExecute.database.table + (data, duplicate)
-    >>> result = RDBExecute.database.table + {'data': data, 'duplicate': duplicate}
+    >>> result = DBExecute.database.table + data
+    >>> result = DBExecute.database.table + (data, duplicate)
+    >>> result = DBExecute.database.table + {'data': data, 'duplicate': duplicate}
 
     Update.
     >>> data = [{'name': 'a', 'id': 1}, {'name': 'b', 'id': 2}]
     >>> where_fields = 'id'
-    >>> result = RDBExecute.database.table & data
-    >>> result = RDBExecute.database.table & (data, where_fields)
-    >>> result = RDBExecute.database.table & {'data': data, 'where_fields': where_fields}
+    >>> result = DBExecute.database.table & data
+    >>> result = DBExecute.database.table & (data, where_fields)
+    >>> result = DBExecute.database.table & {'data': data, 'where_fields': where_fields}
 
     Delete.
     >>> where = '`id` IN (1, 2)'
     >>> report = True
-    >>> result = RDBExecute.database.table - where
-    >>> result = RDBExecute.database.table - (where, report)
-    >>> result = RDBExecute.database.table - {'where': where, 'report': report}
+    >>> result = DBExecute.database.table - where
+    >>> result = DBExecute.database.table - (where, report)
+    >>> result = DBExecute.database.table - {'where': where, 'report': report}
 
     Copy.
     >>> where = '`id` IN (1, 2)'
     >>> limit = 1
-    >>> result = RDBExecute.database.table * where
-    >>> result = RDBExecute.database.table * (where, limit)
-    >>> result = RDBExecute.database.table * {'where': where, 'limit': limit}
+    >>> result = DBExecute.database.table * where
+    >>> result = DBExecute.database.table * (where, limit)
+    >>> result = DBExecute.database.table * {'where': where, 'limit': limit}
 
     Exist.
     >>> where = '`id` IN (1, 2)'
     >>> report = True
-    >>> result = where in RDBExecute.database.table
-    >>> result = (where, report) in RDBExecute.database.table
-    >>> result = {'where': where, 'report': report} in RDBExecute.database.table
+    >>> result = where in DBExecute.database.table
+    >>> result = (where, report) in DBExecute.database.table
+    >>> result = {'where': where, 'report': report} in DBExecute.database.table
 
     Count.
-    >>> result = len(RDBExecute.database.table)
+    >>> result = len(DBExecute.database.table)
 
     Default database.
-    >>> engine = RDatabase(**server, database)
+    >>> engine = Database(**server, database)
     >>> result = engine.exe.table()
     """
 
 
-    def __init__(self, rdatabase: RDatabase | RDBConnection) -> None:
+    def __init__(self, rdatabase: Database | DBConnection) -> None:
         """
-        Build `database execute` instance attributes.
+        Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : RDatabase or RDBConnection instance.
+        rdatabase : Database or DBConnection instance.
         """
 
         # Set parameter.
@@ -144,7 +144,7 @@ class RDBExecute(RBase):
         self,
         *args: Any,
         **kwargs: Any
-    ) -> RResult:
+    ) -> Result:
         """
         Select the data of table in the datebase.
 
@@ -167,7 +167,7 @@ class RDBExecute(RBase):
     def __add__(
         self,
         params: tuple | dict | Table
-    ) -> RResult:
+    ) -> Result:
         """
         Insert the data of table in the datebase.
 
@@ -198,7 +198,7 @@ class RDBExecute(RBase):
     def __and__(
         self,
         params: tuple | dict | Table
-    ) -> RResult:
+    ) -> Result:
         """
         Update the data of table in the datebase.
 
@@ -229,7 +229,7 @@ class RDBExecute(RBase):
     def __sub__(
         self,
         params: tuple | dict | str
-    ) -> RResult:
+    ) -> Result:
         """
         Delete the data of table in the datebase.
 
@@ -260,7 +260,7 @@ class RDBExecute(RBase):
     def __mul__(
         self,
         params: tuple | dict | str
-    ) -> RResult:
+    ) -> Result:
         """
         Copy record of table in the datebase.
 
