@@ -12,10 +12,10 @@
 from typing import TypedDict, overload
 from os.path import join as os_join
 from datetime import datetime
-from reykit.rexc import throw
+from reykit.rbase import throw
 from reykit.ros import File, Folder, get_md5
-from reykit.rtype import Base
 
+from .rbase import BaseDatabase
 from .rconn import Database, DBConnection
 
 
@@ -27,7 +27,7 @@ __all__ = (
 FileInfo = TypedDict('FileInfo', {'create_time': datetime, 'md5': str, 'name': str | None, 'size': int, 'note': str | None})
 
 
-class DBFile(Base):
+class DBFile(BaseDatabase):
     """
     Database file type.
     """
@@ -316,7 +316,7 @@ class DBFile(Base):
     def download(
         self,
         file_id: int,
-        path: str = None
+        path: str
     ) -> str: ...
 
     def download(

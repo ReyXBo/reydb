@@ -11,9 +11,9 @@
 
 from __future__ import annotations
 from typing import Any, Literal, overload
-from reykit.rexc import throw
-from reykit.rtype import Base
+from reykit.rbase import throw
 
+from .rbase import BaseDatabase
 from .rconn import Database, DBConnection
 
 
@@ -26,23 +26,23 @@ __all__ = (
 )
 
 
-class DBInformation(Base):
+class DBInformation(BaseDatabase):
     """
     Database base information type.
     """
 
 
     @overload
-    def __call__(self: DBISchema | DBISchema | DBIDatabase | DBITable, name: None = None) -> list[dict]: ...
+    def __call__(self: DBISchema | DBISchema | DBIDatabase | DBITable) -> list[dict]: ...
 
     @overload
-    def __call__(self: DBISchema, name: str = None) -> DBIDatabase: ...
+    def __call__(self: DBISchema, name: str) -> DBIDatabase: ...
 
     @overload
-    def __call__(self: DBIDatabase, name: str = None) -> DBITable: ...
+    def __call__(self: DBIDatabase, name: str) -> DBITable: ...
 
     @overload
-    def __call__(self: DBITable, name: str = None) -> DBIColumn: ...
+    def __call__(self: DBITable, name: str) -> DBIColumn: ...
 
     @overload
     def __call__(self: DBIColumn) -> dict: ...

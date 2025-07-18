@@ -11,10 +11,10 @@
 
 from typing import TypedDict, NotRequired, Literal
 from copy import deepcopy
-from reykit.rexc import throw
+from reykit.rbase import throw
 from reykit.rstdout import rinput
-from reykit.rtype import Base
 
+from .rbase import BaseDatabase
 from .rconn import Database, DBConnection
 
 
@@ -45,7 +45,7 @@ IndexSet = TypedDict(
 )
 
 
-class DBBuild(Base):
+class DBBuild(BaseDatabase):
     """
     Database build type.
     """

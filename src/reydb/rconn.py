@@ -17,9 +17,9 @@ from sqlalchemy.engine.cursor import CursorResult
 from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.exc import OperationalError
 from pandas import DataFrame
+from reykit.rbase import get_first_notnone
 from reykit.rdata import objs_in
 from reykit.rstdout import echo
-from reykit.rsys import get_first_notnull
 from reykit.rtable import Table, to_table
 from reykit.rwrap import wrap_runtime, wrap_retry
 
@@ -149,7 +149,7 @@ class DBConnection(Database):
         """
 
         # Get parameter by priority.
-        report = get_first_notnull(report, self.default_report, default='exception')
+        report = get_first_notnone(report, self.default_report)
 
         # Handle parameter.
         if type(sql) == str:

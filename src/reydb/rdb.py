@@ -20,16 +20,16 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.exc import OperationalError
 from pandas import DataFrame
+from reykit.rbase import throw, is_iterable, get_first_notnone
 from reykit.rdata import Generator
-from reykit.rexc import throw
 from reykit.rmonkey import monkey_patch_sqlalchemy_result_more_fetch, monkey_patch_sqlalchemy_row_index_field
 from reykit.rre import search, findall
 from reykit.rstdout import echo
-from reykit.rsys import is_iterable, get_first_notnull
 from reykit.rtable import Table, to_table
 from reykit.rtext import join_data_text, to_json
-from reykit.rtype import Base
 from reykit.rwrap import wrap_runtime, wrap_retry
+
+from .rbase import BaseDatabase
 
 
 __all__ = (
@@ -44,7 +44,7 @@ Result = Result_
 monkey_patch_sqlalchemy_row_index_field()
 
 
-class Database(Base):
+class Database(BaseDatabase):
     """
     Database type.
 
@@ -63,10 +63,10 @@ class Database(Base):
     @overload
     def __init__(
         self,
-        host: str = None,
-        port: int | str = None,
-        username: str = None,
-        password: str = None,
+        host: str,
+        port: int | str,
+        username: str,
+        password: str,
         database: str | None = None,
         drivername: str | None = None,
         *,
@@ -82,7 +82,7 @@ class Database(Base):
     def __init__(
         self,
         *,
-        database: str = None,
+        database: str,
         drivername: str | None = None,
         pool_size: int = 5,
         max_overflow: int = 10,
@@ -109,7 +109,7 @@ class Database(Base):
     def __init__(
         self,
         *,
-        url: str | URL = None,
+        url: str | URL,
         pool_size: int = 5,
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
@@ -121,7 +121,7 @@ class Database(Base):
     def __init__(
         self,
         *,
-        engine: Engine | Connection = None,
+        engine: Engine | Connection,
         retry: bool = False
     ) -> None: ...
 
@@ -834,7 +834,7 @@ class Database(Base):
         """
 
         # Get parameter by priority.
-        report = get_first_notnull(report, self.default_report, default='exception')
+        report = get_first_notnone(report, self.default_report)
 
         # Handle parameter.
         if type(sql) == str:
@@ -1775,7 +1775,7 @@ class Database(Base):
         """
 
         # Import.
-        from .rexe import DBExecute
+        from .rexec import DBExecute
 
         # Build.
         rdbexecute = DBExecute(self)

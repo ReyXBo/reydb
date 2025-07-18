@@ -10,10 +10,10 @@
 
 
 from typing import Any, Self
-from reykit.rexc import throw
+from reykit.rbase import throw
 from reykit.rtable import Table
-from reykit.rtype import Base
 
+from .rbase import BaseDatabase
 from .rconn import Database, DBConnection, Result
 
 
@@ -22,7 +22,7 @@ __all__ = (
 )
 
 
-class DBExecute(Base):
+class DBExecute(BaseDatabase):
     """
     Database execute type.
 

@@ -10,8 +10,8 @@
 
 
 from typing import overload
-from reykit.rtype import Base
 
+from .rbase import BaseDatabase
 from .rconn import Database, DBConnection
 
 
@@ -22,7 +22,7 @@ __all__ = (
 )
 
 
-class DBParameter(Base):
+class DBParameter(BaseDatabase):
     """
     Database parameters type.
     """
@@ -90,10 +90,10 @@ class DBPStatus(DBParameter):
 
 
     @overload
-    def get(self, key: None = None) -> dict[str, str]: ...
+    def get(self) -> dict[str, str]: ...
 
     @overload
-    def get(self, key: str = None) -> str | None: ...
+    def get(self, key: str) -> str | None: ...
 
     def get(self, key: str | None = None) -> dict[str, str] | str | None:
         """
@@ -159,10 +159,10 @@ class DBPVariable(DBParameter):
 
 
     @overload
-    def get(self, key: None = None) -> dict[str, str]: ...
+    def get(self) -> dict[str, str]: ...
 
     @overload
-    def get(self, key: str = None) -> str | None: ...
+    def get(self, key: str) -> str | None: ...
 
     def get(self, key: str | None = None) -> dict[str, str] | str | None:
         """
