@@ -219,7 +219,10 @@ class Database(BaseDatabase):
         self.pool_size: int = pool_size
         self.max_overflow: int = max_overflow
         self.pool_timeout: float = pool_timeout
-        self.pool_recycle: int | None = pool_recycle
+        if pool_recycle is None:
+            self.pool_recycle = -1
+        else:
+            self.pool_recycle = pool_recycle
         self.retry: bool = retry
         self.query: dict[str, str] = query
         if (
@@ -239,13 +242,11 @@ class Database(BaseDatabase):
         self.drivername: str
 
         # Handle attribute.
-        if self.pool_recycle is None:
+        if pool_recycle is None:
             if self.mode == 'server':
                 wait_timeout = self.variables['wait_timeout']
                 if wait_timeout is not None:
                     self.pool_recycle = int(wait_timeout)
-            if self.pool_recycle is None:
-                self.pool_recycle = -1
             self.engine.pool._recycle = self.pool_recycle
 
 
@@ -581,23 +582,23 @@ class Database(BaseDatabase):
             drivernames = (self.drivername,)
         else:
             drivernames = self.drivername
-        if self.mode == 'memory':
-            engine_params = {
-                'url': self.url,
-                'pool_recycle': self.pool_recycle
-            }
-        else:
-            engine_params = {
-                'url': self.url,
-                'pool_size': self.pool_size,
-                'max_overflow': self.max_overflow,
-                'pool_timeout': self.pool_timeout,
-                'pool_recycle': self.pool_recycle
-            }
 
         # Create Engine.
         for drivername in drivernames:
             self.drivername = drivername
+            if self.mode == 'memory':
+                engine_params = {
+                    'url': self.url,
+                    'pool_recycle': self.pool_recycle
+                }
+            else:
+                engine_params = {
+                    'url': self.url,
+                    'pool_size': self.pool_size,
+                    'max_overflow': self.max_overflow,
+                    'pool_timeout': self.pool_timeout,
+                    'pool_recycle': self.pool_recycle
+                }
 
             ## Try.
             try:
