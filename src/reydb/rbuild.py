@@ -12,7 +12,7 @@
 from typing import TypedDict, NotRequired, Literal
 from copy import deepcopy
 from reykit.rbase import throw
-from reykit.rstdout import rinput
+from reykit.rstdout import ask
 
 from .rbase import BaseDatabase
 from .rconn import Database, DBConnection
@@ -1020,11 +1020,11 @@ class DBBuild(BaseDatabase):
 
         # Confirm.
         text = 'Do you want to execute SQL to build the database? Otherwise stop program. (y/n) '
-        command = rinput(
+        command = ask(
             sql,
             text,
-            frame='top',
-            title='SQL'
+            title='SQL',
+            frame='top'
         )
 
         # Check.

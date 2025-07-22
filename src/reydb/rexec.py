@@ -135,7 +135,7 @@ class DBExecute(BaseDatabase):
                 database = self._path[0]
                 table = self._path[1]
             case _:
-                throw(AssertionError)
+                throw(AssertionError, path_len)
 
         return database, table
 
