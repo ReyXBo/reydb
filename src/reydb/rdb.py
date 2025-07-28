@@ -21,12 +21,12 @@ from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.exc import OperationalError
 from pandas import DataFrame
 from reykit.rbase import throw, is_iterable, get_first_notnone
-from reykit.rdata import Generator
+from reykit.rdata import Generator, to_json
 from reykit.rmonkey import monkey_patch_sqlalchemy_result_more_fetch, monkey_patch_sqlalchemy_row_index_field
 from reykit.rre import search, findall
 from reykit.rstdout import echo
-from reykit.rtable import Table, to_table
-from reykit.rtext import join_data_text, to_json
+from reykit.rtable import TableData, Table
+from reykit.rtext import join_data_text
 from reykit.rwrap import wrap_runtime, wrap_retry
 
 from .rbase import BaseDatabase
@@ -648,7 +648,7 @@ class Database(BaseDatabase):
 
     def handle_data(
         self,
-        data: Table,
+        data: list[dict],
         sql: str | TextClause,
     ) -> list[dict]:
         """
@@ -665,11 +665,6 @@ class Database(BaseDatabase):
         """
 
         # Handle parameter.
-        match data:
-            case dict():
-                data = [data]
-            case list():
-                data = to_table(data)
         if type(sql) == TextClause:
             sql = sql.text
 
@@ -813,7 +808,7 @@ class Database(BaseDatabase):
     def execute(
         self,
         sql: str | TextClause,
-        data: Table | None = None,
+        data: TableData | None = None,
         report: bool | None = None,
         **kwdata: Any
     ) -> Result:
@@ -846,17 +841,10 @@ class Database(BaseDatabase):
             else:
                 data = [kwdata]
         else:
-            match data:
-                case dict():
-                    data = [data]
-                case CursorResult():
-                    data = to_table(data)
-                case DataFrame():
-                    data = to_table(data)
-                case _:
-                    data = data.copy()
-            for param in data:
-                param.update(kwdata)
+            table = Table(data)
+            table = table.to_table()
+            for row in data:
+                row.update(kwdata)
 
         # Handle data.
         data = self.handle_data(data, sql)
@@ -1016,7 +1004,7 @@ class Database(BaseDatabase):
     def execute_insert(
         self,
         path: str | tuple[str, str],
-        data: Table,
+        data: TableData,
         duplicate: Literal['ignore', 'update'] | None = None,
         report: bool | None = None,
         **kwdata: Any
@@ -1064,13 +1052,8 @@ class Database(BaseDatabase):
         # Handle parameter.
 
         ## Data.
-        match data:
-            case dict():
-                data = [data]
-            case CursorResult():
-                data = to_table(data)
-            case DataFrame():
-                data = to_table(data)
+        table = Table(data)
+        table = table.to_table()
 
         ## Check.
         if data in ([], [{}]):
@@ -1163,7 +1146,7 @@ class Database(BaseDatabase):
     def execute_update(
         self,
         path: str | tuple[str, str],
-        data: Table,
+        data: TableData,
         where_fields: str | Iterable[str] | None = None,
         report: bool | None = None,
         **kwdata: Any
@@ -1218,13 +1201,8 @@ class Database(BaseDatabase):
         # Handle parameter.
 
         ## Data.
-        match data:
-            case dict():
-                data = [data]
-            case CursorResult():
-                data = to_table(data)
-            case DataFrame():
-                data = to_table(data)
+        table = Table(data)
+        table = table.to_table()
 
         ## Check.
         if data in ([], [{}]):
@@ -1653,7 +1631,7 @@ class Database(BaseDatabase):
     def execute_generator(
         self,
         sql: str | TextClause,
-        data: Table,
+        data: TableData,
         report: bool | None = None,
         **kwdata: Any
     ) -> Generator[Result, Any, None]:

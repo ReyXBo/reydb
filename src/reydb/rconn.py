@@ -20,7 +20,7 @@ from pandas import DataFrame
 from reykit.rbase import get_first_notnone
 from reykit.rdata import objs_in
 from reykit.rstdout import echo
-from reykit.rtable import Table, to_table
+from reykit.rtable import TableData, Table
 from reykit.rwrap import wrap_runtime, wrap_retry
 
 from .rdb import Result, Database
@@ -127,7 +127,7 @@ class DBConnection(Database):
     def execute(
         self,
         sql: str | TextClause,
-        data: Table | None = None,
+        data: TableData | None = None,
         report: bool | None = None,
         **kwdata: Any
     ) -> Result:
@@ -160,17 +160,10 @@ class DBConnection(Database):
             else:
                 data = [kwdata]
         else:
-            match data:
-                case dict():
-                    data = [data]
-                case CursorResult():
-                    data = to_table(data)
-                case DataFrame():
-                    data = to_table(data)
-                case _:
-                    data = data.copy()
-            for param in data:
-                param.update(kwdata)
+            data = Table(data)
+            data = data.to_table()
+            for row in data:
+                row.update(kwdata)
 
         # Handle data.
         data = self.handle_data(data, sql)

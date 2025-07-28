@@ -1080,7 +1080,8 @@ class DBBuild(BaseDatabase):
 
             ## Exist.
             exist = self.rdatabase.build.exist((database, None, None))
-            if exist: continue
+            if exist:
+                continue
 
             ## Create.
             sql = self.create_database(**params, execute=False)
@@ -1102,7 +1103,8 @@ class DBBuild(BaseDatabase):
 
             ## Exist.
             exist = self.rdatabase.build.exist((database, table, None))
-            if exist: continue
+            if exist:
+                continue
 
             ## Create.
             sql = self.create_table(**params, execute=False)
@@ -1124,7 +1126,8 @@ class DBBuild(BaseDatabase):
 
             ## Exist.
             exist = self.rdatabase.build.exist((database, view, None))
-            if exist: continue
+            if exist:
+                continue
 
             ## Create.
             sql = self.create_view(**params, execute=False)
@@ -1146,7 +1149,8 @@ class DBBuild(BaseDatabase):
 
             ## Exist.
             exist = self.rdatabase.build.exist((database, view, None))
-            if exist: continue
+            if exist:
+                continue
 
             ## Create.
             sql = self.create_view_stats(**params, execute=False)

@@ -11,7 +11,7 @@
 
 from typing import Any, Self
 from reykit.rbase import throw
-from reykit.rtable import Table
+from reykit.rtable import TableData
 
 from .rbase import BaseDatabase
 from .rconn import Database, DBConnection, Result
@@ -166,7 +166,7 @@ class DBExecute(BaseDatabase):
 
     def __add__(
         self,
-        params: tuple | dict | Table
+        params: tuple | dict | TableData
     ) -> Result:
         """
         Insert the data of table in the datebase.
@@ -176,7 +176,7 @@ class DBExecute(BaseDatabase):
         params : Insert parameters.
             - `tuple`: Enter parameters in '(path, *params)' format.
             - `dict`: Enter parameters in '(path, **params)' format.
-            - `Table`: Enter parameters in '(path, params)' format.
+            - `TableData`: Enter parameters in '(path, params)' format.
 
         Returns
         -------
@@ -197,7 +197,7 @@ class DBExecute(BaseDatabase):
 
     def __and__(
         self,
-        params: tuple | dict | Table
+        params: tuple | dict | TableData
     ) -> Result:
         """
         Update the data of table in the datebase.
@@ -207,7 +207,7 @@ class DBExecute(BaseDatabase):
         params : Update parameters.
             - `tuple`: Enter parameters in '(path, *params)' format.
             - `dict`: Enter parameters in '(path, **params)' format.
-            - `Table`: Enter parameters in '(path, params)' format.
+            - `TableData`: Enter parameters in '(path, params)' format.
 
         Returns
         -------
