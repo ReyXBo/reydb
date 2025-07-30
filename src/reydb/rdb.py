@@ -52,7 +52,7 @@ class Database(BaseDatabase):
     --------
     >>> rdb = Database()
     >>> result = rdb.execute('SELECT 1 as `a`')
-    >>> result.fetch_table()
+    >>> result.to_table()
     [{'a': 1}]
     """
 
@@ -841,8 +841,8 @@ class Database(BaseDatabase):
             else:
                 data = [kwdata]
         else:
-            table = Table(data)
-            table = table.to_table()
+            data_table = Table(data)
+            data = data_table.to_table()
             for row in data:
                 row.update(kwdata)
 
@@ -1052,8 +1052,8 @@ class Database(BaseDatabase):
         # Handle parameter.
 
         ## Data.
-        table = Table(data)
-        table = table.to_table()
+        data_table = Table(data)
+        data = data_table.to_table()
 
         ## Check.
         if data in ([], [{}]):
@@ -1201,8 +1201,8 @@ class Database(BaseDatabase):
         # Handle parameter.
 
         ## Data.
-        table = Table(data)
-        table = table.to_table()
+        data_table = Table(data)
+        data = data_table.to_table()
 
         ## Check.
         if data in ([], [{}]):

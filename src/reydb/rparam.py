@@ -124,7 +124,8 @@ class DBPStatus(DBParameter):
 
         ## Dictionary.
         if key is None:
-            status = result.fetch_dict(val_field=1)
+            result = self.rdatabase.execute(sql, key=key)
+            status = result.to_dict(val_field=1)
 
         ## Value.
         else:
@@ -193,7 +194,8 @@ class DBPVariable(DBParameter):
 
         ## Dictionary.
         if key is None:
-            variables = result.fetch_dict(val_field=1)
+            result = self.rdatabase.execute(sql, key=key)
+            variables = result.to_dict(val_field=1)
 
         ## Value.
         else:

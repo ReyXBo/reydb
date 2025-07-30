@@ -414,7 +414,7 @@ class DBFile(BaseDatabase):
             raise AssertionError('file ID does not exist')
 
         # Convert.
-        table = result.fetch_table()
+        table = result.to_table()
         info = table[0]
 
         return info

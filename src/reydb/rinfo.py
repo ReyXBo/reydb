@@ -227,7 +227,7 @@ class DBISchema(DBInformation):
             )
 
         # Convert.
-        info_table = result.fetch_table()
+        info_table = result.to_table()
 
         return info_table
 
@@ -307,7 +307,7 @@ class DBIDatabase(DBInformation):
         )
 
         # Convert.
-        info_table = result.fetch_table()
+        info_table = result.to_table()
 
         ## Check.
         assert len(info_table) != 0, "database '%s' not exist" % self._database_name
@@ -343,7 +343,7 @@ class DBIDatabase(DBInformation):
             )
 
         # Convert.
-        info_table = result.fetch_table()
+        info_table = result.to_table()
 
         ## Check.
         assert len(info_table) != 0, "database '%s' not exist" % self._database_name
@@ -426,7 +426,7 @@ class DBITable(DBInformation):
             )
 
         # Convert.
-        info_table = result.fetch_table()
+        info_table = result.to_table()
 
         ## Check.
         assert len(info_table) != 0, "database '%s' or table '%s' not exist" % (self._database_name, self._table_name)
@@ -464,7 +464,7 @@ class DBITable(DBInformation):
             )
 
         # Convert.
-        info_table = result.fetch_table()
+        info_table = result.to_table()
 
         ## Check.
         assert len(info_table) != 0, "database '%s' or table '%s' not exist" % (self._database_name, self._table_name)
@@ -546,7 +546,7 @@ class DBIColumn(DBInformation):
             )
 
         # Convert.
-        info_table = result.fetch_table()
+        info_table = result.to_table()
 
         ## Check.
         assert len(info_table) != 0, "database '%s' or table '%s' or column '%s' not exist" % (self._database_name, self._table_name, self._column_name)

@@ -160,8 +160,8 @@ class DBConnection(Database):
             else:
                 data = [kwdata]
         else:
-            data = Table(data)
-            data = data.to_table()
+            data_table = Table(data)
+            data = data_table.to_table()
             for row in data:
                 row.update(kwdata)
 
