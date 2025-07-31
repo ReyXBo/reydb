@@ -238,7 +238,7 @@ class Database(BaseDatabase):
 
         # Create engine.
         if self.engine is None:
-            self.engine = self._create_engine()
+            self.engine = self.__create_engine()
         self.drivername: str
 
         # Handle attribute.
@@ -568,7 +568,7 @@ class Database(BaseDatabase):
         return url_
 
 
-    def _create_engine(self) -> Engine:
+    def __create_engine(self) -> Engine:
         """
         Create database `Engine` object.
 

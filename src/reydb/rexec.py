@@ -116,7 +116,7 @@ class DBExecute(BaseDatabase):
 
 
     @property
-    def _get_path(self) -> tuple[str, str]:
+    def __get_path(self) -> tuple[str, str]:
         """
         Get database name and table name.
 
@@ -159,7 +159,7 @@ class DBExecute(BaseDatabase):
         """
 
         # Selete.
-        result = self._rdatabase.execute_select(self._get_path, *args, **kwargs)
+        result = self._rdatabase.execute_select(self.__get_path, *args, **kwargs)
 
         return result
 
@@ -186,11 +186,11 @@ class DBExecute(BaseDatabase):
         # Insert.
         match params:
             case tuple():
-                result = self._rdatabase.execute_insert(self._get_path, *params)
+                result = self._rdatabase.execute_insert(self.__get_path, *params)
             case dict():
-                result = self._rdatabase.execute_insert(self._get_path, **params)
+                result = self._rdatabase.execute_insert(self.__get_path, **params)
             case _:
-                result = self._rdatabase.execute_insert(self._get_path, params)
+                result = self._rdatabase.execute_insert(self.__get_path, params)
 
         return result
 
@@ -217,11 +217,11 @@ class DBExecute(BaseDatabase):
         # Update.
         match params:
             case tuple():
-                result = self._rdatabase.execute_update(self._get_path, *params)
+                result = self._rdatabase.execute_update(self.__get_path, *params)
             case dict():
-                result = self._rdatabase.execute_update(self._get_path, **params)
+                result = self._rdatabase.execute_update(self.__get_path, **params)
             case _:
-                result = self._rdatabase.execute_update(self._get_path, params)
+                result = self._rdatabase.execute_update(self.__get_path, params)
 
         return result
 
@@ -248,11 +248,11 @@ class DBExecute(BaseDatabase):
         # Update.
         match params:
             case tuple():
-                result = self._rdatabase.execute_delete(self._get_path, *params)
+                result = self._rdatabase.execute_delete(self.__get_path, *params)
             case dict():
-                result = self._rdatabase.execute_delete(self._get_path, **params)
+                result = self._rdatabase.execute_delete(self.__get_path, **params)
             case _:
-                result = self._rdatabase.execute_delete(self._get_path, params)
+                result = self._rdatabase.execute_delete(self.__get_path, params)
 
         return result
 
@@ -279,11 +279,11 @@ class DBExecute(BaseDatabase):
         # Update.
         match params:
             case tuple():
-                result = self._rdatabase.execute_copy(self._get_path, *params)
+                result = self._rdatabase.execute_copy(self.__get_path, *params)
             case dict():
-                result = self._rdatabase.execute_copy(self._get_path, **params)
+                result = self._rdatabase.execute_copy(self.__get_path, **params)
             case _:
-                result = self._rdatabase.execute_copy(self._get_path, params)
+                result = self._rdatabase.execute_copy(self.__get_path, params)
 
         return result
 
@@ -310,11 +310,11 @@ class DBExecute(BaseDatabase):
         # Update.
         match params:
             case tuple():
-                result = self._rdatabase.execute_exist(self._get_path, *params)
+                result = self._rdatabase.execute_exist(self.__get_path, *params)
             case dict():
-                result = self._rdatabase.execute_exist(self._get_path, **params)
+                result = self._rdatabase.execute_exist(self.__get_path, **params)
             case _:
-                result = self._rdatabase.execute_exist(self._get_path, params)
+                result = self._rdatabase.execute_exist(self.__get_path, params)
 
         return result
 
@@ -331,6 +331,6 @@ class DBExecute(BaseDatabase):
         """
 
         # Update.
-        result = self._rdatabase.execute_count(self._get_path)
+        result = self._rdatabase.execute_count(self.__get_path)
 
         return result

@@ -64,11 +64,11 @@ class DBInformation(BaseDatabase):
         if name is None:
 
             ## Break.
-            if not hasattr(self, '_get_info_table'):
+            if not hasattr(self, '__get_info_table'):
                 raise AssertionError("class '%s' does not have this method" % type(self).__name__)
 
             ## Get.
-            result: list[dict] = self._get_info_table()
+            result: list[dict] = self.__get_info_table()
 
         # Subobject.
         else:
@@ -105,11 +105,11 @@ class DBInformation(BaseDatabase):
         """
 
         # Break.
-        if not hasattr(self, '_get_info_attrs'):
+        if not hasattr(self, '__get_info_attrs'):
             raise AssertionError("class '%s' does not have this method" % type(self).__name__)
 
         # Get.
-        info_attrs: dict = self._get_info_attrs()
+        info_attrs: dict = self.__get_info_attrs()
 
         # Return.
 
@@ -206,7 +206,7 @@ class DBISchema(DBInformation):
         self._rdatabase = rdatabase
 
 
-    def _get_info_table(self) -> list[dict]:
+    def __get_info_table(self) -> list[dict]:
         """
         Get information table.
 
@@ -284,7 +284,7 @@ class DBIDatabase(DBInformation):
         self._database_name = database_name
 
 
-    def _get_info_attrs(self) -> dict:
+    def __get_info_attrs(self) -> dict:
         """
         Get information attribute dictionary.
 
@@ -317,7 +317,7 @@ class DBIDatabase(DBInformation):
         return info_attrs
 
 
-    def _get_info_table(self) -> list[dict]:
+    def __get_info_table(self) -> list[dict]:
         """
         Get information table.
 
@@ -393,7 +393,7 @@ class DBITable(DBInformation):
         self._table_name = table_name
 
 
-    def _get_info_attrs(self) -> dict:
+    def __get_info_attrs(self) -> dict:
         """
         Get information attribute dictionary.
 
@@ -436,7 +436,7 @@ class DBITable(DBInformation):
         return info_attrs
 
 
-    def _get_info_table(self) -> list[dict]:
+    def __get_info_table(self) -> list[dict]:
         """
         Get information table.
 
@@ -511,7 +511,7 @@ class DBIColumn(DBInformation):
         self._column_name = column_name
 
 
-    def _get_info_attrs(self) -> dict:
+    def __get_info_attrs(self) -> dict:
         """
         Get information attribute dictionary.
 
@@ -556,4 +556,4 @@ class DBIColumn(DBInformation):
         return info_attrs
 
 
-    _get_info_table = _get_info_attrs
+    __get_info_table = __get_info_attrs

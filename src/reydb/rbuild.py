@@ -101,7 +101,7 @@ class DBBuild(BaseDatabase):
         return sql
 
 
-    def _get_field_sql(
+    def __get_field_sql(
         self,
         name: str,
         type_: str,
@@ -159,7 +159,7 @@ class DBBuild(BaseDatabase):
         return sql
 
 
-    def _get_index_sql(
+    def __get_index_sql(
         self,
         name: str,
         fields: str | list[str],
@@ -306,7 +306,7 @@ class DBBuild(BaseDatabase):
 
         ## Fields.
         sql_fields = [
-            self._get_field_sql(**field)
+            self.__get_field_sql(**field)
             for field in fields
         ]
 
@@ -324,7 +324,7 @@ class DBBuild(BaseDatabase):
         ## Indexes.
         if indexes is not None:
             sql_indexes = [
-                self._get_index_sql(**index)
+                self.__get_index_sql(**index)
                 for index in indexes
             ]
             sql_fields.extend(sql_indexes)
@@ -672,7 +672,7 @@ class DBBuild(BaseDatabase):
         ## Fields.
         if fields is not None:
             sql_fields = [
-                'COLUMN ' + self._get_field_sql(**field)
+                'COLUMN ' + self.__get_field_sql(**field)
                 for field in fields
             ]
             sql_content.extend(sql_fields)
@@ -691,7 +691,7 @@ class DBBuild(BaseDatabase):
         ## Indexes.
         if indexes is not None:
             sql_indexes = [
-                self._get_index_sql(**index)
+                self.__get_index_sql(**index)
                 for index in indexes
             ]
             sql_content.extend(sql_indexes)
@@ -853,7 +853,7 @@ class DBBuild(BaseDatabase):
                         if 'old_name' not in field
                         else 'CHANGE'
                     ),
-                    self._get_field_sql(**field)
+                    self.__get_field_sql(**field)
                 )
                 for field in fields
             ]
