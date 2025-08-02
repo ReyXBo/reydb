@@ -33,7 +33,7 @@ FieldSet = TypedDict(
         'position': NotRequired[Literal['first'] | str | None]
     }
 )
-IndexType = Literal['noraml', 'unique', 'fulltext', 'spatial']
+type IndexType = Literal['noraml', 'unique', 'fulltext', 'spatial']
 IndexSet = TypedDict(
     'IndexSet',
     {

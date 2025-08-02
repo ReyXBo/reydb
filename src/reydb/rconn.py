@@ -98,7 +98,8 @@ class DBConnection(Database):
 
         ## Report.
         if report:
-            result, report_runtime = wrap_runtime(connection.execute, sql, data, _return_report=True)
+            execute = wrap_runtime(connection.execute, to_return=True)
+            result, report_runtime, *_ = execute(sql, data)
             report_info = (
                 f'{report_runtime}\n'
                 f'Row Count: {result.rowcount}'
@@ -176,15 +177,11 @@ class DBConnection(Database):
             and self.begin_count == 0
             and not self.is_multi_sql(sql)
         ):
-            result = wrap_retry(
-                self.executor,
-                self.connection,
-                sql,
-                data,
-                report,
-                _report='Database Execute Operational Error',
-                _exception=OperationalError
-            )
+            text = 'Retrying...'
+            title = 'Database Execute Operational Error'
+            handler = lambda exc_report, *_: echo(exc_report, text, title=title, frame='top')
+            executor = wrap_retry(self.executor, handler=handler, exception=OperationalError)
+            result = executor(self.connection, sql, data, report)
 
         ## Cannot retry.
         else:
