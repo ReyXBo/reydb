@@ -116,7 +116,7 @@ class DBBuild(BaseDatabase):
         Parameters
         ----------
         name : Field name.
-        type_ : Field type.
+        type\_ : Field type.
         constraint : Field constraint.
         comment : Field comment.
         position : Field position.
@@ -173,7 +173,7 @@ class DBBuild(BaseDatabase):
         ----------
         name : Index name.
         fields : Index fileds.
-        type_ : Index type.
+        type\_ : Index type.
         comment : Index comment.
 
         Returns
