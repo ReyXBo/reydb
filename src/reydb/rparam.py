@@ -39,7 +39,7 @@ class DBParameter(BaseDatabase):
         Parameters
         ----------
         rdatabase : Database or DBConnection instance.
-        global\_ : Whether base global.
+        global\\_ : Whether base global.
         """
 
         # Set parameter.
