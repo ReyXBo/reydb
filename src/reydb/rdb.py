@@ -22,7 +22,7 @@ from sqlalchemy.exc import OperationalError
 from pandas import DataFrame
 from reykit.rbase import throw, is_iterable, get_first_notnone
 from reykit.rdata import Generator, to_json
-from reykit.rmonkey import monkey_patch_sqlalchemy_result_more_fetch, monkey_patch_sqlalchemy_row_index_field
+from reykit.rmonkey import monkey_sqlalchemy_result_more_fetch, monkey_sqlalchemy_row_index_field
 from reykit.rre import search, findall
 from reykit.rstdout import echo
 from reykit.rtable import TableData, Table
@@ -39,9 +39,9 @@ __all__ = (
 
 
 # Monkey path.
-Result_ = monkey_patch_sqlalchemy_result_more_fetch()
+Result_ = monkey_sqlalchemy_result_more_fetch()
 Result = Result_
-monkey_patch_sqlalchemy_row_index_field()
+monkey_sqlalchemy_row_index_field()
 
 
 class Database(BaseDatabase):
