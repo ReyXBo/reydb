@@ -1650,7 +1650,7 @@ class Database(BaseDatabase):
         """
 
         # Instance.
-        rgenerator = Generator(
+        generator = Generator(
             self.execute,
             sql=sql,
             report=report,
@@ -1659,9 +1659,9 @@ class Database(BaseDatabase):
 
         # Add.
         for row in data:
-            rgenerator(**row)
+            generator(**row)
 
-        return rgenerator.generator
+        return generator.generator
 
 
     def connect(self):
@@ -1677,12 +1677,12 @@ class Database(BaseDatabase):
         from .rconn import DBConnection
 
         # Build.
-        rdbconnection = DBConnection(
+        dbconnection = DBConnection(
             self.engine.connect(),
             self
         )
 
-        return rdbconnection
+        return dbconnection
 
 
     @property
@@ -1754,9 +1754,9 @@ class Database(BaseDatabase):
         from .rexec import DBExecute
 
         # Build.
-        rdbexecute = DBExecute(self)
+        dbexecute = DBExecute(self)
 
-        return rdbexecute
+        return dbexecute
 
 
     @property
@@ -1844,9 +1844,9 @@ class Database(BaseDatabase):
         from .rinfo import DBISchema
 
         # Build.
-        rdbischema = DBISchema(self)
+        dbischema = DBISchema(self)
 
-        return rdbischema
+        return dbischema
 
 
     @property
@@ -1863,9 +1863,9 @@ class Database(BaseDatabase):
         from .rbuild import DBBuild
 
         # Build.
-        rdbbuild = DBBuild(self)
+        dbbuild = DBBuild(self)
 
-        return rdbbuild
+        return dbbuild
 
 
     @property
@@ -1882,9 +1882,9 @@ class Database(BaseDatabase):
         from .rfile import DBFile
 
         # Build.
-        rdbfile = DBFile(self)
+        dbfile = DBFile(self)
 
-        return rdbfile
+        return dbfile
 
 
     @property
@@ -1904,13 +1904,13 @@ class Database(BaseDatabase):
 
         ## SQLite.
         if self.backend == 'sqlite':
-            rdbp = DBPPragma(self)
+            dbp = DBPPragma(self)
 
         ## Other.
         else:
-            rdbp = DBPStatus(self, False)
+            dbp = DBPStatus(self, False)
 
-        return rdbp
+        return dbp
 
 
     @property
@@ -1930,13 +1930,13 @@ class Database(BaseDatabase):
 
         ## SQLite.
         if self.backend == 'sqlite':
-            rdbp = DBPPragma(self)
+            dbp = DBPPragma(self)
 
         ## Other.
         else:
-            rdbp = DBPStatus(self, True)
+            dbp = DBPStatus(self, True)
 
-        return rdbp
+        return dbp
 
 
     @property
@@ -1956,13 +1956,13 @@ class Database(BaseDatabase):
 
         ## SQLite.
         if self.backend == 'sqlite':
-            rdbp = DBPPragma(self)
+            dbp = DBPPragma(self)
 
         ## Other.
         else:
-            rdbp = DBPVariable(self, False)
+            dbp = DBPVariable(self, False)
 
-        return rdbp
+        return dbp
 
 
     @property
@@ -1982,13 +1982,13 @@ class Database(BaseDatabase):
 
         ## SQLite.
         if self.backend == 'sqlite':
-            rdbp = DBPPragma(self)
+            dbp = DBPPragma(self)
 
         ## Other.
         else:
-            rdbp = DBPVariable(self, True)
+            dbp = DBPVariable(self, True)
 
-        return rdbp
+        return dbp
 
 
     __call__ = execute

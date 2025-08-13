@@ -215,7 +215,7 @@ class DBFile(BaseDatabase):
 
     def upload(
         self,
-        file: str | bytes,
+        source: str | bytes,
         name: str | None = None,
         note: str | None = None
     ) -> int:
@@ -224,7 +224,7 @@ class DBFile(BaseDatabase):
 
         Parameters
         ----------
-        file : File path or file bytes.
+        source : File path or file bytes.
         name : File name.
             - `None`: Automatic set.
                 `parameter 'file' is 'str'`: Use path file name.
@@ -239,20 +239,20 @@ class DBFile(BaseDatabase):
 
         # Get parameter.
         conn = self.rdatabase.connect()
-        match file:
+        match source:
 
             ## File path.
             case str():
-                rfile = File(file)
-                file_bytes = rfile.bytes
+                file = File(source)
+                file_bytes = file.bytes
                 file_md5 = get_md5(file_bytes)
-                file_name = rfile.name_suffix
+                file_name = file.name_suffix
 
             ## File bytes.
             case bytes() | bytearray():
-                if type(file) == bytearray:
-                    file = bytes(file)
-                file_bytes = file
+                if type(source) == bytearray:
+                    source = bytes(source)
+                file_bytes = source
                 file_md5 = get_md5(file_bytes)
                 file_name = None
 
@@ -369,12 +369,12 @@ class DBFile(BaseDatabase):
 
         # Save.
         else:
-            rfolder = Folder(path)
-            if rfolder:
+            folder = Folder(path)
+            if folder:
                 path = os_join(path, file_name)
-            rfile = File(path)
-            rfile(file_bytes)
-            return rfile.path
+            file = File(path)
+            file(file_bytes)
+            return file.path
 
 
     def query(

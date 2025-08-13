@@ -150,15 +150,15 @@ class DBInformation(BaseDatabase):
         # Build.
         match self:
             case DBISchema():
-                rtable = DBIDatabase(self._rdatabase, name)
+                table = DBIDatabase(self._rdatabase, name)
             case DBIDatabase():
-                rtable = DBITable(self._rdatabase, self._database_name, name)
+                table = DBITable(self._rdatabase, self._database_name, name)
             case DBITable():
-                rtable = DBIColumn(self._rdatabase, self._database_name, self._table_name, name)
+                table = DBIColumn(self._rdatabase, self._database_name, self._table_name, name)
             case _:
                 raise AssertionError("class '%s' does not have this method" % type(self).__name__)
 
-        return rtable
+        return table
 
 
 class DBISchema(DBInformation):
