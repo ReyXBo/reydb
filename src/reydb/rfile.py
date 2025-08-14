@@ -10,7 +10,6 @@
 
 
 from typing import TypedDict, overload
-from os.path import join as os_join
 from datetime import datetime
 from reykit.rbase import throw
 from reykit.ros import File, Folder, get_md5
@@ -371,7 +370,7 @@ class DBFile(BaseDatabase):
         else:
             folder = Folder(path)
             if folder:
-                path = os_join(path, file_name)
+                path = folder + file_name
             file = File(path)
             file(file_bytes)
             return file.path
