@@ -72,7 +72,7 @@ class DBBuild(BaseDatabase):
 
     def create_database(
         self,
-        database: str,
+        name: str,
         character: str = 'utf8mb3',
         collate: str = 'utf8mb3_general_ci',
         execute: bool = True
@@ -82,7 +82,7 @@ class DBBuild(BaseDatabase):
 
         Parameters
         ----------
-        database : Database name.
+        name : Database name.
         character : Character set.
         collate : Collate rule.
         execute : Whether directly execute.
@@ -93,7 +93,7 @@ class DBBuild(BaseDatabase):
         """
 
         # Generate.
-        sql = f'CREATE DATABASE `{database}` CHARACTER SET {character} COLLATE {collate}'
+        sql = f'CREATE DATABASE `{name}` CHARACTER SET {character} COLLATE {collate}'
 
         # Execute.
         if execute:
@@ -1074,7 +1074,7 @@ class DBBuild(BaseDatabase):
 
         # Database.
         for params in databases:
-            database = params['database']
+            database = params['name']
 
             ## Exist.
             exist = self.rdatabase.build.exist((database, None, None))
