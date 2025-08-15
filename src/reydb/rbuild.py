@@ -1065,7 +1065,7 @@ class DBBuild(BaseDatabase):
         """
 
         # Handle parameter.
-        database = database or []
+        databases = databases or []
         tables = tables or []
         views = views or []
         views_stats = views_stats or []
