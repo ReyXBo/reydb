@@ -127,7 +127,7 @@ class DBBuild(BaseDatabase):
         Field set SQL.
         """
 
-        # Get parameter.
+        # Handle parameter.
 
         ## Constraint.
         constraint = ' ' + constraint
@@ -181,7 +181,7 @@ class DBBuild(BaseDatabase):
         Index set SQL.
         """
 
-        # Get parameter.
+        # Handle parameter.
         if fields.__class__ == str:
             fields = [fields]
         match type_:
@@ -1065,14 +1065,10 @@ class DBBuild(BaseDatabase):
         """
 
         # Handle parameter.
-        if databases is None:
-            databases = []
-        if tables is None:
-            tables = []
-        if views is None:
-            views = []
-        if views_stats is None:
-            views_stats = []
+        database = database or []
+        tables = tables or []
+        views = views or []
+        views_stats = views_stats or []
 
         # Database.
         for params in databases:

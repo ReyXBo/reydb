@@ -174,7 +174,7 @@ class Database(BaseDatabase):
         query : Remote server database parameters.
         """
 
-        # Get parameter.
+        # Handle parameter.
 
         ## From Engine or Connection.
         if engine is not None:
@@ -628,7 +628,7 @@ class Database(BaseDatabase):
         Number of keep open and allowed overflow connection.
         """
 
-        # Get parameter.
+        # Handle parameter.
         if hasattr(self, 'engine'):
             rdatabase = self
         else:
@@ -830,7 +830,7 @@ class Database(BaseDatabase):
         Result object.
         """
 
-        # Get parameter by priority.
+        # Handle parameter.by priority.
         report = get_first_notnone(report, self.default_report)
 
         # Handle parameter.
@@ -1422,8 +1422,6 @@ class Database(BaseDatabase):
 
         # Handle parameter.
         database, table, _ = self.extract_path(path)
-
-        # Get parameter.
         table_info: list[dict] = self.info(database)(table)()
 
         ## SQLite.
@@ -1999,7 +1997,7 @@ class Database(BaseDatabase):
         Return connection information text.
         """
 
-        # Get parameter.
+        # Handle parameter.
         if hasattr(self, 'engine'):
             attr_dict = self.__dict__
         else:

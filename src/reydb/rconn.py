@@ -149,7 +149,7 @@ class DBConnection(Database):
         Result object.
         """
 
-        # Get parameter by priority.
+        # Handle parameter.by priority.
         report = get_first_notnone(report, self.default_report)
 
         # Handle parameter.

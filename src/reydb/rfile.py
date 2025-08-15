@@ -236,7 +236,7 @@ class DBFile(BaseDatabase):
         File ID.
         """
 
-        # Get parameter.
+        # Handle parameter.
         conn = self.rdatabase.connect()
         match source:
 
