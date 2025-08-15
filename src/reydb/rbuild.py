@@ -67,6 +67,7 @@ class DBBuild(BaseDatabase):
 
         # Set attribute.
         self.rdatabase = rdatabase
+        self._schema: dict[str, dict[str, list[str]]] | None = None
 
 
     def create_database(
@@ -988,20 +989,21 @@ class DBBuild(BaseDatabase):
 
         # Handle parameter.
         database, table, column = self.rdatabase.extract_path(path, 'database')
+        if self._schema is None:
+            self._schema = self.rdatabase.schema(False)
 
         # Judge.
-        if table is None:
-            rinfo = self.rdatabase.info(database)
-        elif column is None:
-            rinfo = self.rdatabase.info(database)(table)
-        else:
-            rinfo = self.rdatabase.info(database)(table)(column)
-        try:
-            rinfo['*']
-        except AssertionError:
-            judge = False
-        else:
-            judge = True
+        judge = not (
+            (database_info := self._schema.get(database)) is None
+            or (
+                table is not None
+                and (table_info := database_info.get(table)) is None
+            )
+            or (
+                column is not None
+                and column not in table_info
+            )
+        )
 
         return judge
 

@@ -52,10 +52,18 @@ class DBFile(BaseDatabase):
         # Set attribute.
         self.rdatabase = rdatabase
 
+        ## Database path name.
+        self.path_names = {
+            'file': 'file',
+            'file.information': 'information',
+            'file.data': 'data',
+            'file.stats': 'stats'
+        }
+
 
     def build(self) -> None:
         """
-        Check and build all standard databases and tables.
+        Check and build all standard databases and tables, by `self.path_names`.
         """
 
         # Set parameter.
@@ -63,7 +71,7 @@ class DBFile(BaseDatabase):
         ## Database.
         databases = [
             {
-                'database': 'file'
+                'name': self.path_names['file']
             }
         ]
 
@@ -72,7 +80,7 @@ class DBFile(BaseDatabase):
 
             ### 'information'.
             {
-                'path': ('file', 'information'),
+                'path': (self.path_names['file'], self.path_names['file.information']),
                 'fields': [
                     {
                         'name': 'create_time',
@@ -125,7 +133,7 @@ class DBFile(BaseDatabase):
 
             ### 'data'.
             {
-                'path': ('file', 'data'),
+                'path': (self.path_names['file'], self.path_names['file.data']),
                 'fields': [
                     {
                         'name': 'md5',
@@ -156,7 +164,7 @@ class DBFile(BaseDatabase):
 
             ### 'stats'.
             {
-                'path': ('file', 'stats'),
+                'path': (self.path_names['file'], self.path_names['file.stats']),
                 'items': [
                     {
                         'name': 'count',
@@ -264,7 +272,7 @@ class DBFile(BaseDatabase):
 
         # Exist.
         exist = conn.execute_exist(
-            ('file', 'data'),
+            (self.path_names['file'], self.path_names['file.data']),
             '`md5` = :file_md5',
             file_md5=file_md5
         )
@@ -279,7 +287,7 @@ class DBFile(BaseDatabase):
                 'bytes': file_bytes
             }
             conn.execute_insert(
-                ('file', 'data'),
+                (self.path_names['file'], self.path_names['file.data']),
                 data,
                 'ignore'
             )
@@ -291,7 +299,7 @@ class DBFile(BaseDatabase):
             'note': note
         }
         conn.execute_insert(
-            ('file', 'information'),
+            (self.path_names['file'], self.path_names['file.information']),
             data
         )
 

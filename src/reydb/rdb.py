@@ -1757,10 +1757,13 @@ class Database(BaseDatabase):
         return dbexecute
 
 
-    @property
-    def schema(self) -> dict[str, dict[str, list]]:
+    def schema(self, filter_default: bool = True) -> dict[str, dict[str, list[str]]]:
         """
         Get schemata of databases and tables and columns.
+
+        Parameters
+        ----------
+        filter_default : Whether filter default database.
 
         Returns
         -------
@@ -1771,30 +1774,45 @@ class Database(BaseDatabase):
         if self.backend == 'sqlite':
             throw(AssertionError, self.drivername)
 
-        # Select.
+        # Handle parameter.
         filter_db = (
             'information_schema',
-            'mysql',
             'performance_schema',
+            'mysql',
             'sys'
         )
-        result = self.execute_select(
-            'information_schema.COLUMNS',
-            ['TABLE_SCHEMA', 'TABLE_NAME', 'COLUMN_NAME'],
-            '`TABLE_SCHEMA` NOT IN :filter_db',
-            order='`TABLE_SCHEMA`, `TABLE_NAME`, `ORDINAL_POSITION`',
-            filter_db=filter_db
+        if filter_default:
+            where_database = 'WHERE `SCHEMA_NAME` NOT IN :filter_db\n'
+            where_column = 'WHERE `TABLE_SCHEMA` NOT IN :filter_db\n'
+        else:
+            where_database = where_column = ''
+
+        # Select.
+        sql = (
+            'SELECT GROUP_CONCAT(`SCHEMA_NAME`) AS `TABLE_SCHEMA`, NULL AS `TABLE_NAME`, NULL AS `COLUMN_NAME`\n'
+            'FROM `information_schema`.`SCHEMATA`\n'
+            f'{where_database}'
+            'UNION ALL (\n'
+            'SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`\n'
+            'FROM `information_schema`.`COLUMNS`\n'
+            f'{where_column}'
+            'ORDER BY `TABLE_SCHEMA`, `TABLE_NAME`, `ORDINAL_POSITION`)'
         )
+        result = self.execute(sql, filter_db=filter_db)
 
         # Convert.
-        database_dict = {}
+        database_names, *_ = result.fetchone()
+        database_names: list[str] = database_names.split(',')
+        schema_dict = {}
         for database, table, column in result:
+            if database in database_names:
+                database_names.remove(database)
 
             ## Index database.
-            if database not in database_dict:
-                database_dict[database] = {table: [column]}
+            if database not in schema_dict:
+                schema_dict[database] = {table: [column]}
                 continue
-            table_dict: dict = database_dict[database]
+            table_dict: dict = schema_dict[database]
 
             ## Index table. 
             if table not in table_dict:
@@ -1805,7 +1823,11 @@ class Database(BaseDatabase):
             ## Add column.
             column_list.append(column)
 
-        return database_dict
+        ## Add empty database.
+        for database_name in database_names:
+            schema_dict[database_name] = None
+
+        return schema_dict
 
 
     @property
