@@ -149,12 +149,11 @@ class DBConnection(Database):
         Result object.
         """
 
-        # Handle parameter.by priority.
+        # Handle parameter by priority.
         report = get_first_notnone(report, self.default_report)
 
         # Handle parameter.
-        if type(sql) == str:
-            sql = sqlalchemy_text(sql)
+        sql = self.handle_sql(sql)
         if data is None:
             if kwdata == {}:
                 data = []
@@ -165,8 +164,6 @@ class DBConnection(Database):
             data = data_table.to_table()
             for row in data:
                 row.update(kwdata)
-
-        # Handle data.
         data = self.handle_data(data, sql)
 
         # Execute.

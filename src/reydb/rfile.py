@@ -157,6 +157,33 @@ class DBFile(BaseDatabase):
                 'primary': 'md5',
                 'comment': 'File data table.'
             }
+
+        ]
+
+        ## View.
+        views = [
+
+            ### Data information.
+            {
+                'path': ('file', 'data_information'),
+                'select': (
+                    'SELECT `b`.`last_time`, `a`.`md5`, `a`.`size`, `b`.`names`, `b`.`notes`\n'
+                    'FROM `file`.`data` AS `a`\n'
+                    'LEFT JOIN (\n'
+                    '    SELECT\n'
+                    '        `md5`,\n'
+                    "        GROUP_CONCAT(DISTINCT(`name`) ORDER BY `create_time` DESC SEPARATOR ' | ') AS `names`,\n"
+                    "        GROUP_CONCAT(DISTINCT(`note`) ORDER BY `create_time` DESC SEPARATOR ' | ') AS `notes`,\n"
+                    '        MAX(`create_time`) as `last_time`\n'
+                    '    FROM `file`.`information`\n'
+                    '    GROUP BY `md5`\n'
+                    '    ORDER BY `last_time` DESC\n'
+                    ') AS `b`\n'
+                    'ON `a`.`md5` = `b`.`md5`\n'
+                    'ORDER BY `last_time` DESC'
+                )
+            }
+
         ]
 
         ## View stats.
@@ -170,7 +197,7 @@ class DBFile(BaseDatabase):
                         'name': 'count',
                         'select': (
                             'SELECT COUNT(1)\n'
-                            'FROM `file`.`information`'
+                            f'FROM `{self.path_names['file']}`.`{self.path_names['file.information']}`'
                         ),
                         'comment': 'File information count.'
                     },
@@ -178,7 +205,7 @@ class DBFile(BaseDatabase):
                         'name': 'count_data',
                         'select': (
                             'SELECT COUNT(1)\n'
-                            'FROM `file`.`data`'
+                            f'FROM `{self.path_names['file']}`.`{self.path_names['file.data']}`'
                         ),
                         'comment': 'File data unique count.'
                     },
@@ -189,7 +216,7 @@ class DBFile(BaseDatabase):
                             '    ROUND(AVG(`size`) / 1024),\n'
                             "    ' KB'\n"
                             ')\n'
-                            'FROM `file`.`data`\n'
+                            f'FROM `{self.path_names['file']}`.`{self.path_names['file.data']}`'
                         ),
                         'comment': 'File average size.'
                     },
@@ -200,7 +227,7 @@ class DBFile(BaseDatabase):
                             '    ROUND(MAX(`size`) / 1024),\n'
                             "    ' KB'\n"
                             ')\n'
-                            'FROM `file`.`data`\n'
+                            f'FROM `{self.path_names['file']}`.`{self.path_names['file.data']}`'
                         ),
                         'comment': 'File maximum size.'
                     },
@@ -208,16 +235,17 @@ class DBFile(BaseDatabase):
                         'name': 'last_time',
                         'select': (
                             'SELECT MAX(`create_time`)\n'
-                            'FROM `file`.`information`'
+                            f'FROM `{self.path_names['file']}`.`{self.path_names['file.information']}`'
                         ),
                         'comment': 'File last record create time.'
                     }
                 ]
             }
+
         ]
 
         # Build.
-        self.rdatabase.build.build(databases, tables, views_stats=views_stats)
+        self.rdatabase.build.build(databases, tables, views, views_stats)
 
 
     def upload(
@@ -352,11 +380,11 @@ class DBFile(BaseDatabase):
         sql = (
             'SELECT `name`, (\n'
             '    SELECT `bytes`\n'
-            '    FROM `file`.`data`\n'
-            '    WHERE `md5` = `information`.`md5`\n'
+            f'    FROM `{self.path_names['file']}`.`{self.path_names['file.data']}`\n'
+            f'    WHERE `md5` = `{self.path_names['file.information']}`.`md5`\n'
             '    LIMIT 1\n'
             ') AS `bytes`\n'
-            'FROM `file`.`information`\n'
+            f'FROM `{self.path_names['file']}`.`{self.path_names['file.information']}`\n'
             'WHERE `file_id` = :file_id\n'
             'LIMIT 1'
         )
@@ -404,11 +432,11 @@ class DBFile(BaseDatabase):
         sql = (
             'SELECT `create_time`, `md5`, `name`, `note`, (\n'
             '    SELECT `size`\n'
-            '    FROM `file`.`data`\n'
+            f'    FROM `{self.path_names['file']}`.`{self.path_names['file.data']}`\n'
             '    WHERE `md5` = `a`.`md5`\n'
             '    LIMIT 1\n'
             ') AS `size`\n'
-            'FROM `file`.`information` AS `a`\n'
+            f'FROM `{self.path_names['file']}`.`{self.path_names['file.information']}` AS `a`\n'
             'WHERE `file_id` = :file_id\n'
             'LIMIT 1'
         )

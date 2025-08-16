@@ -646,6 +646,32 @@ class Database(BaseDatabase):
         return keep_n, overflow_n
 
 
+    def handle_sql(self, sql: str | TextClause) -> TextClause:
+        """
+        Handle SQL.
+
+        Parameters
+        ----------
+        sql : SQL in method `sqlalchemy.text` format, or TextClause object.
+
+        Returns
+        -------
+        TextClause instance.
+        """
+
+        # Handle parameter.
+        if type(sql) == TextClause:
+            sql = sql.text
+
+        # Handle.
+        sql = sql.strip()
+        if sql[-1] != ';':
+            sql += ';'
+        sql = sqlalchemy_text(sql)
+
+        return sql
+
+
     def handle_data(
         self,
         data: list[dict],
@@ -657,7 +683,7 @@ class Database(BaseDatabase):
         Parameters
         ----------
         data : Data set for filling.
-        sql : SQL in method sqlalchemy.text format, or TextClause object.
+        sql : SQL in method `sqlalchemy.text` format, or TextClause object.
 
         Returns
         -------
@@ -830,12 +856,11 @@ class Database(BaseDatabase):
         Result object.
         """
 
-        # Handle parameter.by priority.
+        # Handle parameter by priority.
         report = get_first_notnone(report, self.default_report)
 
         # Handle parameter.
-        if type(sql) == str:
-            sql = sqlalchemy_text(sql)
+        sql = self.handle_sql(sql)
         if data is None:
             if kwdata == {}:
                 data = []
@@ -846,8 +871,6 @@ class Database(BaseDatabase):
             data = data_table.to_table()
             for row in data:
                 row.update(kwdata)
-
-        # Handle data.
         data = self.handle_data(data, sql)
 
         # Execute.
@@ -1783,7 +1806,7 @@ class Database(BaseDatabase):
         )
         if filter_default:
             where_database = 'WHERE `SCHEMA_NAME` NOT IN :filter_db\n'
-            where_column = 'WHERE `TABLE_SCHEMA` NOT IN :filter_db\n'
+            where_column = '    WHERE `TABLE_SCHEMA` NOT IN :filter_db\n'
         else:
             where_database = where_column = ''
 
@@ -1793,10 +1816,11 @@ class Database(BaseDatabase):
             'FROM `information_schema`.`SCHEMATA`\n'
             f'{where_database}'
             'UNION ALL (\n'
-            'SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`\n'
-            'FROM `information_schema`.`COLUMNS`\n'
+            '    SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`\n'
+            '    FROM `information_schema`.`COLUMNS`\n'
             f'{where_column}'
-            'ORDER BY `TABLE_SCHEMA`, `TABLE_NAME`, `ORDINAL_POSITION`)'
+            '    ORDER BY `TABLE_SCHEMA`, `TABLE_NAME`, `ORDINAL_POSITION`\n'
+            ')'
         )
         result = self.execute(sql, filter_db=filter_db)
 
