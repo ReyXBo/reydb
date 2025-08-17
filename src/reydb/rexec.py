@@ -14,7 +14,8 @@ from reykit.rbase import throw
 from reykit.rtable import TableData
 
 from .rbase import BaseDatabase
-from .rconn import Database, DBConnection, Result
+from .rconn import DBConnection
+from .rdb import Database, Result
 
 
 __all__ = (

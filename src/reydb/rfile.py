@@ -15,7 +15,8 @@ from reykit.rbase import throw
 from reykit.ros import File, Folder, get_md5
 
 from .rbase import BaseDatabase
-from .rconn import Database, DBConnection
+from .rconn import DBConnection
+from .rdb import Database
 
 
 __all__ = (

@@ -107,6 +107,7 @@ class DBConnection(Database):
             sqls = [
                 sql_part.strip()
                 for sql_part in sql.text.split(';')
+                if sql_part != ''
             ]
             if data == []:
                 echo(report_info, *sqls, title='SQL')

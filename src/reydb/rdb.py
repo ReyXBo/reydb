@@ -753,6 +753,7 @@ class Database(BaseDatabase):
         syntax = [
             search('[a-zA-Z]+', sql_part).upper()
             for sql_part in sql.split(';')
+            if sql_part != ''
         ]
 
         return syntax
@@ -819,6 +820,7 @@ class Database(BaseDatabase):
                 sqls = [
                     sql_part.strip()
                     for sql_part in sql.text.split(';')
+                    if sql_part != ''
                 ]
                 if data == []:
                     echo(report_info, *sqls, title='SQL')
