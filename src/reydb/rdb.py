@@ -9,17 +9,15 @@
 """
 
 
-from typing import Any, Literal, Type, overload
+from typing import Any, Literal, overload
 from collections.abc import Iterable, Generator
 from enum import EnumType
 from urllib.parse import quote as urllib_quote
 from sqlalchemy import create_engine as sqlalchemy_create_engine, text as sqlalchemy_text
 from sqlalchemy.engine.base import Engine, Connection
-from sqlalchemy.engine.cursor import CursorResult
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.exc import OperationalError
-from pandas import DataFrame
 from reykit.rbase import throw, is_iterable, get_first_notnone
 from reykit.rdata import Generator, to_json
 from reykit.rmonkey import monkey_sqlalchemy_result_more_fetch, monkey_sqlalchemy_row_index_field
