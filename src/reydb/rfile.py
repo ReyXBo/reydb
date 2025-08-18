@@ -106,13 +106,11 @@ class DBFile(BaseDatabase):
                     {
                         'name': 'name',
                         'type': 'varchar(260)',
-                        'constraint': 'DEFAULT NULL',
                         'comment': 'File name.'
                     },
                     {
                         'name': 'note',
                         'type': 'varchar(500)',
-                        'constraint': 'DEFAULT NULL',
                         'comment': 'File note.'
                     }
                 ],
