@@ -213,35 +213,26 @@ class DBFile(BaseDatabase):
                     {
                         'name': 'size_sum',
                         'select': (
-                            'SELECT CONCAT(\n'
-                            '    ROUND(SUM(`size`) / 1024),\n'
-                            "    ' KB'\n"
-                            ')\n'
+                            'SELECT FORMAT(SUM(`size`), 0)\n'
                             f'FROM `{self.db_names['file']}`.`{self.db_names['file.data']}`'
                         ),
-                        'comment': 'File total size.'
+                        'comment': 'File total byte size.'
                     },
                     {
                         'name': 'size_avg',
                         'select': (
-                            'SELECT CONCAT(\n'
-                            '    ROUND(AVG(`size`) / 1024),\n'
-                            "    ' KB'\n"
-                            ')\n'
+                            'SELECT FORMAT(AVG(`size`), 0)\n'
                             f'FROM `{self.db_names['file']}`.`{self.db_names['file.data']}`'
                         ),
-                        'comment': 'File average size.'
+                        'comment': 'File average byte size.'
                     },
                     {
                         'name': 'size_max',
                         'select': (
-                            'SELECT CONCAT(\n'
-                            '    ROUND(MAX(`size`) / 1024),\n'
-                            "    ' KB'\n"
-                            ')\n'
+                            'SELECT FORMAT(MAX(`size`), 0)\n'
                             f'FROM `{self.db_names['file']}`.`{self.db_names['file.data']}`'
                         ),
-                        'comment': 'File maximum size.'
+                        'comment': 'File maximum byte size.'
                     },
                     {
                         'name': 'last_time',
