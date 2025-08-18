@@ -4,6 +4,8 @@ version = "1.1.25"
 description = "Database method set."
 readme = "README.md"
 requires-python = ">=3.12"
+
+
 license = {file = "LICENSE"}
 keywords = ["rey", "reyxbo", "db", "database"]
 authors = [
