@@ -233,7 +233,7 @@ class DatabaseLog(DatabaseBase):
         func: Callable[..., T] | None = None,
         *,
         note: str | None = None,
-        filter_exc : BaseException | tuple[BaseException, ...] = Exit
+        filter_type : BaseException | tuple[BaseException, ...] = Exit
     ) -> T | Callable[[Callable[..., T]], Callable[..., T]]:
         """
         Decorator, insert exception information into the table of database, throw exception.
@@ -242,7 +242,7 @@ class DatabaseLog(DatabaseBase):
         ----------
         func : Function.
         note : Exception note.
-        filter_exc : Exception type of not inserted, but still throw exception.
+        filter_type : Exception type of not inserted, but still throw exception.
 
         Returns
         -------
@@ -271,8 +271,8 @@ class DatabaseLog(DatabaseBase):
         """
 
         # Handle parameter.
-        if issubclass(filter_exc, BaseException):
-            filter_exc = (filter_exc,)
+        if issubclass(filter_type, BaseException):
+            filter_type = (filter_type,)
 
 
         def _wrap(func_: Callable[..., T]) -> Callable[..., T]:
@@ -313,7 +313,10 @@ class DatabaseLog(DatabaseBase):
                     _, exc, stack = catch_exc()
 
                     ## Filter.
-                    if type(exc) not in filter_exc:
+                    for type_ in filter_type:
+                        if isinstance(exc, type_):
+                            break
+                    else:
                         self.error(exc, stack, note)
 
                     raise
