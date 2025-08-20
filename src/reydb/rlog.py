@@ -13,7 +13,7 @@ from typing import Any
 from collections.abc import Callable
 from traceback import StackSummary
 from functools import wraps as functools_wraps
-from reykit.rbase import T, throw, catch_exc
+from reykit.rbase import T, Exit, throw, catch_exc
 
 from .rbase import DatabaseBase
 from .rconn import DatabaseConnection
@@ -233,7 +233,7 @@ class DatabaseLog(DatabaseBase):
         func: Callable[..., T] | None = None,
         *,
         note: str | None = None,
-        filter_exc : BaseException | tuple[BaseException, ...] = None
+        filter_exc : BaseException | tuple[BaseException, ...] = Exit
     ) -> T | Callable[[Callable[..., T]], Callable[..., T]]:
         """
         Decorator, insert exception information into the table of database, throw exception.
