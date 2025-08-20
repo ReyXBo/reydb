@@ -245,6 +245,27 @@ class DatabaseLog(DatabaseBase):
         Returns
         -------
         Decorated function or decorator with parameter.
+
+        Examples
+        --------
+        Method one.
+        >>> @wrap_error
+        >>> def func(*args, **kwargs): ...
+
+        Method two.
+        >>> @wrap_error(**wrap_kwargs)
+        >>> def func(*args, **kwargs): ...
+
+        Method three.
+        >>> def func(*args, **kwargs): ...
+        >>> func = wrap_error(func, **wrap_kwargs)
+
+        Method four.
+        >>> def func(*args, **kwargs): ...
+        >>> wrap_error = wrap_error(**wrap_kwargs)
+        >>> func = wrap_error(func)
+
+        >>> func(*args, **kwargs)
         """
 
 
