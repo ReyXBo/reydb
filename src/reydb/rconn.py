@@ -10,13 +10,9 @@
 
 
 from typing import Any, Self
-from types import TracebackType
-from sqlalchemy import text as sqlalchemy_text
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.engine.cursor import CursorResult
 from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.exc import OperationalError
-from pandas import DataFrame
 from reykit.rbase import get_first_notnone
 from reykit.rdata import objs_in
 from reykit.rstdout import echo
@@ -27,11 +23,11 @@ from .rdb import Result, Database
 
 
 __all__ = (
-    'DBConnection',
+    'DatabaseConnection',
 )
 
 
-class DBConnection(Database):
+class DatabaseConnection(Database):
     """
     Database connection type.
     """
@@ -177,7 +173,7 @@ class DBConnection(Database):
         ):
             text = 'Retrying...'
             title = 'Database Execute Operational Error'
-            handler = lambda exc_report, *_: echo(exc_report, text, title=title, frame='top')
+            handler = lambda exc_text, *_: echo(exc_text, text, title=title, frame='top')
             executor = wrap_retry(self.executor, handler=handler, exception=OperationalError)
             result = executor(self.connection, sql, data, report)
 
@@ -236,8 +232,7 @@ class DBConnection(Database):
     def __exit__(
         self,
         exc_type: type[BaseException] | None,
-        exc_instance: BaseException | None,
-        exc_traceback: TracebackType | None
+        *_
     ) -> None:
         """
         Exit syntax `with`.
@@ -245,8 +240,6 @@ class DBConnection(Database):
         Parameters
         ----------
         exc_type : Exception type.
-        exc_instance : Exception instance.
-        exc_traceback : Exception traceback instance.
         """
 
         # Commit.

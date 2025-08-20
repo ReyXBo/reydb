@@ -13,17 +13,17 @@ from typing import Any, Self
 from reykit.rbase import throw
 from reykit.rtable import TableData
 
-from .rbase import BaseDatabase
-from .rconn import DBConnection
+from .rbase import DatabaseBase
+from .rconn import DatabaseConnection
 from .rdb import Database, Result
 
 
 __all__ = (
-    'DBExecute',
+    'DatabaseExecute',
 )
 
 
-class DBExecute(BaseDatabase):
+class DatabaseExecute(DatabaseBase):
     """
     Database execute type.
 
@@ -33,45 +33,45 @@ class DBExecute(BaseDatabase):
     >>> field = ['id', 'value']
     >>> where = '`id` = ids'
     >>> ids = (1, 2)
-    >>> result = DBExecute.database.table(field, where, ids=ids)
+    >>> result = DatabaseExecute.database.table(field, where, ids=ids)
 
     Insert.
     >>> data = [{'id': 1}, {'id': 2}]
     >>> duplicate = 'ignore'
-    >>> result = DBExecute.database.table + data
-    >>> result = DBExecute.database.table + (data, duplicate)
-    >>> result = DBExecute.database.table + {'data': data, 'duplicate': duplicate}
+    >>> result = DatabaseExecute.database.table + data
+    >>> result = DatabaseExecute.database.table + (data, duplicate)
+    >>> result = DatabaseExecute.database.table + {'data': data, 'duplicate': duplicate}
 
     Update.
     >>> data = [{'name': 'a', 'id': 1}, {'name': 'b', 'id': 2}]
     >>> where_fields = 'id'
-    >>> result = DBExecute.database.table & data
-    >>> result = DBExecute.database.table & (data, where_fields)
-    >>> result = DBExecute.database.table & {'data': data, 'where_fields': where_fields}
+    >>> result = DatabaseExecute.database.table & data
+    >>> result = DatabaseExecute.database.table & (data, where_fields)
+    >>> result = DatabaseExecute.database.table & {'data': data, 'where_fields': where_fields}
 
     Delete.
     >>> where = '`id` IN (1, 2)'
     >>> report = True
-    >>> result = DBExecute.database.table - where
-    >>> result = DBExecute.database.table - (where, report)
-    >>> result = DBExecute.database.table - {'where': where, 'report': report}
+    >>> result = DatabaseExecute.database.table - where
+    >>> result = DatabaseExecute.database.table - (where, report)
+    >>> result = DatabaseExecute.database.table - {'where': where, 'report': report}
 
     Copy.
     >>> where = '`id` IN (1, 2)'
     >>> limit = 1
-    >>> result = DBExecute.database.table * where
-    >>> result = DBExecute.database.table * (where, limit)
-    >>> result = DBExecute.database.table * {'where': where, 'limit': limit}
+    >>> result = DatabaseExecute.database.table * where
+    >>> result = DatabaseExecute.database.table * (where, limit)
+    >>> result = DatabaseExecute.database.table * {'where': where, 'limit': limit}
 
     Exist.
     >>> where = '`id` IN (1, 2)'
     >>> report = True
-    >>> result = where in DBExecute.database.table
-    >>> result = (where, report) in DBExecute.database.table
-    >>> result = {'where': where, 'report': report} in DBExecute.database.table
+    >>> result = where in DatabaseExecute.database.table
+    >>> result = (where, report) in DatabaseExecute.database.table
+    >>> result = {'where': where, 'report': report} in DatabaseExecute.database.table
 
     Count.
-    >>> result = len(DBExecute.database.table)
+    >>> result = len(DatabaseExecute.database.table)
 
     Default database.
     >>> engine = Database(**server, database)
@@ -79,13 +79,13 @@ class DBExecute(BaseDatabase):
     """
 
 
-    def __init__(self, rdatabase: Database | DBConnection) -> None:
+    def __init__(self, rdatabase: Database | DatabaseConnection) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : Database or DBConnection instance.
+        rdatabase : Database or DatabaseConnection instance.
         """
 
         # Set parameter.

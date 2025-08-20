@@ -16,4 +16,5 @@ from .rdb import *
 from .rexec import *
 from .rfile import *
 from .rinfo import *
+from .rlog import *
 from .rparam import *

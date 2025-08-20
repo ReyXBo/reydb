@@ -27,7 +27,7 @@ from reykit.rtable import TableData, Table
 from reykit.rtext import join_data_text
 from reykit.rwrap import wrap_runtime, wrap_retry
 
-from .rbase import BaseDatabase
+from .rbase import DatabaseBase
 
 
 __all__ = (
@@ -42,7 +42,7 @@ Result = Result_
 monkey_sqlalchemy_row_index_field()
 
 
-class Database(BaseDatabase):
+class Database(DatabaseBase):
     """
     Database type.
 
@@ -885,7 +885,7 @@ class Database(BaseDatabase):
             ):
                 text = 'Retrying...'
                 title = 'Database Execute Operational Error'
-                handler = lambda exc_report, *_: echo(exc_report, text, title=title, frame='top')
+                handler = lambda exc_text, *_: echo(exc_text, text, title=title, frame='top')
                 executor = wrap_retry(self.executor, handler=handler, exception=OperationalError)
                 result = executor(self.connection, sql, data, report)
 
@@ -1687,7 +1687,7 @@ class Database(BaseDatabase):
 
     def connect(self):
         """
-        Build instance attributes.
+        Build `DatabaseConnection` instance.
 
         Returns
         -------
@@ -1695,10 +1695,10 @@ class Database(BaseDatabase):
         """
 
         # Import.
-        from .rconn import DBConnection
+        from .rconn import DatabaseConnection
 
         # Build.
-        dbconnection = DBConnection(
+        dbconnection = DatabaseConnection(
             self.engine.connect(),
             self
         )
@@ -1719,51 +1719,51 @@ class Database(BaseDatabase):
         --------
         Execute.
         >>> sql = 'select :value'
-        >>> result = DBExecute(sql, value=1)
+        >>> result = DatabaseExecute(sql, value=1)
 
         Select.
         >>> field = ['id', 'value']
         >>> where = '`id` = ids'
         >>> ids = (1, 2)
-        >>> result = DBExecute.database.table(field, where, ids=ids)
+        >>> result = DatabaseExecute.database.table(field, where, ids=ids)
 
         Insert.
         >>> data = [{'id': 1}, {'id': 2}]
         >>> duplicate = 'ignore'
-        >>> result = DBExecute.database.table + data
-        >>> result = DBExecute.database.table + (data, duplicate)
-        >>> result = DBExecute.database.table + {'data': data, 'duplicate': duplicate}
+        >>> result = DatabaseExecute.database.table + data
+        >>> result = DatabaseExecute.database.table + (data, duplicate)
+        >>> result = DatabaseExecute.database.table + {'data': data, 'duplicate': duplicate}
 
         Update.
         >>> data = [{'name': 'a', 'id': 1}, {'name': 'b', 'id': 2}]
         >>> where_fields = 'id'
-        >>> result = DBExecute.database.table & data
-        >>> result = DBExecute.database.table & (data, where_fields)
-        >>> result = DBExecute.database.table & {'data': data, 'where_fields': where_fields}
+        >>> result = DatabaseExecute.database.table & data
+        >>> result = DatabaseExecute.database.table & (data, where_fields)
+        >>> result = DatabaseExecute.database.table & {'data': data, 'where_fields': where_fields}
 
         Delete.
         >>> where = '`id` IN (1, 2)'
         >>> report = True
-        >>> result = DBExecute.database.table - where
-        >>> result = DBExecute.database.table - (where, report)
-        >>> result = DBExecute.database.table - {'where': where, 'report': report}
+        >>> result = DatabaseExecute.database.table - where
+        >>> result = DatabaseExecute.database.table - (where, report)
+        >>> result = DatabaseExecute.database.table - {'where': where, 'report': report}
 
         Copy.
         >>> where = '`id` IN (1, 2)'
         >>> limit = 1
-        >>> result = DBExecute.database.table * where
-        >>> result = DBExecute.database.table * (where, limit)
-        >>> result = DBExecute.database.table * {'where': where, 'limit': limit}
+        >>> result = DatabaseExecute.database.table * where
+        >>> result = DatabaseExecute.database.table * (where, limit)
+        >>> result = DatabaseExecute.database.table * {'where': where, 'limit': limit}
 
         Exist.
         >>> where = '`id` IN (1, 2)'
         >>> report = True
-        >>> result = where in DBExecute.database.table
-        >>> result = (where, report) in DBExecute.database.table
-        >>> result = {'where': where, 'report': report} in DBExecute.database.table
+        >>> result = where in DatabaseExecute.database.table
+        >>> result = (where, report) in DatabaseExecute.database.table
+        >>> result = {'where': where, 'report': report} in DatabaseExecute.database.table
 
         Count.
-        >>> result = len(DBExecute.database.table)
+        >>> result = len(DatabaseExecute.database.table)
 
         Default database.
         >>> field = ['id', 'value']
@@ -1772,10 +1772,10 @@ class Database(BaseDatabase):
         """
 
         # Import.
-        from .rexec import DBExecute
+        from .rexec import DatabaseExecute
 
         # Build.
-        dbexecute = DBExecute(self)
+        dbexecute = DatabaseExecute(self)
 
         return dbexecute
 
@@ -1857,7 +1857,7 @@ class Database(BaseDatabase):
     @property
     def info(self):
         """
-        Build instance attributes.
+        Build `DatabaseInformationSchema` instance.
 
         Returns
         -------
@@ -1866,29 +1866,29 @@ class Database(BaseDatabase):
         Examples
         --------
         Get databases information of server.
-        >>> databases_info = DBISchema()
+        >>> databases_info = DatabaseInformationSchema()
 
         Get tables information of database.
-        >>> tables_info = DBISchema.database()
+        >>> tables_info = DatabaseInformationSchema.database()
 
         Get columns information of table.
-        >>> columns_info = DBISchema.database.table()
+        >>> columns_info = DatabaseInformationSchema.database.table()
 
         Get database attribute.
-        >>> database_attr = DBISchema.database['attribute']
+        >>> database_attr = DatabaseInformationSchema.database['attribute']
 
         Get table attribute.
-        >>> database_attr = DBISchema.database.table['attribute']
+        >>> database_attr = DatabaseInformationSchema.database.table['attribute']
 
         Get column attribute.
-        >>> database_attr = DBISchema.database.table.column['attribute']
+        >>> database_attr = DatabaseInformationSchema.database.table.column['attribute']
         """
 
         # Import.
-        from .rinfo import DBISchema
+        from .rinfo import DatabaseInformationSchema
 
         # Build.
-        dbischema = DBISchema(self)
+        dbischema = DatabaseInformationSchema(self)
 
         return dbischema
 
@@ -1896,7 +1896,7 @@ class Database(BaseDatabase):
     @property
     def build(self):
         """
-        Build instance attributes.
+        Build `DatabaseBuild` instance.
 
         Returns
         -------
@@ -1904,10 +1904,10 @@ class Database(BaseDatabase):
         """
 
         # Import.
-        from .rbuild import DBBuild
+        from .rbuild import DatabaseBuild
 
         # Build.
-        dbbuild = DBBuild(self)
+        dbbuild = DatabaseBuild(self)
 
         return dbbuild
 
@@ -1915,7 +1915,7 @@ class Database(BaseDatabase):
     @property
     def file(self):
         """
-        Build instance attributes.
+        Build `DatabaseFile` instance.
 
         Returns
         -------
@@ -1923,10 +1923,29 @@ class Database(BaseDatabase):
         """
 
         # Import.
-        from .rfile import DBFile
+        from .rfile import DatabaseFile
 
         # Build.
-        dbfile = DBFile(self)
+        dbfile = DatabaseFile(self)
+
+        return dbfile
+
+
+    @property
+    def log(self):
+        """
+        Build `DatabaseLog` instance.
+
+        Returns
+        -------
+        Database file instance.
+        """
+
+        # Import.
+        from .rlog import DatabaseLog
+
+        # Build.
+        dbfile = DatabaseLog(self)
 
         return dbfile
 
@@ -1934,7 +1953,7 @@ class Database(BaseDatabase):
     @property
     def status(self):
         """
-        Build instance attributes.
+        Build `DatabaseParameterStatus` or `DatabaseParameterPragma` instance.
 
         Returns
         -------
@@ -1942,17 +1961,17 @@ class Database(BaseDatabase):
         """
 
         # Import.
-        from .rparam import DBPStatus, DBPPragma
+        from .rparam import DatabaseParameterStatus, DatabaseParameterPragma
 
         # Build.
 
         ## SQLite.
         if self.backend == 'sqlite':
-            dbp = DBPPragma(self)
+            dbp = DatabaseParameterPragma(self)
 
         ## Other.
         else:
-            dbp = DBPStatus(self, False)
+            dbp = DatabaseParameterStatus(self, False)
 
         return dbp
 
@@ -1960,7 +1979,7 @@ class Database(BaseDatabase):
     @property
     def global_status(self):
         """
-        Build global `database status parameters` instance.
+        Build `DatabaseParameterStatus` or `DatabaseParameterPragma` instance.
 
         Returns
         -------
@@ -1968,17 +1987,17 @@ class Database(BaseDatabase):
         """
 
         # Import.
-        from .rparam import DBPStatus, DBPPragma
+        from .rparam import DatabaseParameterStatus, DatabaseParameterPragma
 
         # Build.
 
         ## SQLite.
         if self.backend == 'sqlite':
-            dbp = DBPPragma(self)
+            dbp = DatabaseParameterPragma(self)
 
         ## Other.
         else:
-            dbp = DBPStatus(self, True)
+            dbp = DatabaseParameterStatus(self, True)
 
         return dbp
 
@@ -1986,7 +2005,7 @@ class Database(BaseDatabase):
     @property
     def variables(self):
         """
-        Build instance attributes.
+        Build `DatabaseParameterVariable` or `DatabaseParameterPragma` instance.
 
         Returns
         -------
@@ -1994,17 +2013,17 @@ class Database(BaseDatabase):
         """
 
         # Import.
-        from .rparam import DBPVariable, DBPPragma
+        from .rparam import DatabaseParameterVariable, DatabaseParameterPragma
 
         # Build.
 
         ## SQLite.
         if self.backend == 'sqlite':
-            dbp = DBPPragma(self)
+            dbp = DatabaseParameterPragma(self)
 
         ## Other.
         else:
-            dbp = DBPVariable(self, False)
+            dbp = DatabaseParameterVariable(self, False)
 
         return dbp
 
@@ -2020,17 +2039,17 @@ class Database(BaseDatabase):
         """
 
         # Import.
-        from .rparam import DBPVariable, DBPPragma
+        from .rparam import DatabaseParameterVariable, DatabaseParameterPragma
 
         # Build.
 
         ## SQLite.
         if self.backend == 'sqlite':
-            dbp = DBPPragma(self)
+            dbp = DatabaseParameterPragma(self)
 
         ## Other.
         else:
-            dbp = DBPVariable(self, True)
+            dbp = DatabaseParameterVariable(self, True)
 
         return dbp
 

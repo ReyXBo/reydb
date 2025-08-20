@@ -14,13 +14,13 @@ from copy import deepcopy
 from reykit.rbase import throw
 from reykit.rstdout import ask
 
-from .rbase import BaseDatabase
-from .rconn import DBConnection
+from .rbase import DatabaseBase
+from .rconn import DatabaseConnection
 from .rdb import Database
 
 
 __all__ = (
-    'DBBuild',
+    'DatabaseBuild',
 )
 
 
@@ -46,19 +46,19 @@ IndexSet = TypedDict(
 )
 
 
-class DBBuild(BaseDatabase):
+class DatabaseBuild(DatabaseBase):
     """
     Database build type.
     """
 
 
-    def __init__(self, rdatabase: Database | DBConnection) -> None:
+    def __init__(self, rdatabase: Database | DatabaseConnection) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : Database or DBConnection instance.
+        rdatabase : Database or DatabaseConnection instance.
         """
 
         # SQLite.
@@ -994,15 +994,18 @@ class DBBuild(BaseDatabase):
             self._schema = self.rdatabase.schema(False)
 
         # Judge.
-        judge = not (
-            (database_info := self._schema.get(database)) is None
-            or (
-                table is not None
-                and (table_info := database_info.get(table)) is None
+        judge = (
+            database in self._schema
+            and (
+                table is None
+                or (
+                    (database_info := self._schema.get(database)) is not None
+                    and (table_info := database_info.get(table)) is not None
+                )
             )
-            or (
-                column is not None
-                and column not in table_info
+            and (
+                column is None
+                or column in table_info
             )
         )
 

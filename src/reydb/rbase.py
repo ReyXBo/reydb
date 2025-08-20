@@ -13,11 +13,11 @@ from reykit.rbase import Base
 
 
 __all__ = (
-    'BaseDatabase',
+    'DatabaseBase',
 )
 
 
-class BaseDatabase(Base):
+class DatabaseBase(Base):
     """
     Database base type.
     """

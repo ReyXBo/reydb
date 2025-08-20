@@ -14,36 +14,33 @@ from datetime import datetime
 from reykit.rbase import throw
 from reykit.ros import File, Folder, get_md5
 
-from .rbase import BaseDatabase
-from .rconn import DBConnection
+from .rbase import DatabaseBase
+from .rconn import DatabaseConnection
 from .rdb import Database
 
 
 __all__ = (
-    'DBFile',
+    'DatabaseFile',
 )
 
 
 FileInfo = TypedDict('FileInfo', {'create_time': datetime, 'md5': str, 'name': str | None, 'size': int, 'note': str | None})
 
 
-class DBFile(BaseDatabase):
+class DatabaseFile(DatabaseBase):
     """
     Database file type.
     Can create database used `self.build` method.
     """
 
 
-    def __init__(
-        self,
-        database: Database | DBConnection
-    ) -> None:
+    def __init__(self, database: Database | DatabaseConnection) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        database : Database or DBConnection instance.
+        database : Database or DatabaseConnection instance.
         """
 
         # SQLite.
@@ -51,7 +48,7 @@ class DBFile(BaseDatabase):
             text='not suitable for SQLite databases'
             throw(AssertionError, text=text)
 
-        # Set attribute.
+        # Build.
         self.database = database
 
         ## Database path name.
@@ -64,7 +61,7 @@ class DBFile(BaseDatabase):
         }
 
 
-    def build(self) -> None:
+    def build_db(self) -> None:
         """
         Check and build all standard databases and tables, by `self.db_names`.
         """
@@ -203,7 +200,34 @@ class DBFile(BaseDatabase):
                         'comment': 'File information count.'
                     },
                     {
-                        'name': 'count_data',
+                        'name': 'past_day_count',
+                        'select': (
+                            'SELECT COUNT(1)\n'
+                            f'FROM `{self.db_names['file']}`.`{self.db_names['file.information']}`\n'
+                            'WHERE TIMESTAMPDIFF(DAY, `create_time`, NOW()) = 0'
+                        ),
+                        'comment': 'File information count in the past day.'
+                    },
+                    {
+                        'name': 'past_week_count',
+                        'select': (
+                            'SELECT COUNT(1)\n'
+                            f'FROM `{self.db_names['file']}`.`{self.db_names['file.information']}`\n'
+                            'WHERE TIMESTAMPDIFF(DAY, `create_time`, NOW()) <= 6'
+                        ),
+                        'comment': 'File information count in the past week.'
+                    },
+                    {
+                        'name': 'past_month_count',
+                        'select': (
+                            'SELECT COUNT(1)\n'
+                            f'FROM `{self.db_names['file']}`.`{self.db_names['file.information']}`\n'
+                            'WHERE TIMESTAMPDIFF(DAY, `create_time`, NOW()) <= 29'
+                        ),
+                        'comment': 'File information count in the past month.'
+                    },
+                    {
+                        'name': 'data_count',
                         'select': (
                             'SELECT COUNT(1)\n'
                             f'FROM `{self.db_names['file']}`.`{self.db_names['file.data']}`'
@@ -211,7 +235,7 @@ class DBFile(BaseDatabase):
                         'comment': 'File data unique count.'
                     },
                     {
-                        'name': 'size_sum',
+                        'name': 'total_size',
                         'select': (
                             'SELECT FORMAT(SUM(`size`), 0)\n'
                             f'FROM `{self.db_names['file']}`.`{self.db_names['file.data']}`'
@@ -219,7 +243,7 @@ class DBFile(BaseDatabase):
                         'comment': 'File total byte size.'
                     },
                     {
-                        'name': 'size_avg',
+                        'name': 'avg_size',
                         'select': (
                             'SELECT FORMAT(AVG(`size`), 0)\n'
                             f'FROM `{self.db_names['file']}`.`{self.db_names['file.data']}`'
@@ -227,7 +251,7 @@ class DBFile(BaseDatabase):
                         'comment': 'File average byte size.'
                     },
                     {
-                        'name': 'size_max',
+                        'name': 'max_size',
                         'select': (
                             'SELECT FORMAT(MAX(`size`), 0)\n'
                             f'FROM `{self.db_names['file']}`.`{self.db_names['file.data']}`'
@@ -243,6 +267,7 @@ class DBFile(BaseDatabase):
                         'comment': 'File last record create time.'
                     }
                 ]
+
             }
 
         ]

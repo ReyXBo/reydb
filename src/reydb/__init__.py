@@ -17,5 +17,6 @@ rdb : Database methods.
 rexec : Database execute methods.
 rfile : Database file methods.
 rinfo : Database information methods.
+rlog : Database log methods.
 rparam : Database parameter methods.
 """

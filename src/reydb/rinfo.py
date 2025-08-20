@@ -13,42 +13,42 @@ from __future__ import annotations
 from typing import Any, Literal, overload
 from reykit.rbase import throw
 
-from .rbase import BaseDatabase
-from .rconn import DBConnection
+from .rbase import DatabaseBase
+from .rconn import DatabaseConnection
 from .rdb import Database
 
 
 __all__ = (
-    'DBInformation',
-    'DBISchema',
-    'DBIDatabase',
-    'DBITable',
-    'DBIColumn'
+    'DatabaseInformation',
+    'DatabaseInformationSchema',
+    'DatabaseInformationDatabase',
+    'DatabaseInformationTable',
+    'DatabaseInformationColumn'
 )
 
 
-class DBInformation(BaseDatabase):
+class DatabaseInformation(DatabaseBase):
     """
     Database base information type.
     """
 
 
     @overload
-    def __call__(self: DBISchema | DBISchema | DBIDatabase | DBITable) -> list[dict]: ...
+    def __call__(self: DatabaseInformationSchema | DatabaseInformationSchema | DatabaseInformationDatabase | DatabaseInformationTable) -> list[dict]: ...
 
     @overload
-    def __call__(self: DBISchema, name: str) -> DBIDatabase: ...
+    def __call__(self: DatabaseInformationSchema, name: str) -> DatabaseInformationDatabase: ...
 
     @overload
-    def __call__(self: DBIDatabase, name: str) -> DBITable: ...
+    def __call__(self: DatabaseInformationDatabase, name: str) -> DatabaseInformationTable: ...
 
     @overload
-    def __call__(self: DBITable, name: str) -> DBIColumn: ...
+    def __call__(self: DatabaseInformationTable, name: str) -> DatabaseInformationColumn: ...
 
     @overload
-    def __call__(self: DBIColumn) -> dict: ...
+    def __call__(self: DatabaseInformationColumn) -> dict: ...
 
-    def __call__(self, name: str | None = None) -> DBIDatabase | DBITable | DBIColumn | list[dict] | dict:
+    def __call__(self, name: str | None = None) -> DatabaseInformationDatabase | DatabaseInformationTable | DatabaseInformationColumn | list[dict] | dict:
         """
         Get information table or subclass instance.
 
@@ -127,15 +127,15 @@ class DBInformation(BaseDatabase):
 
 
     @overload
-    def __getattr__(self: DBISchema, name: str) -> DBIDatabase: ...
+    def __getattr__(self: DatabaseInformationSchema, name: str) -> DatabaseInformationDatabase: ...
 
     @overload
-    def __getattr__(self: DBIDatabase, name: str) -> DBITable: ...
+    def __getattr__(self: DatabaseInformationDatabase, name: str) -> DatabaseInformationTable: ...
 
     @overload
-    def __getattr__(self: DBITable, name: str) -> DBIColumn: ...
+    def __getattr__(self: DatabaseInformationTable, name: str) -> DatabaseInformationColumn: ...
 
-    def __getattr__(self, name: str) -> DBIDatabase | DBITable | DBIColumn:
+    def __getattr__(self, name: str) -> DatabaseInformationDatabase | DatabaseInformationTable | DatabaseInformationColumn:
         """
         Build subclass instance.
 
@@ -150,57 +150,57 @@ class DBInformation(BaseDatabase):
 
         # Build.
         match self:
-            case DBISchema():
-                table = DBIDatabase(self._rdatabase, name)
-            case DBIDatabase():
-                table = DBITable(self._rdatabase, self._database_name, name)
-            case DBITable():
-                table = DBIColumn(self._rdatabase, self._database_name, self._table_name, name)
+            case DatabaseInformationSchema():
+                table = DatabaseInformationDatabase(self._rdatabase, name)
+            case DatabaseInformationDatabase():
+                table = DatabaseInformationTable(self._rdatabase, self._database_name, name)
+            case DatabaseInformationTable():
+                table = DatabaseInformationColumn(self._rdatabase, self._database_name, self._table_name, name)
             case _:
                 raise AssertionError("class '%s' does not have this method" % type(self).__name__)
 
         return table
 
 
-class DBISchema(DBInformation):
+class DatabaseInformationSchema(DatabaseInformation):
     """
     Database information schema type.
 
     Examples
     --------
     Get databases information of server.
-    >>> databases_info = DBISchema()
+    >>> databases_info = DatabaseInformationSchema()
 
     Get tables information of database.
-    >>> tables_info = DBISchema.database()
+    >>> tables_info = DatabaseInformationSchema.database()
 
     Get columns information of table.
-    >>> columns_info = DBISchema.database.table()
+    >>> columns_info = DatabaseInformationSchema.database.table()
 
     Get column information.
-    >>> column_info = DBISchema.database.table.column()
+    >>> column_info = DatabaseInformationSchema.database.table.column()
 
     Get database attribute.
-    >>> database_attr = DBISchema.database['attribute']
+    >>> database_attr = DatabaseInformationSchema.database['attribute']
 
     Get table attribute.
-    >>> database_attr = DBISchema.database.table['attribute']
+    >>> database_attr = DatabaseInformationSchema.database.table['attribute']
 
     Get column attribute.
-    >>> database_attr = DBISchema.database.table.column['attribute']
+    >>> database_attr = DatabaseInformationSchema.database.table.column['attribute']
     """
 
 
     def __init__(
         self,
-        rdatabase: Database | DBConnection
+        rdatabase: Database | DatabaseConnection
     ) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : Database or DBConnection instance.
+        rdatabase : Database or DatabaseConnection instance.
         """
 
         # Set parameter.
@@ -233,35 +233,35 @@ class DBISchema(DBInformation):
         return info_table
 
 
-class DBIDatabase(DBInformation):
+class DatabaseInformationDatabase(DatabaseInformation):
     """
     Database information database type.
 
     Examples
     --------
     Get tables information of database.
-    >>> tables_info = DBIDatabase()
+    >>> tables_info = DatabaseInformationDatabase()
 
     Get columns information of table.
-    >>> columns_info = DBIDatabase.table()
+    >>> columns_info = DatabaseInformationDatabase.table()
 
     Get column information.
-    >>> column_info = DBIDatabase.table.column()
+    >>> column_info = DatabaseInformationDatabase.table.column()
 
     Get database attribute.
-    >>> database_attr = DBIDatabase['attribute']
+    >>> database_attr = DatabaseInformationDatabase['attribute']
 
     Get table attribute.
-    >>> database_attr = DBIDatabase.table['attribute']
+    >>> database_attr = DatabaseInformationDatabase.table['attribute']
 
     Get column attribute.
-    >>> database_attr = DBIDatabase.table.column['attribute']
+    >>> database_attr = DatabaseInformationDatabase.table.column['attribute']
     """
 
 
     def __init__(
         self,
-        rdatabase: Database | DBConnection,
+        rdatabase: Database | DatabaseConnection,
         database_name: str
     ) -> None:
         """
@@ -269,7 +269,7 @@ class DBIDatabase(DBInformation):
 
         Parameters
         ----------
-        rdatabase : Database or DBConnection instance.
+        rdatabase : Database or DatabaseConnection instance.
         database_name : Database name.
         """
 
@@ -352,29 +352,29 @@ class DBIDatabase(DBInformation):
         return info_table
 
 
-class DBITable(DBInformation):
+class DatabaseInformationTable(DatabaseInformation):
     """
     Database information table type.
 
     Examples
     --------
     Get columns information of table.
-    >>> columns_info = DBITable()
+    >>> columns_info = DatabaseInformationTable()
 
     Get column information.
-    >>> column_info = DBITable.column()
+    >>> column_info = DatabaseInformationTable.column()
 
     Get table attribute.
-    >>> database_attr = DBITable['attribute']
+    >>> database_attr = DatabaseInformationTable['attribute']
 
     Get column attribute.
-    >>> database_attr = DBITable.column['attribute']
+    >>> database_attr = DatabaseInformationTable.column['attribute']
     """
 
 
     def __init__(
         self,
-        rdatabase: Database | DBConnection,
+        rdatabase: Database | DatabaseConnection,
         database_name: str,
         table_name: str
     ) -> None:
@@ -383,7 +383,7 @@ class DBITable(DBInformation):
 
         Parameters
         ----------
-        rdatabase : Database or DBConnection instance.
+        rdatabase : Database or DatabaseConnection instance.
         database_name : Database name.
         table_name : Table name.
         """
@@ -473,23 +473,23 @@ class DBITable(DBInformation):
         return info_table
 
 
-class DBIColumn(DBInformation):
+class DatabaseInformationColumn(DatabaseInformation):
     """
     Database information column type.
 
     Examples
     --------
     Get column information.
-    >>> column_info = DBIColumn()
+    >>> column_info = DatabaseInformationColumn()
 
     Get column attribute.
-    >>> database_attr = DBIColumn['attribute']
+    >>> database_attr = DatabaseInformationColumn['attribute']
     """
 
 
     def __init__(
         self,
-        rdatabase: Database | DBConnection,
+        rdatabase: Database | DatabaseConnection,
         database_name: str,
         table_name: str,
         column_name: str
@@ -499,7 +499,7 @@ class DBIColumn(DBInformation):
 
         Parameters
         ----------
-        rdatabase : Database or DBConnection instance.
+        rdatabase : Database or DatabaseConnection instance.
         database_name : Database name.
         table_name : Table name.
         column_name : Column name.
