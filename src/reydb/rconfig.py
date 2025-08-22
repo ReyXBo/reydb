@@ -9,8 +9,15 @@
 """
 
 
-from typing import Any
-from reykit.rbase import T, throw
+from typing import Any, TypedDict, TypeVar
+import datetime
+from datetime import (
+    datetime as Datetime,
+    date as Date,
+    time as Time,
+    timedelta as Timedelta
+)
+from reykit.rbase import throw
 
 from .rconn import DatabaseConnection
 from .rdb import Database
@@ -21,10 +28,24 @@ __all__ = (
 )
 
 
+type ConfigValue = bool | str | int | float | list | tuple | dict | set | Datetime | Date | Time | Timedelta | None
+ConfigRow = TypedDict('ConfigRow', {'key': str, 'value': ConfigValue, 'type': str, 'note': str | None})
+type ConfigTable = list[ConfigRow]
+ConfigValueT = TypeVar('T', bound=ConfigValue) # Any.
+
+
 class DatabaseConfig(object):
     """
     Database config type.
     Can create database used `self.build` method.
+
+    Examples
+    --------
+    >>> config = DatabaseConfig()
+    >>> config['key1'] = 1
+    >>> config['key2', 'note'] = 2
+    >>> config['key1'], config['key2']
+    (1, 2)
     """
 
 
@@ -90,16 +111,24 @@ class DatabaseConfig(object):
                     },
                     {
                         'name': 'value',
-                        'type': 'json',
+                        'type': 'text',
                         'constraint': 'NOT NULL',
                         'comment': 'Config value.'
+                    },
+                    {
+                        'name': 'type',
+                        'type': 'varchar(50)',
+                        'constraint': 'NOT NULL',
+                        'comment': 'Config value type.'
                     },
                     {
                         'name': 'note',
                         'type': 'varchar(500)',
                         'comment': 'Config note.'
                     }
-                ]
+                ],
+                'primary': 'key',
+                'comment': 'Config data table.'
             }
 
         ]
@@ -115,7 +144,7 @@ class DatabaseConfig(object):
                         'name': 'count',
                         'select': (
                             'SELECT COUNT(1)\n'
-                            f'FROM `{self.db_names['base']}`.`{self.db_names['base.stats_config']}`'
+                            f'FROM `{self.db_names['base']}`.`{self.db_names['base.config']}`'
                         ),
                         'comment': 'Config count.'
                     },
@@ -123,7 +152,7 @@ class DatabaseConfig(object):
                         'name': 'last_create_time',
                         'select': (
                             'SELECT MAX(`create_time`)\n'
-                            f'FROM `{self.db_names['base']}`.`{self.db_names['base.stats_config']}`'
+                            f'FROM `{self.db_names['base']}`.`{self.db_names['base.config']}`'
                         ),
                         'comment': 'Config last record create time.'
                     },
@@ -131,7 +160,7 @@ class DatabaseConfig(object):
                         'name': 'last_update_time',
                         'select': (
                             'SELECT MAX(`update_time`)\n'
-                            f'FROM `{self.db_names['base']}`.`{self.db_names['base.stats_config']}`'
+                            f'FROM `{self.db_names['base']}`.`{self.db_names['base.config']}`'
                         ),
                         'comment': 'Config last record update time.'
                     }
@@ -142,10 +171,41 @@ class DatabaseConfig(object):
         ]
 
         # Build.
-        self.database.build.build(databases, tables, views_stats)
+        self.database.build.build(databases, tables, views_stats=views_stats)
 
 
-    def get(self, key: str, default: T | None = None) -> Any | T:
+    @property
+    def data(self) -> ConfigTable:
+        """
+        Get config data table.
+
+        Returns
+        -------
+        Config data table.
+        """
+
+        # Get.
+        result = self.database.execute_select(
+            (self.db_names['base'], self.db_names['base.config']),
+            ['key', 'value', 'type', 'note'],
+            order='IFNULL(`update_time`, `create_time`) DESC'
+        )
+
+        # Convert.
+        global_dict = {'datetime': datetime}
+        result = [
+            {
+                'key': row['key'],
+                'value': eval(row['value'], global_dict),
+                'note': row['note']
+            }
+            for row in result
+        ]
+
+        return result
+
+
+    def get(self, key: str, default: ConfigValueT | None = None) -> ConfigValue | ConfigValueT:
         """
         Get config value, when not exist, then return default value.
 
@@ -163,7 +223,7 @@ class DatabaseConfig(object):
         where = '`key` = :key'
         result = self.database.execute_select(
             (self.db_names['base'], self.db_names['base.config']),
-            'value',
+            '`value`',
             where,
             limit=1,
             key=key
@@ -173,11 +233,19 @@ class DatabaseConfig(object):
         # Default.
         if value is None:
             value = default
+        else:
+            global_dict = {'datetime': datetime}
+            value = eval(value, global_dict)
 
         return value
 
 
-    def setdefault(self, key: str, default: T | None = None) -> Any | T:
+    def setdefault(
+        self,
+        key: str,
+        default: ConfigValueT | None = None,
+        default_note: str | None = None
+    ) -> ConfigValue | ConfigValueT:
         """
         Set config value.
 
@@ -185,6 +253,7 @@ class DatabaseConfig(object):
         ----------
         key : Config key.
         default : Config default value.
+        default_note : Config default note.
 
         Returns
         -------
@@ -192,7 +261,12 @@ class DatabaseConfig(object):
         """
 
         # Set.
-        data = {'key': key, 'value': default}
+        data = {
+            'key': key,
+            'value': repr(default),
+            'type': type(default).__name__,
+            'note': default_note
+        }
         result = self.database.execute_insert(
             (self.db_names['base'], self.db_names['base.config']),
             data,
@@ -201,30 +275,39 @@ class DatabaseConfig(object):
 
         # Get.
         if result.rowcount == 0:
-            result = self[key]
-        else:
-            result = default
+            default = self.get(key)
 
-        return result
+        return default
 
 
-    def update(self, data: dict[str, Any]) -> None:
+    def update(self, data: dict[str, ConfigValue] | ConfigTable) -> None:
         """
         Update config values.
 
         Parameters
         ----------
         data : Config update data.
+            - `dict[str, Any]`: Config key and value.
+            - `ConfigTable`: Config key and value and note.
         """
 
+        # Handle parameter.
+        if type(data) == dict:
+            data = [
+                {
+                    'key': key,
+                    'value': repr(value),
+                    'type': type(value).__name__
+                }
+                for key, value in data.items()
+            ]
+        else:
+            data = data.copy()
+            for row in data:
+                row['value'] = repr(row['value'])
+                row['type'] = type(row['value']).__name__
+
         # Update.
-        data = [
-            {
-                'key': key,
-                'value': value
-            }
-            for key, value in data.items
-        ]
         self.database.execute_insert(
             (self.db_names['base'], self.db_names['base.config']),
             data,
@@ -232,21 +315,26 @@ class DatabaseConfig(object):
         )
 
 
-    def remove(self, key: str) -> None:
+    def remove(self, key: str | list[str]) -> None:
         """
         Remove config.
 
         Parameters
         ----------
-        key : Config key.
+        key : Config key or key list.
         """
 
         # Remove.
-        where = '`key` = :key'
+        if type(key) == str:
+            where = '`key` = :key'
+            limit = 1
+        else:
+            where = '`key` in :key'
+            limit = None
         result = self.database.execute_delete(
             (self.db_names['base'], self.db_names['base.config']),
             where,
-            limit=1,
+            limit=limit,
             key=key
         )
 
@@ -255,7 +343,7 @@ class DatabaseConfig(object):
             throw(KeyError, key)
 
 
-    def items(self) -> dict:
+    def items(self) -> dict[str, ConfigValue]:
         """
         Get all config keys and values.
 
@@ -271,7 +359,12 @@ class DatabaseConfig(object):
         )
 
         # Convert.
+        global_dict = {'datetime': datetime}
         result = result.to_dict('key', 'value')
+        result = {
+            key: eval(value, global_dict)
+            for key, value in result.items()
+        }
 
         return result
 
@@ -288,16 +381,20 @@ class DatabaseConfig(object):
         # Get.
         result = self.database.execute_select(
             (self.db_names['base'], self.db_names['base.config']),
-            'key'
+            '`key`'
         )
 
         # Convert.
-        result = result.to_list()
+        global_dict = {'datetime': datetime}
+        result = [
+            eval(value, global_dict)
+            for value in result
+        ]
 
         return result
 
 
-    def values(self) -> list[Any]:
+    def values(self) -> list[ConfigValue]:
         """
         Get all config value.
 
@@ -309,16 +406,20 @@ class DatabaseConfig(object):
         # Get.
         result = self.database.execute_select(
             (self.db_names['base'], self.db_names['base.config']),
-            'value'
+            '`value`'
         )
 
         # Convert.
-        result = result.to_list()
+        global_dict = {'datetime': datetime}
+        result = [
+            eval(value, global_dict)
+            for value in result
+        ]
 
         return result
 
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> ConfigValue:
         """
         Get config value.
 
@@ -341,18 +442,30 @@ class DatabaseConfig(object):
         return value
 
 
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(self, key_note: str | tuple[str, str], value: ConfigValue) -> None:
         """
         Set config value.
 
         Parameters
         ----------
-        key : Config key.
+        key_note : Config key and note.
         value : Config value.
         """
 
+        # Handle parameter.
+        if type(key_note) != str:
+            key, note = key_note
+        else:
+            key = key_note
+            note = None
+
         # Set.
-        data = {'key': key, 'value': value}
+        data = {
+            'key': key,
+            'value': repr(value),
+            'type': type(value).__name__,
+            'note': note
+        }
         self.database.execute_insert(
             (self.db_names['base'], self.db_names['base.config']),
             data,
