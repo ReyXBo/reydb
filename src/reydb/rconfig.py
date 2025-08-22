@@ -9,7 +9,7 @@
 """
 
 
-from typing import Any, TypedDict, TypeVar
+from typing import TypedDict, TypeVar
 import datetime
 from datetime import (
     datetime as Datetime,
@@ -17,7 +17,7 @@ from datetime import (
     time as Time,
     timedelta as Timedelta
 )
-from reykit.rbase import throw
+from reykit.rbase import null, throw
 
 from .rconn import DatabaseConnection
 from .rdb import Database
@@ -433,10 +433,10 @@ class DatabaseConfig(object):
         """
 
         # Get.
-        value = self.get(key)
+        value = self.get(key, null)
 
         # Check.
-        if value is None:
+        if value == null:
             throw(KeyError, key)
 
         return value
