@@ -5,7 +5,7 @@
 @Time    : 2025-08-20 16:57:19
 @Author  : Rey
 @Contact : reyxbo@163.com
-@Explain : Database log methods.
+@Explain : Database error methods.
 """
 
 
@@ -21,13 +21,13 @@ from .rdb import Database
 
 
 __all__ = (
-    'DatabaseLog',
+    'DatabaseError',
 )
 
 
-class DatabaseLog(DatabaseBase):
+class DatabaseError(DatabaseBase):
     """
-    Database log type.
+    Database error type.
     Can create database used `self.build` method.
     """
 
@@ -51,9 +51,9 @@ class DatabaseLog(DatabaseBase):
 
         ## Database path name.
         self.db_names = {
-            'log': 'log',
-            'log.error': 'error',
-            'log.error_stats': 'error_stats'
+            'base': 'base',
+            'base.error': 'error',
+            'base.error_stats': 'error_stats'
         }
 
 
@@ -67,7 +67,7 @@ class DatabaseLog(DatabaseBase):
         ## Database.
         databases = [
             {
-                'name': self.db_names['log']
+                'name': self.db_names['base']
             }
         ]
 
@@ -76,7 +76,7 @@ class DatabaseLog(DatabaseBase):
 
             ### 'error'.
             {
-                'path': (self.db_names['log'], self.db_names['log.error']),
+                'path': (self.db_names['base'], self.db_names['base.error']),
                 'fields': [
                     {
                         'name': 'create_time',
@@ -131,13 +131,13 @@ class DatabaseLog(DatabaseBase):
 
             ### 'error_stats'.
             {
-                'path': (self.db_names['log'], self.db_names['log.error_stats']),
+                'path': (self.db_names['base'], self.db_names['base.error_stats']),
                 'items': [
                     {
                         'name': 'count',
                         'select': (
                             'SELECT COUNT(1)\n'
-                            f'FROM `{self.db_names['log']}`.`{self.db_names['log.error']}`'
+                            f'FROM `{self.db_names['base']}`.`{self.db_names['base.error']}`'
                         ),
                         'comment': 'Error log count.'
                     },
@@ -145,7 +145,7 @@ class DatabaseLog(DatabaseBase):
                         'name': 'past_day_count',
                         'select': (
                             'SELECT COUNT(1)\n'
-                            f'FROM `{self.db_names['log']}`.`{self.db_names['log.error']}`\n'
+                            f'FROM `{self.db_names['base']}`.`{self.db_names['base.error']}`\n'
                             'WHERE TIMESTAMPDIFF(DAY, `create_time`, NOW()) = 0'
                         ),
                         'comment': 'Error log count in the past day.'
@@ -154,7 +154,7 @@ class DatabaseLog(DatabaseBase):
                         'name': 'past_week_count',
                         'select': (
                             'SELECT COUNT(1)\n'
-                            f'FROM `{self.db_names['log']}`.`{self.db_names['log.error']}`\n'
+                            f'FROM `{self.db_names['base']}`.`{self.db_names['base.error']}`\n'
                             'WHERE TIMESTAMPDIFF(DAY, `create_time`, NOW()) <= 6'
                         ),
                         'comment': 'Error log count in the past week.'
@@ -163,7 +163,7 @@ class DatabaseLog(DatabaseBase):
                         'name': 'past_month_count',
                         'select': (
                             'SELECT COUNT(1)\n'
-                            f'FROM `{self.db_names['log']}`.`{self.db_names['log.error']}`\n'
+                            f'FROM `{self.db_names['base']}`.`{self.db_names['base.error']}`\n'
                             'WHERE TIMESTAMPDIFF(DAY, `create_time`, NOW()) <= 29'
                         ),
                         'comment': 'Error log count in the past month.'
@@ -172,7 +172,7 @@ class DatabaseLog(DatabaseBase):
                         'name': 'last_time',
                         'select': (
                             'SELECT MAX(`create_time`)\n'
-                            f'FROM `{self.db_names['log']}`.`{self.db_names['log.error']}`'
+                            f'FROM `{self.db_names['base']}`.`{self.db_names['base.error']}`'
                         ),
                         'comment': 'Error log last record create time.'
                     }
@@ -186,7 +186,7 @@ class DatabaseLog(DatabaseBase):
         self.database.build.build(databases, tables, views_stats=views_stats)
 
 
-    def error(
+    def record(
         self,
         exc: BaseException,
         stack: StackSummary,
@@ -223,12 +223,12 @@ class DatabaseLog(DatabaseBase):
 
         # Insert.
         self.database.execute_insert(
-            (self.db_names['log'], self.db_names['log.error']),
+            (self.db_names['base'], self.db_names['base.error']),
             data=data
         )
 
 
-    def wrap_error(
+    def wrap(
         self,
         func: Callable[..., T] | None = None,
         *,
@@ -317,7 +317,7 @@ class DatabaseLog(DatabaseBase):
                         if isinstance(exc, type_):
                             break
                     else:
-                        self.error(exc, stack, note)
+                        self.record(exc, stack, note)
 
                     raise
 
@@ -335,3 +335,5 @@ class DatabaseLog(DatabaseBase):
         else:
             _func = _wrap(func)
             return _func
+
+    __call__ = record

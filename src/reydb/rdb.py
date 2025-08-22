@@ -1932,9 +1932,9 @@ class Database(DatabaseBase):
 
 
     @property
-    def log(self):
+    def error(self):
         """
-        Build `DatabaseLog` instance.
+        Build `DatabaseError` instance.
 
         Returns
         -------
@@ -1942,12 +1942,31 @@ class Database(DatabaseBase):
         """
 
         # Import.
-        from .rlog import DatabaseLog
+        from .rerror import DatabaseError
 
         # Build.
-        dbfile = DatabaseLog(self)
+        dbfile = DatabaseError(self)
 
         return dbfile
+
+
+    @property
+    def config(self):
+        """
+        Build `DatabaseConfig` instance.
+
+        Returns
+        -------
+        Database file instance.
+        """
+
+        # Import.
+        from .rconfig import DatabaseConfig
+
+        # Build.
+        dbconfig = DatabaseConfig(self)
+
+        return dbconfig
 
 
     @property

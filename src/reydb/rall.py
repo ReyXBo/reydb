@@ -11,10 +11,11 @@
 
 from .rbase import *
 from .rbuild import *
+from .rconfig import *
 from .rconn import *
 from .rdb import *
+from .rerror import *
 from .rexec import *
 from .rfile import *
 from .rinfo import *
-from .rlog import *
 from .rparam import *
