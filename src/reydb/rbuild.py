@@ -118,7 +118,7 @@ class DatabaseBuild(DatabaseBase):
         Parameters
         ----------
         name : Field name.
-        type\\_ : Field type.
+        type_ : Field type.
         constraint : Field constraint.
         comment : Field comment.
         position : Field position.
