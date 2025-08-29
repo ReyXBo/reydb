@@ -13,9 +13,9 @@ from typing import Any, Literal, overload
 from collections.abc import Iterable, Generator
 from enum import EnumType
 from urllib.parse import quote as urllib_quote
+from pymysql.constants.CLIENT import MULTI_STATEMENTS
 from sqlalchemy import create_engine as sqlalchemy_create_engine, text as sqlalchemy_text
 from sqlalchemy.engine.base import Engine, Connection
-from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.elements import TextClause
 from sqlalchemy.exc import OperationalError
 from reykit.rbase import throw, is_iterable, get_first_notnone
@@ -27,7 +27,7 @@ from reykit.rtable import TableData, Table
 from reykit.rtext import join_data_text
 from reykit.rwrap import wrap_runtime, wrap_retry
 
-from .rbase import DatabaseBase
+from .rbase import DatabaseBase, extract_url
 
 
 __all__ = (
@@ -45,6 +45,7 @@ monkey_sqlalchemy_row_index_field()
 class Database(DatabaseBase):
     """
     Database type.
+    Based `MySQL` or `SQLite`.
 
     Examples
     --------
@@ -66,7 +67,6 @@ class Database(DatabaseBase):
         username: str,
         password: str,
         database: str | None = None,
-        drivername: str | None = None,
         *,
         pool_size: int = 5,
         max_overflow: int = 10,
@@ -81,7 +81,6 @@ class Database(DatabaseBase):
         self,
         *,
         database: str,
-        drivername: str | None = None,
         pool_size: int = 5,
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
@@ -94,7 +93,6 @@ class Database(DatabaseBase):
     def __init__(
         self,
         *,
-        drivername: str | None = None,
         pool_size: int = 5,
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
@@ -103,25 +101,6 @@ class Database(DatabaseBase):
         **query: str
     ) -> None: ...
 
-    @overload
-    def __init__(
-        self,
-        *,
-        url: str | URL,
-        pool_size: int = 5,
-        max_overflow: int = 10,
-        pool_timeout: float = 30.0,
-        pool_recycle: int | None = None,
-        retry: bool = False
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self,
-        *,
-        engine: Engine | Connection,
-        retry: bool = False
-    ) -> None: ...
 
     def __init__(
         self,
@@ -130,9 +109,6 @@ class Database(DatabaseBase):
         username: str | None = None,
         password: str | None = None,
         database: str | None = None,
-        drivername: str | Iterable[str] | None = None,
-        url: str | URL | None = None,
-        engine: Engine | Connection | None = None,
         pool_size: int = 5,
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
@@ -149,16 +125,8 @@ class Database(DatabaseBase):
         port : Remote server database port.
         username : Remote server database username.
         password : Remote server database password.
-        database : Remote server database name or local database file path or use memory.
-            When parameters `host`, `port`, `username`, `password`, `database` are all `None`, then is `:memory:`.
-        drivername : Database backend and driver name.
-            - `None`: Automatic select.
-                When is remote server database, then is `mysql+mysqldb` and `mysql+pymysql`, `mysql+mysqlconnector`.
-                When is local database file or use memory, then is `sqlite`.
-            - `str`: Use this value.
-            - `Iterable[str]`: Try one by one use, set value after success.
-        url : Get parameter from server `URL`.
-        engine : Use existing `Engine` or `Connection` object, and get parameter from it.
+        database : Remote server database name or local database file path.
+            - `None`: When parameters `host`, `port`, `username`, `password`, `database` are all `None`, then using memory store.
         pool_size : Number of connections `keep open`.
         max_overflow : Number of connections `allowed overflow`.
         pool_timeout : Number of seconds `wait create` connection.
@@ -173,217 +141,35 @@ class Database(DatabaseBase):
         """
 
         # Handle parameter.
-
-        ## From Engine or Connection.
-        if engine is not None:
-            if type(engine) == Connection:
-                engine = engine.engine
-            params = self.extract_engine(engine)
-            username: str | None = params['username']
-            password: str | None = params['password']
-            host: str | None = params['host']
-            port: int | None = params['port']
-            database: str | None = params['database']
-            drivername: str = params['drivername']
-            pool_size: int = params['pool_size']
-            max_overflow: int = params['max_overflow']
-            pool_timeout: float = params['pool_timeout']
-            pool_recycle: int = params['pool_recycle']
-            query: dict = params['query']
-
-        ## From URL.
-        elif url is not None:
-            params = self.extract_url(url)
-            username: str | None = params['username']
-            password: str | None = params['password']
-            host: str | None = params['host']
-            port: int | None = params['port']
-            database: str | None = params['database']
-            drivername: str = params['drivername']
-            query: dict = params['query']
-
-        # Handle parameter.
         if type(port) == str:
             port = int(port)
 
-        # Set attribute.
-        self.username: str | None = username
-        self.password: str | None = password
-        self.host: str | None = host
+        # Build.
+        self.username = username
+        self.password = password
+        self.host = host
         self.port: int | None = port
-        self.database: str | None = database
-        self.drivername: str | Iterable[str] = drivername
-        self.engine: Engine | None = engine
-        self.pool_size: int = pool_size
-        self.max_overflow: int = max_overflow
-        self.pool_timeout: float = pool_timeout
+        self.database = database
+        self.pool_size = pool_size
+        self.max_overflow = max_overflow
+        self.pool_timeout = pool_timeout
         if pool_recycle is None:
             self.pool_recycle = -1
         else:
             self.pool_recycle = pool_recycle
-        self.retry: bool = retry
-        self.query: dict[str, str] = query
-        if (
-            self.database is None
-            and self.mode == 'memory'
-        ):
-            self.database = ':memory:'
-        if self.drivername is None:
-            if self.mode == 'server':
-                self.drivername = ('mysql+mysqldb', 'mysql+pymysql', 'mysql+mysqlconnector')
-            else:
-                self.drivername = 'sqlite'
+        self.retry = retry
+        self.query = query
 
         # Create engine.
-        if self.engine is None:
-            self.engine = self.__create_engine()
-        self.drivername: str
+        self.engine = self.__create_engine()
 
-        # Handle attribute.
+        # Server recycle time.
         if pool_recycle is None:
             if self.mode == 'server':
                 wait_timeout = self.variables['wait_timeout']
                 if wait_timeout is not None:
                     self.pool_recycle = int(wait_timeout)
             self.engine.pool._recycle = self.pool_recycle
-
-
-    def extract_url(self, url: str | URL) -> dict[
-        Literal['drivername', 'username', 'password', 'host', 'port', 'database', 'query'],
-        Any
-    ]:
-        """
-        Extract parameters from URL of string.
-
-        Parameters
-        ----------
-        url : URL of string.
-
-        Returns
-        -------
-        Extracted parameters.
-        """
-
-        # Extract.
-        match url:
-
-            ## Type str.
-            case str():
-                pattern_remote = r'^([\w\+]+)://(\w+):(\w+)@(\d+\.\d+\.\d+\.\d+):(\d+)[/]?([^\?]+)?[\?]?(\S+)?$'
-                pattern_local = r'^([\w\+]+):////?([^\?]+)[\?]?(\S+)?$'
-
-                ### Remote.
-                if (result_remote := search(pattern_remote, url)) is not None:
-                    (
-                        drivername,
-                        username,
-                        password,
-                        host,
-                        port,
-                        database,
-                        query_str
-                    ) = result_remote
-                    port = int(port)
-
-                ### Local.
-                elif (result_local := search(pattern_local, url)) is not None:
-                    username = password = host = port = None
-                    (
-                        drivername,
-                        database,
-                        query_str
-                    ) = result_local
-
-                ### Throw exception.
-                else:
-                    throw(ValueError, url)
-
-                drivername: str
-                if query_str is not None:
-                    query = {
-                        key: value
-                        for query_item_str in query_str.split('&')
-                        for key, value in (query_item_str.split('=', 1),)
-                    }
-                else:
-                    query = {}
-
-            ## Type URL.
-            case URL():
-                drivername = url.drivername
-                username = url.username
-                password = url.password
-                host = url.host
-                port = url.port
-                database = url.database
-                query = dict(url.query)
-
-        # Generate parameter.
-        params = {
-            'drivername': drivername,
-            'username': username,
-            'password': password,
-            'host': host,
-            'port': port,
-            'database': database,
-            'query': query
-        }
-
-        return params
-
-
-    def extract_engine(self, engine: Engine | Connection) -> dict[
-        Literal[
-            'drivername', 'username', 'password', 'host', 'port', 'database', 'query',
-            'pool_size', 'max_overflow', 'pool_timeout', 'pool_recycle'
-        ],
-        Any
-    ]:
-        """
-        Extract parameters from `Engine` or `Connection` object.
-
-        Parameters
-        ----------
-        engine : Engine or Connection object.
-
-        Returns
-        -------
-        Extracted parameters.
-        """
-
-        ## Extract Engine object from Connection boject.
-        if type(engine) == Connection:
-            engine = engine.engine
-
-        ## Extract.
-        drivername: str = engine.url.drivername
-        username: str | None = engine.url.username
-        password: str | None = engine.url.password
-        host: str | None = engine.url.host
-        port: str | None = engine.url.port
-        database: str | None = engine.url.database
-        query: dict[str, str] = dict(engine.url.query)
-        pool_size: int = engine.pool._pool.maxsize
-        max_overflow: int = engine.pool._max_overflow
-        pool_timeout: float = engine.pool._timeout
-        pool_recycle: int = engine.pool._recycle
-
-        # Generate parameter.
-        params = {
-            'drivername': drivername,
-            'username': username,
-            'password': password,
-            'host': host,
-            'port': port,
-            'database': database,
-            'query': query,
-            'pool_size': pool_size,
-            'max_overflow': max_overflow,
-            'pool_timeout': pool_timeout,
-            'pool_recycle': pool_recycle
-        }
-
-        return params
 
 
     @overload
@@ -478,30 +264,27 @@ class Database(DatabaseBase):
         """
 
         # Get.
-        value, *_ = self.drivername.split('+', 1)
-        value = value.lower()
+        url_params = extract_url(self.url)
+        backend = url_params['backend']
 
-        return value
+        return backend
 
 
     @property
-    def driver(self) -> str | None:
+    def driver(self) -> str:
         """
         Database driver name.
 
         Returns
         -------
-        name.
+        Name.
         """
 
         # Get.
-        if '+' in self.drivername:
-            _, value = self.drivername.split('+', 1)
-            value = value.lower()
-        else:
-            value = None
+        url_params = extract_url(self.url)
+        driver = url_params['driver']
 
-        return value
+        return driver
 
 
     @property
@@ -542,16 +325,20 @@ class Database(DatabaseBase):
 
         # Generate URL.
 
-        ## Remove.
+        ## Server.
         if self.mode == 'server':
             password = urllib_quote(self.password)
-            url_ = f'{self.drivername}://{self.username}:{password}@{self.host}:{self.port}'
+            url_ = f'mysql+pymysql://{self.username}:{password}@{self.host}:{self.port}'
             if self.database is not None:
                 url_ = f'{url_}/{self.database}'
 
-        ## File or memory.
+        ## File.
+        elif self.mode == 'file':
+            url_ = f'sqlite:///{self.database}'
+
+        ## Memory.
         else:
-            url_ = f'{self.drivername}:///{self.database}'
+            url_ = f'sqlite:///:memory:'
 
         # Add Server parameter.
         if self.query != {}:
@@ -576,44 +363,25 @@ class Database(DatabaseBase):
         """
 
         # Handle parameter.
-        if type(self.drivername) == str:
-            drivernames = (self.drivername,)
+        if self.mode == 'memory':
+            engine_params = {
+                'url': self.url,
+                'pool_recycle': self.pool_recycle
+            }
         else:
-            drivernames = self.drivername
+            engine_params = {
+                'url': self.url,
+                'pool_size': self.pool_size,
+                'max_overflow': self.max_overflow,
+                'pool_timeout': self.pool_timeout,
+                'pool_recycle': self.pool_recycle,
+                'connect_args': {'client_flag': MULTI_STATEMENTS}
+            }
 
         # Create Engine.
-        for drivername in drivernames:
-            self.drivername = drivername
-            if self.mode == 'memory':
-                engine_params = {
-                    'url': self.url,
-                    'pool_recycle': self.pool_recycle
-                }
-            else:
-                engine_params = {
-                    'url': self.url,
-                    'pool_size': self.pool_size,
-                    'max_overflow': self.max_overflow,
-                    'pool_timeout': self.pool_timeout,
-                    'pool_recycle': self.pool_recycle
-                }
+        engine = sqlalchemy_create_engine(**engine_params)
 
-            ## Try.
-            try:
-                engine = sqlalchemy_create_engine(**engine_params)
-            except ModuleNotFoundError:
-                pass
-            else:
-                return engine
-
-        # Throw exception.
-        drivernames_str = ' and '.join(
-            [
-                "'%s'" % dirvername.split('+', 1)[-1]
-                for dirvername in drivernames
-            ]
-        )
-        raise ModuleNotFoundError(f'module {drivernames_str} not fund')
+        return engine
 
 
     @property
@@ -1793,9 +1561,10 @@ class Database(DatabaseBase):
         Schemata of databases and tables and columns.
         """
 
-        # SQLite.
+        # Check.
         if self.backend == 'sqlite':
-            throw(AssertionError, self.drivername)
+            text = 'not suitable for SQLite databases'
+            throw(AssertionError, text=text)
 
         # Handle parameter.
         filter_db = (
@@ -1972,7 +1741,7 @@ class Database(DatabaseBase):
     @property
     def status(self):
         """
-        Build `DatabaseParameterStatus` or `DatabaseParameterPragma` instance.
+        Build `DatabaseParametersStatus` or `DatabaseParametersPragma` instance.
 
         Returns
         -------
@@ -1980,17 +1749,17 @@ class Database(DatabaseBase):
         """
 
         # Import.
-        from .rparam import DatabaseParameterStatus, DatabaseParameterPragma
+        from .rparam import DatabaseParametersStatus, DatabaseParametersPragma
 
         # Build.
 
         ## SQLite.
         if self.backend == 'sqlite':
-            dbp = DatabaseParameterPragma(self)
+            dbp = DatabaseParametersPragma(self)
 
         ## Other.
         else:
-            dbp = DatabaseParameterStatus(self, False)
+            dbp = DatabaseParametersStatus(self, False)
 
         return dbp
 
@@ -1998,7 +1767,7 @@ class Database(DatabaseBase):
     @property
     def global_status(self):
         """
-        Build `DatabaseParameterStatus` or `DatabaseParameterPragma` instance.
+        Build `DatabaseParametersStatus` or `DatabaseParametersPragma` instance.
 
         Returns
         -------
@@ -2006,17 +1775,17 @@ class Database(DatabaseBase):
         """
 
         # Import.
-        from .rparam import DatabaseParameterStatus, DatabaseParameterPragma
+        from .rparam import DatabaseParametersStatus, DatabaseParametersPragma
 
         # Build.
 
         ## SQLite.
         if self.backend == 'sqlite':
-            dbp = DatabaseParameterPragma(self)
+            dbp = DatabaseParametersPragma(self)
 
         ## Other.
         else:
-            dbp = DatabaseParameterStatus(self, True)
+            dbp = DatabaseParametersStatus(self, True)
 
         return dbp
 
@@ -2024,7 +1793,7 @@ class Database(DatabaseBase):
     @property
     def variables(self):
         """
-        Build `DatabaseParameterVariable` or `DatabaseParameterPragma` instance.
+        Build `DatabaseParametersVariable` or `DatabaseParametersPragma` instance.
 
         Returns
         -------
@@ -2032,17 +1801,17 @@ class Database(DatabaseBase):
         """
 
         # Import.
-        from .rparam import DatabaseParameterVariable, DatabaseParameterPragma
+        from .rparam import DatabaseParametersVariable, DatabaseParametersPragma
 
         # Build.
 
         ## SQLite.
         if self.backend == 'sqlite':
-            dbp = DatabaseParameterPragma(self)
+            dbp = DatabaseParametersPragma(self)
 
         ## Other.
         else:
-            dbp = DatabaseParameterVariable(self, False)
+            dbp = DatabaseParametersVariable(self, False)
 
         return dbp
 
@@ -2058,17 +1827,17 @@ class Database(DatabaseBase):
         """
 
         # Import.
-        from .rparam import DatabaseParameterVariable, DatabaseParameterPragma
+        from .rparam import DatabaseParametersVariable, DatabaseParametersPragma
 
         # Build.
 
         ## SQLite.
         if self.backend == 'sqlite':
-            dbp = DatabaseParameterPragma(self)
+            dbp = DatabaseParametersPragma(self)
 
         ## Other.
         else:
-            dbp = DatabaseParameterVariable(self, True)
+            dbp = DatabaseParametersVariable(self, True)
 
         return dbp
 

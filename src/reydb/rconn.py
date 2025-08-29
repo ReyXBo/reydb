@@ -52,7 +52,6 @@ class DatabaseConnection(Database):
         self.rdatabase = rdatabase
         self.begin = None
         self.begin_count = 0
-        self.drivername = rdatabase.drivername
         self.username = rdatabase.username
         self.password = rdatabase.password
         self.host = rdatabase.host

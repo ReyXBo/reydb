@@ -17,14 +17,14 @@ from .rdb import Database
 
 
 __all__ = (
-    'DatabaseParameter',
-    'DatabaseParameterStatus',
-    'DatabaseParameterVariable',
-    'DatabaseParameterPragma'
+    'DatabaseParameters',
+    'DatabaseParametersStatus',
+    'DatabaseParametersVariable',
+    'DatabaseParametersPragma'
 )
 
 
-class DatabaseParameter(DatabaseBase):
+class DatabaseParameters(DatabaseBase):
     """
     Database parameters type.
     """
@@ -85,9 +85,9 @@ class DatabaseParameter(DatabaseBase):
         self.update(params)
 
 
-class DatabaseParameterStatus(DatabaseParameter):
+class DatabaseParametersStatus(DatabaseParameters):
     """
-    Database parameter status type.
+    Database parameters status type.
     """
 
 
@@ -155,9 +155,9 @@ class DatabaseParameterStatus(DatabaseParameter):
         raise AssertionError('database status not update')
 
 
-class DatabaseParameterVariable(DatabaseParameter):
+class DatabaseParametersVariable(DatabaseParameters):
     """
-    Database parameter variable type.
+    Database parameters variable type.
     """
 
 
@@ -247,9 +247,9 @@ class DatabaseParameterVariable(DatabaseParameter):
         self.rdatabase.execute(sql)
 
 
-class DatabaseParameterPragma(DatabaseParameter):
+class DatabaseParametersPragma(DatabaseParameters):
     """
-    Database parameter pragma type.
+    Database parameters pragma type.
     """
 
 

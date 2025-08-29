@@ -52,22 +52,22 @@ class DatabaseBuild(DatabaseBase):
     """
 
 
-    def __init__(self, rdatabase: Database | DatabaseConnection) -> None:
+    def __init__(self, database: Database | DatabaseConnection) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : Database or DatabaseConnection instance.
+        database : Database or DatabaseConnection instance.
         """
 
         # SQLite.
-        if rdatabase.backend == 'sqlite':
-            text='not suitable for SQLite databases'
+        if database.backend == 'sqlite':
+            text = 'not suitable for SQLite databases'
             throw(AssertionError, text=text)
 
         # Set attribute.
-        self.rdatabase = rdatabase
+        self.database = database
         self._schema: dict[str, dict[str, list[str]]] | None = None
 
 
@@ -98,7 +98,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.rdatabase.execute(sql)
+            self.database.execute(sql)
 
         return sql
 
@@ -285,7 +285,7 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, table, _ = self.rdatabase.extract_path(path)
+        database, table, _ = self.database.extract_path(path)
         if fields.__class__ == dict:
             fields = [fields]
         if primary.__class__ == str:
@@ -347,7 +347,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.rdatabase.execute(sql)
+            self.database.execute(sql)
 
         return sql
 
@@ -375,7 +375,7 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, view, _ = self.rdatabase.extract_path(path)
+        database, view, _ = self.database.extract_path(path)
 
         # Generate SQL.
         select = select.replace('\n', '\n    ')
@@ -383,7 +383,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.rdatabase.execute(sql)
+            self.database.execute(sql)
 
         return sql
 
@@ -476,7 +476,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.rdatabase.execute(sql)
+            self.database.execute(sql)
 
         return sql
 
@@ -502,14 +502,14 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, table, _ = self.rdatabase.extract_path(path)
+        database, table, _ = self.database.extract_path(path)
 
         # Generate.
         sql = f'DROP TABLE `{database}`.`{table}`'
 
         # Execute.
         if execute:
-            self.rdatabase.execute(sql)
+            self.database.execute(sql)
 
         return sql
 
@@ -535,14 +535,14 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, view, _ = self.rdatabase.extract_path(path)
+        database, view, _ = self.database.extract_path(path)
 
         # Generate SQL.
         sql = 'DROP VIEW `%s`.`%s`' % (database, view)
 
         # Execute.
         if execute:
-            self.rdatabase.execute(sql)
+            self.database.execute(sql)
 
         return sql
 
@@ -592,7 +592,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.rdatabase.execute(sql)
+            self.database.execute(sql)
 
         return sql
 
@@ -649,7 +649,7 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, table, _ = self.rdatabase.extract_path(path)
+        database, table, _ = self.database.extract_path(path)
         if fields.__class__ == dict:
             fields = [fields]
         if primary.__class__ == str:
@@ -707,7 +707,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.rdatabase.execute(sql)
+            self.database.execute(sql)
 
         return sql
 
@@ -739,7 +739,7 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, table, _ = self.rdatabase.extract_path(path)
+        database, table, _ = self.database.extract_path(path)
         if fields.__class__ == str:
             fields = [fields]
         if indexes.__class__ == str:
@@ -778,7 +778,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.rdatabase.execute(sql)
+            self.database.execute(sql)
 
         return sql
 
@@ -829,7 +829,7 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, table, _ = self.rdatabase.extract_path(path)
+        database, table, _ = self.database.extract_path(path)
         if fields.__class__ == dict:
             fields = [fields]
 
@@ -897,7 +897,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.rdatabase.execute(sql)
+            self.database.execute(sql)
 
         return sql
 
@@ -925,14 +925,14 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, view, _ = self.rdatabase.extract_path(path)
+        database, view, _ = self.database.extract_path(path)
 
         # Generate SQL.
         sql = 'ALTER VIEW `%s`.`%s` AS\n%s' % (database, view, select)
 
         # Execute.
         if execute:
-            self.rdatabase.execute(sql)
+            self.database.execute(sql)
 
         return sql
 
@@ -958,14 +958,14 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, table, _ = self.rdatabase.extract_path(path)
+        database, table, _ = self.database.extract_path(path)
 
         # Generate.
         sql = f'TRUNCATE TABLE `{database}`.`{table}`'
 
         # Execute.
         if execute:
-            self.rdatabase.execute(sql)
+            self.database.execute(sql)
 
         return sql
 
@@ -989,9 +989,9 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, table, column = self.rdatabase.extract_path(path, 'database')
+        database, table, column = self.database.extract_path(path, 'database')
         if self._schema is None:
-            self._schema = self.rdatabase.schema(False)
+            self._schema = self.database.schema(False)
 
         # Judge.
         judge = (
@@ -1081,7 +1081,7 @@ class DatabaseBuild(DatabaseBase):
             database = params['name']
 
             ## Exist.
-            exist = self.rdatabase.build.exist((database, None, None))
+            exist = self.database.build.exist((database, None, None))
             if exist:
                 continue
 
@@ -1092,7 +1092,7 @@ class DatabaseBuild(DatabaseBase):
             self.input_confirm_build(sql)
 
             ## Execute.
-            self.rdatabase.execute(sql)
+            self.database.execute(sql)
 
             ## Report.
             text = f"Database '{database}' build completed."
@@ -1101,10 +1101,10 @@ class DatabaseBuild(DatabaseBase):
         # Table.
         for params in tables:
             path = params['path']
-            database, table, _ = self.rdatabase.extract_path(path)
+            database, table, _ = self.database.extract_path(path)
 
             ## Exist.
-            exist = self.rdatabase.build.exist((database, table, None))
+            exist = self.database.build.exist((database, table, None))
             if exist:
                 continue
 
@@ -1115,7 +1115,7 @@ class DatabaseBuild(DatabaseBase):
             self.input_confirm_build(sql)
 
             ## Execute.
-            self.rdatabase.execute(sql)
+            self.database.execute(sql)
 
             ## Report.
             text = f"Table '{table}' of database '{database}' build completed."
@@ -1124,10 +1124,10 @@ class DatabaseBuild(DatabaseBase):
         # View.
         for params in views:
             path = params['path']
-            database, view, _ = self.rdatabase.extract_path(path)
+            database, view, _ = self.database.extract_path(path)
 
             ## Exist.
-            exist = self.rdatabase.build.exist((database, view, None))
+            exist = self.database.build.exist((database, view, None))
             if exist:
                 continue
 
@@ -1138,7 +1138,7 @@ class DatabaseBuild(DatabaseBase):
             self.input_confirm_build(sql)
 
             ## Execute.
-            self.rdatabase.execute(sql)
+            self.database.execute(sql)
 
             ## Report.
             text = f"View '{view}' of database '{database}' build completed."
@@ -1147,10 +1147,10 @@ class DatabaseBuild(DatabaseBase):
         # View stats.
         for params in views_stats:
             path = params['path']
-            database, view, _ = self.rdatabase.extract_path(path)
+            database, view, _ = self.database.extract_path(path)
 
             ## Exist.
-            exist = self.rdatabase.build.exist((database, view, None))
+            exist = self.database.build.exist((database, view, None))
             if exist:
                 continue
 
@@ -1161,7 +1161,7 @@ class DatabaseBuild(DatabaseBase):
             self.input_confirm_build(sql)
 
             ## Execute.
-            self.rdatabase.execute(sql)
+            self.database.execute(sql)
 
             ## Report.
             text = f"View '{view}' of database '{database}' build completed."

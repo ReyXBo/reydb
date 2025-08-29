@@ -56,7 +56,7 @@ class DatabaseConfig(object):
 
         # SQLite.
         if database.backend == 'sqlite':
-            text='not suitable for SQLite databases'
+            text = 'not suitable for SQLite databases'
             throw(AssertionError, text=text)
 
         # Build.

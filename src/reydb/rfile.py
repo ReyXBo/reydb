@@ -43,9 +43,9 @@ class DatabaseFile(DatabaseBase):
         database : Database or DatabaseConnection instance.
         """
 
-        # SQLite.
+        # Check.
         if database.backend == 'sqlite':
-            text='not suitable for SQLite databases'
+            text = 'not suitable for SQLite databases'
             throw(AssertionError, text=text)
 
         # Build.
