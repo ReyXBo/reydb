@@ -28,7 +28,7 @@ __all__ = (
 class DatabaseError(DatabaseBase):
     """
     Database error type.
-    Can create database used `self.build` method.
+    Can create database used `self.build_db` method.
     """
 
 
@@ -114,6 +114,12 @@ class DatabaseError(DatabaseBase):
                 ],
                 'primary': 'id',
                 'indexes': [
+                    {
+                        'name': 'n_create_time',
+                        'fields': 'create_time',
+                        'type': 'noraml',
+                        'comment': 'Record create time normal index.'
+                    },
                     {
                         'name': 'n_type',
                         'fields': 'type',

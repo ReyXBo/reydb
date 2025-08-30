@@ -37,7 +37,7 @@ ConfigValueT = TypeVar('T', bound=ConfigValue) # Any.
 class DatabaseConfig(object):
     """
     Database config type.
-    Can create database used `self.build` method.
+    Can create database used `self.build_db` method.
 
     Examples
     --------
@@ -128,6 +128,20 @@ class DatabaseConfig(object):
                     }
                 ],
                 'primary': 'key',
+                'indexes': [
+                    {
+                        'name': 'n_create_time',
+                        'fields': 'create_time',
+                        'type': 'noraml',
+                        'comment': 'Config create time normal index.'
+                    },
+                    {
+                        'name': 'n_update_time',
+                        'fields': 'update_time',
+                        'type': 'noraml',
+                        'comment': 'Config update time normal index.'
+                    }
+                ],
                 'comment': 'Config data table.'
             }
 
