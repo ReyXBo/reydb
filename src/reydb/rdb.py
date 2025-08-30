@@ -10,7 +10,7 @@
 
 
 from typing import Any, Literal, overload
-from collections.abc import Iterable, Generator
+from collections.abc import Iterable, Generator, Container
 from enum import EnumType
 from urllib.parse import quote as urllib_quote
 from pymysql.constants.CLIENT import MULTI_STATEMENTS
@@ -793,7 +793,7 @@ class Database(DatabaseBase):
         self,
         path: str | tuple[str, str],
         data: TableData,
-        duplicate: Literal['ignore', 'update'] | None = None,
+        duplicate: Literal['ignore', 'update'] | Container[str] | None = None,
         report: bool | None = None,
         **kwdata: Any
     ) -> Result:
@@ -808,8 +808,9 @@ class Database(DatabaseBase):
         data : Insert data.
         duplicate : Handle method when constraint error.
             - `None`: Not handled.
-            - `ignore`, Use `UPDATE IGNORE INTO`: clause.
-            - `update`, Use `ON DUPLICATE KEY UPDATE`: clause.
+            - `ignore`: Use `UPDATE IGNORE INTO` clause.
+            - `update`: Use `ON DUPLICATE KEY UPDATE` clause and update all fields.
+            - `Container[str]`: Use `ON DUPLICATE KEY UPDATE` clause and update this fields.
         report : Whether report SQL execute information.
             - `None`, Use attribute `report_execute_info`: of object `ROption`.
             - `int`: Use this value.
@@ -901,6 +902,13 @@ class Database(DatabaseBase):
         ## Join sql part.
         match duplicate:
 
+            ### Not handle.
+            case None:
+                sql = (
+                    f'INSERT INTO `{database}`.`{table}`({sql_fields})\n'
+                    f'VALUES({sql_values})'
+                )
+
             ### Ignore.
             case 'ignore':
                 sql = (
@@ -909,20 +917,25 @@ class Database(DatabaseBase):
                 )
 
             ### Update.
-            case 'update':
-                update_content = ',\n    '.join([f'`{field}` = VALUES(`{field}`)' for field in sql_fields_list])
+            case _:
+                sql_fields_list_update = sql_fields_list
+                if duplicate != 'update':
+                    sql_fields_list_update = [
+                        field
+                        for field in sql_fields_list
+                        if field in duplicate
+                    ]
+                update_content = ',\n    '.join(
+                    [
+                        f'`{field}` = VALUES(`{field}`)'
+                        for field in sql_fields_list_update
+                    ]
+                )
                 sql = (
                     f'INSERT INTO `{database}`.`{table}`({sql_fields})\n'
                     f'VALUES({sql_values})\n'
                     'ON DUPLICATE KEY UPDATE\n'
                     f'    {update_content}'
-                )
-
-            ### Not handle.
-            case _:
-                sql = (
-                    f'INSERT INTO `{database}`.`{table}`({sql_fields})\n'
-                    f'VALUES({sql_values})'
                 )
 
         # Execute SQL.
