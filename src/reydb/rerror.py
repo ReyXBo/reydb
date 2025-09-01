@@ -53,7 +53,7 @@ class DatabaseError(DatabaseBase):
         self.db_names = {
             'base': 'base',
             'base.error': 'error',
-            'base.error_stats': 'error_stats'
+            'base.stats_error': 'stats_error'
         }
 
 
@@ -135,9 +135,9 @@ class DatabaseError(DatabaseBase):
         ## View stats.
         views_stats = [
 
-            ### 'error_stats'.
+            ### 'stats_error'.
             {
-                'path': (self.db_names['base'], self.db_names['base.error_stats']),
+                'path': (self.db_names['base'], self.db_names['base.stats_error']),
                 'items': [
                     {
                         'name': 'count',
