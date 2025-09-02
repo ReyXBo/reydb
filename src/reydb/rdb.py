@@ -475,11 +475,8 @@ class Database(DatabaseBase):
             for key in sql_keys:
                 value = row.get(key)
 
-                # Fill.
-                if (
-                    not bool(value)
-                    and is_iterable(value)
-                ):
+                # Empty string.
+                if value == '':
                     value = None
 
                 # Convert.
