@@ -17,15 +17,14 @@ from pymysql.constants.CLIENT import MULTI_STATEMENTS
 from sqlalchemy import create_engine as sqlalchemy_create_engine, text as sqlalchemy_text
 from sqlalchemy.engine.base import Engine, Connection
 from sqlalchemy.sql.elements import TextClause
-from sqlalchemy.exc import OperationalError
-from reykit.rbase import throw, is_iterable, get_first_notnone
+from reykit.rbase import throw, get_first_notnone
 from reykit.rdata import Generator, to_json
 from reykit.rmonkey import monkey_sqlalchemy_result_more_fetch, monkey_sqlalchemy_row_index_field
 from reykit.rre import search, findall
 from reykit.rstdout import echo
 from reykit.rtable import TableData, Table
 from reykit.rtext import join_data_text
-from reykit.rwrap import wrap_runtime, wrap_retry
+from reykit.rwrap import wrap_runtime
 
 from .rbase import DatabaseBase, extract_url
 
@@ -72,7 +71,6 @@ class Database(DatabaseBase):
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
         pool_recycle: int | None = None,
-        retry: bool = False,
         **query: str
     ) -> None: ...
 
@@ -85,7 +83,6 @@ class Database(DatabaseBase):
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
         pool_recycle: int | None = None,
-        retry: bool = False,
         **query: str
     ) -> None: ...
 
@@ -97,7 +94,6 @@ class Database(DatabaseBase):
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
         pool_recycle: int | None = None,
-        retry: bool = False,
         **query: str
     ) -> None: ...
 
@@ -113,7 +109,6 @@ class Database(DatabaseBase):
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
         pool_recycle: int | None = None,
-        retry: bool = False,
         **query: str
     ) -> None:
         """
@@ -136,7 +131,6 @@ class Database(DatabaseBase):
                 When is local database file, then is `-1`.
             - `Literal[-1]`: No recycle.
             - `int`: Use this value.
-        retry : Whether retry execute.
         query : Remote server database parameters.
         """
 
@@ -157,7 +151,6 @@ class Database(DatabaseBase):
             self.pool_recycle = -1
         else:
             self.pool_recycle = pool_recycle
-        self.retry = retry
         self.query = query
 
         # Create engine.
@@ -545,9 +538,50 @@ class Database(DatabaseBase):
         return False
 
 
-    def executor(
+    def executor_report(
         self,
         connection: Connection,
+        sql: TextClause,
+        data: list[dict]
+    ) -> Result:
+        """
+        SQL executor and report SQL execute information
+
+        Parameters
+        ----------
+        connection : Connection object.
+        sql : TextClause object.
+        data : Data set for filling.
+
+        Returns
+        -------
+        Result object.
+        """
+
+        # Execute.
+        execute = wrap_runtime(connection.execute, to_return=True)
+        result, report_runtime, *_ = execute(sql, data)
+
+        # Report.
+        report_info = (
+            f'{report_runtime}\n'
+            f'Row Count: {result.rowcount}'
+        )
+        sqls = [
+            sql_part.strip()
+            for sql_part in sql.text.split(';')
+            if sql_part != ''
+        ]
+        if data == []:
+            echo(report_info, *sqls, title='SQL')
+        else:
+            echo(report_info, *sqls, data, title='SQL')
+
+        return result
+
+
+    def executor(
+        self,
         sql: TextClause,
         data: list[dict],
         report: bool
@@ -557,7 +591,6 @@ class Database(DatabaseBase):
 
         Parameters
         ----------
-        connection : Connection object.
         sql : TextClause object.
         data : Data set for filling.
         report : Whether report SQL execute information.
@@ -567,32 +600,21 @@ class Database(DatabaseBase):
         Result object.
         """
 
-        # Create Transaction object.
-        with connection.begin():
+        # Create connection. 
+        with self.engine.connect() as connection:
 
-            # Execute.
+            # Create transaction.
+            with connection.begin():
 
-            ## Report.
-            if report:
-                execute = wrap_runtime(connection.execute, to_return=True)
-                result, report_runtime, *_ = execute(sql, data)
-                report_info = (
-                    f'{report_runtime}\n'
-                    f'Row Count: {result.rowcount}'
-                )
-                sqls = [
-                    sql_part.strip()
-                    for sql_part in sql.text.split(';')
-                    if sql_part != ''
-                ]
-                if data == []:
-                    echo(report_info, *sqls, title='SQL')
+                # Execute.
+
+                ## Report.
+                if report:
+                    result = self.executor_report(connection, sql, data)
+
+                ## Not report.
                 else:
-                    echo(report_info, *sqls, data, title='SQL')
-
-            ## Not report.
-            else:
-                result = connection.execute(sql, data)
+                    result = connection.execute(sql, data)
 
         return result
 
@@ -639,24 +661,7 @@ class Database(DatabaseBase):
         data = self.handle_data(data, sql)
 
         # Execute.
-
-        ## Create Connection object.
-        with self.engine.connect() as connection:
-
-            ## Can retry.
-            if (
-                self.retry
-                and not self.is_multi_sql(sql)
-            ):
-                text = 'Retrying...'
-                title = 'Database Execute Operational Error'
-                handler = lambda exc_text, *_: echo(exc_text, text, title=title, frame='top')
-                executor = wrap_retry(self.executor, handler=handler, exception=OperationalError)
-                result = executor(self.connection, sql, data, report)
-
-            ## Cannot retry.
-            else:
-                result = self.executor(connection, sql, data, report)
+        result = self.executor(sql, data, report)
 
         return result
 
