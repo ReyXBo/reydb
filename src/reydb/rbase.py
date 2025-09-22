@@ -9,9 +9,10 @@
 """
 
 
-from typing import Any, TypedDict, Literal
+from typing import Any, TypedDict, Literal, overload
 from sqlalchemy.engine.base import Engine, Connection
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.elements import TextClause
 from reykit.rbase import Base, throw
 from reykit.rre import search
 
@@ -19,7 +20,8 @@ from reykit.rre import search
 __all__ = (
     'DatabaseBase',
     'extract_url',
-    'extract_engine'
+    'extract_engine',
+    'extract_path'
 )
 
 
@@ -187,3 +189,100 @@ def extract_engine(engine: Engine | Connection) -> dict[
     }
 
     return params
+
+
+def extract_path(
+    path: str | tuple[str] | tuple[str, str] | tuple[str, str, str]
+) -> tuple[str, str | None, str | None]:
+    """
+    Extract table name and database name and column name from path.
+
+    Parameters
+    ----------
+    path : Path.
+        - `str` and not contain '.' or contain '`': Database name.
+        - `str` and contain '.': Database name and table name, column name is optional. Format is 'database.table[.column]'.
+        - `tuple`: Format is `(database[, table, column])`.
+
+    Returns
+    -------
+    Names.
+    """
+
+    # Type str.
+    if type(path) == str:
+
+        ## Single.
+        if (
+            '.' not in path
+            or '`' in path
+        ):
+            name = path.replace('`', '')
+            names = (name, None, None)
+
+        ## Multiple.
+        else:
+            names = path.split('.', 2)
+            if len(names) == 2:
+                names.append(None)
+            names = tuple(names)
+
+    # Type tuple.
+    else:
+        if len(path) == 1:
+            path += (None, None)
+        if len(path) == 2:
+            path += (None,)
+        names = path
+
+    return names
+
+
+def get_syntax(self, sql: str | TextClause) -> list[str]:
+    """
+    Extract SQL syntax type for each segment form SQL.
+
+    Parameters
+    ----------
+    sql : SQL text or TextClause object.
+
+    Returns
+    -------
+    SQL syntax type for each segment.
+    """
+
+    # Handle parameter.
+    if type(sql) == TextClause:
+        sql = sql.text
+
+    # Extract.
+    syntax = [
+        search('[a-zA-Z]+', sql_part).upper()
+        for sql_part in sql.split(';')
+        if sql_part != ''
+    ]
+
+    return syntax
+
+
+def is_multi_sql(self, sql: str | TextClause) -> bool:
+    """
+    Judge whether it is multi segment SQL.
+
+    Parameters
+    ----------
+    sql : SQL text or TextClause object.
+
+    Returns
+    -------
+    Judgment result.
+    """
+
+    # Handle parameter.
+    if type(sql) == TextClause:
+        sql = sql.text
+
+    # Judge.
+    if ';' in sql.rstrip()[:-1]:
+        return True
+    return False

@@ -43,11 +43,6 @@ class DatabaseFile(DatabaseBase):
         database : Database or DatabaseConnection instance.
         """
 
-        # Check.
-        if database.backend == 'sqlite':
-            text = 'not suitable for SQLite databases'
-            throw(AssertionError, text=text)
-
         # Build.
         self.database = database
 
@@ -333,7 +328,7 @@ class DatabaseFile(DatabaseBase):
         file_size = len(file_bytes)
 
         # Exist.
-        exist = conn.execute_exist(
+        exist = conn.execute.exist(
             (self.db_names['file'], self.db_names['file.data']),
             '`md5` = :file_md5',
             file_md5=file_md5
@@ -348,7 +343,7 @@ class DatabaseFile(DatabaseBase):
                 'size': file_size,
                 'bytes': file_bytes
             }
-            conn.execute_insert(
+            conn.execute.insert(
                 (self.db_names['file'], self.db_names['file.data']),
                 data,
                 'ignore'
@@ -360,7 +355,7 @@ class DatabaseFile(DatabaseBase):
             'name': file_name,
             'note': note
         }
-        conn.execute_insert(
+        conn.execute.insert(
             (self.db_names['file'], self.db_names['file.information']),
             data
         )

@@ -41,11 +41,6 @@ class DatabaseError(DatabaseBase):
         database : Database or DatabaseConnection instance.
         """
 
-        # SQLite.
-        if database.backend == 'sqlite':
-            text = 'not suitable for SQLite databases'
-            throw(AssertionError, text=text)
-
         # Build.
         self.database = database
 
@@ -228,7 +223,7 @@ class DatabaseError(DatabaseBase):
         }
 
         # Insert.
-        self.database.execute_insert(
+        self.database.execute.insert(
             (self.db_names['base'], self.db_names['base.error']),
             data=data
         )

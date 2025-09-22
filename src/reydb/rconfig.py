@@ -54,11 +54,6 @@ class DatabaseConfig(object):
         Build instance attributes.
         """
 
-        # SQLite.
-        if database.backend == 'sqlite':
-            text = 'not suitable for SQLite databases'
-            throw(AssertionError, text=text)
-
         # Build.
         self.database = database
 
@@ -199,7 +194,7 @@ class DatabaseConfig(object):
         """
 
         # Get.
-        result = self.database.execute_select(
+        result = self.database.execute.select(
             (self.db_names['base'], self.db_names['base.config']),
             ['key', 'value', 'type', 'note'],
             order='IFNULL(`update_time`, `create_time`) DESC'
@@ -235,7 +230,7 @@ class DatabaseConfig(object):
 
         # Get.
         where = '`key` = :key'
-        result = self.database.execute_select(
+        result = self.database.execute.select(
             (self.db_names['base'], self.db_names['base.config']),
             '`value`',
             where,
@@ -281,7 +276,7 @@ class DatabaseConfig(object):
             'type': type(default).__name__,
             'note': default_note
         }
-        result = self.database.execute_insert(
+        result = self.database.execute.insert(
             (self.db_names['base'], self.db_names['base.config']),
             data,
             'ignore'
@@ -322,7 +317,7 @@ class DatabaseConfig(object):
                 row['type'] = type(row['value']).__name__
 
         # Update.
-        self.database.execute_insert(
+        self.database.execute.insert(
             (self.db_names['base'], self.db_names['base.config']),
             data,
             'update'
@@ -345,7 +340,7 @@ class DatabaseConfig(object):
         else:
             where = '`key` in :key'
             limit = None
-        result = self.database.execute_delete(
+        result = self.database.execute.delete(
             (self.db_names['base'], self.db_names['base.config']),
             where,
             limit=limit,
@@ -367,7 +362,7 @@ class DatabaseConfig(object):
         """
 
         # Get.
-        result = self.database.execute_select(
+        result = self.database.execute.select(
             (self.db_names['base'], self.db_names['base.config']),
             ['key', 'value']
         )
@@ -393,7 +388,7 @@ class DatabaseConfig(object):
         """
 
         # Get.
-        result = self.database.execute_select(
+        result = self.database.execute.select(
             (self.db_names['base'], self.db_names['base.config']),
             '`key`'
         )
@@ -418,7 +413,7 @@ class DatabaseConfig(object):
         """
 
         # Get.
-        result = self.database.execute_select(
+        result = self.database.execute.select(
             (self.db_names['base'], self.db_names['base.config']),
             '`value`'
         )
@@ -480,7 +475,7 @@ class DatabaseConfig(object):
             'type': type(value).__name__,
             'note': note
         }
-        self.database.execute_insert(
+        self.database.execute.insert(
             (self.db_names['base'], self.db_names['base.config']),
             data,
             'update'

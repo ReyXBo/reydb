@@ -2,336 +2,973 @@
 # -*- coding: utf-8 -*-
 
 """
-@Time    : 2022-12-05 14:10:02
+@Time    : 2025-09-22 22:12:33
 @Author  : Rey
 @Contact : reyxbo@163.com
-@Explain : Database path methods.
+@Explain : Execute methods.
 """
 
 
-from typing import Any, Self
-from reykit.rbase import throw
-from reykit.rtable import TableData
+from typing import Any, Literal
+from collections.abc import Iterable, Generator, Container
+from enum import EnumType
+from sqlalchemy import text as sqlalchemy_text
+from sqlalchemy.sql.elements import TextClause
+from reykit.rbase import throw, get_first_notnone
+from reykit.rdata import FunctionGenerator, to_json
+from reykit.rmonkey import monkey_sqlalchemy_result_more_fetch, monkey_sqlalchemy_row_index_field
+from reykit.rre import findall
+from reykit.rstdout import echo
+from reykit.rtable import TableData, Table
+from reykit.rwrap import wrap_runtime
 
 from .rbase import DatabaseBase
 from .rconn import DatabaseConnection
-from .rdb import Database, Result
 
 
 __all__ = (
-    'DatabaseExecute',
+    'Result',
+    'DatabaseExecute'
 )
+
+
+# Monkey path.
+Result_ = monkey_sqlalchemy_result_more_fetch()
+Result = Result_
+monkey_sqlalchemy_row_index_field()
 
 
 class DatabaseExecute(DatabaseBase):
     """
     Database execute type.
-
-    Examples
-    --------
-    Select.
-    >>> field = ['id', 'value']
-    >>> where = '`id` = ids'
-    >>> ids = (1, 2)
-    >>> result = DatabaseExecute.database.table(field, where, ids=ids)
-
-    Insert.
-    >>> data = [{'id': 1}, {'id': 2}]
-    >>> duplicate = 'ignore'
-    >>> result = DatabaseExecute.database.table + data
-    >>> result = DatabaseExecute.database.table + (data, duplicate)
-    >>> result = DatabaseExecute.database.table + {'data': data, 'duplicate': duplicate}
-
-    Update.
-    >>> data = [{'name': 'a', 'id': 1}, {'name': 'b', 'id': 2}]
-    >>> where_fields = 'id'
-    >>> result = DatabaseExecute.database.table & data
-    >>> result = DatabaseExecute.database.table & (data, where_fields)
-    >>> result = DatabaseExecute.database.table & {'data': data, 'where_fields': where_fields}
-
-    Delete.
-    >>> where = '`id` IN (1, 2)'
-    >>> report = True
-    >>> result = DatabaseExecute.database.table - where
-    >>> result = DatabaseExecute.database.table - (where, report)
-    >>> result = DatabaseExecute.database.table - {'where': where, 'report': report}
-
-    Copy.
-    >>> where = '`id` IN (1, 2)'
-    >>> limit = 1
-    >>> result = DatabaseExecute.database.table * where
-    >>> result = DatabaseExecute.database.table * (where, limit)
-    >>> result = DatabaseExecute.database.table * {'where': where, 'limit': limit}
-
-    Exist.
-    >>> where = '`id` IN (1, 2)'
-    >>> report = True
-    >>> result = where in DatabaseExecute.database.table
-    >>> result = (where, report) in DatabaseExecute.database.table
-    >>> result = {'where': where, 'report': report} in DatabaseExecute.database.table
-
-    Count.
-    >>> result = len(DatabaseExecute.database.table)
-
-    Default database.
-    >>> engine = Database(**server, database)
-    >>> result = engine.exe.table()
     """
 
 
-    def __init__(self, rdatabase: Database | DatabaseConnection) -> None:
+    def __init__(self, dbconn: DatabaseConnection) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : Database or DatabaseConnection instance.
+        dbconn : DatabaseConnection instance.
         """
 
-        # Set parameter.
-        self._rdatabase = rdatabase
-        self._path: list[str] = []
+        # Build.
+        self.dbconn = dbconn
 
 
-    def __getattr__(self, name: str) -> Self:
-        """
-        Set database name or set table name.
-
-        Parameters
-        ----------
-        name : Database name or table name.
-
-        Returns
-        -------
-        Self.
-        """
-
-        # Check.
-        if len(self._path) not in (0, 1):
-            throw(AssertionError, self._path)
-
-        # Set.
-        self._path.append(name)
-
-        return self
-
-
-    @property
-    def __get_path(self) -> tuple[str, str]:
-        """
-        Get database name and table name.
-
-        Returns
-        -------
-        Database name and table name.
-        """
-
-        # Get.
-        path_len = len(self._path)
-        match path_len:
-            case 1:
-                database = self._rdatabase.database
-                table = self._path[0]
-            case 2:
-                database = self._path[0]
-                table = self._path[1]
-            case _:
-                throw(AssertionError, path_len)
-
-        return database, table
-
-
-    def __call__(
+    def execute(
         self,
-        *args: Any,
-        **kwargs: Any
+        sql: str | TextClause,
+        data: TableData | None = None,
+        report: bool | None = None,
+        **kwdata: Any
     ) -> Result:
         """
-        Select the data of table in the datebase.
+        Execute SQL.
 
         Parameters
         ----------
-        args : Position arguments.
-        kwargs : Keyword arguments.
+        sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
+        data : Data set for filling.
+        report : Whether report SQL execute information.
+            - `None`: Use attribute `default_report`.
+            - `bool`: Use this value.
+        kwdata : Keyword parameters for filling.
 
         Returns
         -------
         Result object.
         """
 
-        # Selete.
-        result = self._rdatabase.execute_select(self.__get_path, *args, **kwargs)
+        # Handle parameter.
+        report = get_first_notnone(report, self.dbconn.db.default_report)
+        sql = self.handle_sql(sql)
+        if data is None:
+            if kwdata == {}:
+                data = []
+            else:
+                data = [kwdata]
+        else:
+            data_table = Table(data)
+            data = data_table.to_table()
+            for row in data:
+                row.update(kwdata)
+        data = self.handle_data(data, sql)
+
+        # Execute.
+
+        ## Report.
+        if report:
+            execute = wrap_runtime(self.conn.execute, to_return=True)
+            result, report_runtime, *_ = execute(sql, data)
+            report_info = (
+                f'{report_runtime}\n'
+                f'Row Count: {result.rowcount}'
+            )
+            sqls = [
+                sql_part.strip()
+                for sql_part in sql.text.split(';')
+                if sql_part != ''
+            ]
+            if data == []:
+                echo(report_info, *sqls, title='SQL')
+            else:
+                echo(report_info, *sqls, data, title='SQL')
+
+        ## Not report.
+        else:
+            result = self.dbconn.conn.execute(sql, data)
+
+        # Automatic commit.
+        if self.dbconn.autocommit:
+            self.dbconn.conn.commit()
 
         return result
 
 
-    def __add__(
+    __call__ = execute
+
+
+    def select(
         self,
-        params: tuple | dict | TableData
+        table: str,
+        fields: str | Iterable[str] | None = None,
+        where: str | None = None,
+        group: str | None = None,
+        having: str | None = None,
+        order: str | None = None,
+        limit: int | str | tuple[int, int] | None = None,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> Result:
+        """
+        Execute select SQL.
+
+        Parameters
+        ----------
+        table : Table name.
+        fields : Select clause content.
+            - `None`: Is `SELECT *`.
+            - `str`: Join as `SELECT str`.
+            - `Iterable[str]`, Join as `SELECT ``str``: ...`.
+                `str and first character is ':'`: Use this syntax.
+                `str`: Use this field.
+        where : Clause `WHERE` content, join as `WHERE str`.
+        group : Clause `GROUP BY` content, join as `GROUP BY str`.
+        having : Clause `HAVING` content, join as `HAVING str`.
+        order : Clause `ORDER BY` content, join as `ORDER BY str`.
+        limit : Clause `LIMIT` content.
+            - `int | str`: Join as `LIMIT int/str`.
+            - `tuple[int, int]`: Join as `LIMIT int, int`.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
+
+        Returns
+        -------
+        Result object.
+
+        Examples
+        --------
+        Parameter `fields`.
+        >>> fields = ['id', ':`id` + 1 AS `id_`']
+        >>> result = Database.execute.select('table', fields)
+        >>> print(result.to_table())
+        [{'id': 1, 'id_': 2}, ...]
+
+        Parameter `kwdata`.
+        >>> fields = '`id`, `id` + :value AS `id_`'
+        >>> result = Database.execute.select('table', fields, value=1)
+        >>> print(result.to_table())
+        [{'id': 1, 'id_': 2}, ...]
+        """
+
+        # Generate SQL.
+        sql_list = []
+
+        ## Part 'SELECT' syntax.
+        if fields is None:
+            fields = '*'
+        elif type(fields) != str:
+            fields = ', '.join(
+                [
+                    field[1:]
+                    if (
+                        field.startswith(':')
+                        and field != ':'
+                    )
+                    else f'`{field}`'
+                    for field in fields
+                ]
+            )
+        sql_select = f'SELECT {fields}'
+        sql_list.append(sql_select)
+
+        ## Part 'FROM' syntax.
+        sql_from = f'FROM `{self.dbconn.db.database}`.`{table}`'
+        sql_list.append(sql_from)
+
+        ## Part 'WHERE' syntax.
+        if where is not None:
+            sql_where = f'WHERE {where}'
+            sql_list.append(sql_where)
+
+        ## Part 'GROUP BY' syntax.
+        if group is not None:
+            sql_group = f'GROUP BY {group}'
+            sql_list.append(sql_group)
+
+        ## Part 'GROUP BY' syntax.
+        if having is not None:
+            sql_having = f'HAVING {having}'
+            sql_list.append(sql_having)
+
+        ## Part 'ORDER BY' syntax.
+        if order is not None:
+            sql_order = f'ORDER BY {order}'
+            sql_list.append(sql_order)
+
+        ## Part 'LIMIT' syntax.
+        if limit is not None:
+            if type(limit) in (str, int):
+                sql_limit = f'LIMIT {limit}'
+            else:
+                if len(limit) == 2:
+                    sql_limit = f'LIMIT {limit[0]}, {limit[1]}'
+                else:
+                    throw(ValueError, limit)
+            sql_list.append(sql_limit)
+
+        ## Join sql part.
+        sql = '\n'.join(sql_list)
+
+        # Execute SQL.
+        result = self.execute(sql, report=report, **kwdata)
+
+        return result
+
+
+    def insert(
+        self,
+        table: str,
+        data: TableData,
+        duplicate: Literal['ignore', 'update'] | Container[str] | None = None,
+        report: bool | None = None,
+        **kwdata: Any
     ) -> Result:
         """
         Insert the data of table in the datebase.
 
         Parameters
         ----------
-        params : Insert parameters.
-            - `tuple`: Enter parameters in '(path, *params)' format.
-            - `dict`: Enter parameters in '(path, **params)' format.
-            - `TableData`: Enter parameters in '(path, params)' format.
+        table : Table name.
+        data : Insert data.
+        duplicate : Handle method when constraint error.
+            - `None`: Not handled.
+            - `ignore`: Use `UPDATE IGNORE INTO` clause.
+            - `update`: Use `ON DUPLICATE KEY UPDATE` clause and update all fields.
+            - `Container[str]`: Use `ON DUPLICATE KEY UPDATE` clause and update this fields.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
+            - `str and first character is ':'`: Use this syntax.
+            - `Any`: Use this value.
 
         Returns
         -------
         Result object.
+
+        Examples
+        --------
+        Parameter `data` and `kwdata`.
+        >>> data = [{'key': 'a'}, {'key': 'b'}]
+        >>> kwdata = {'value1': 1, 'value2': ':(SELECT 2)'}
+        >>> result = Database.execute.insert('table', data, **kwdata)
+        >>> print(result.rowcount)
+        2
+        >>> result = Database.execute.select('table')
+        >>> print(result.to_table())
+        [{'key': 'a', 'value1': 1, 'value2': 2}, {'key': 'b', 'value1': 1, 'value2': 2}]
         """
 
-        # Insert.
-        match params:
-            case tuple():
-                result = self._rdatabase.execute_insert(self.__get_path, *params)
-            case dict():
-                result = self._rdatabase.execute_insert(self.__get_path, **params)
+        # Handle parameter.
+
+        ## Data.
+        data_table = Table(data)
+        data = data_table.to_table()
+
+        ## Check.
+        if data in ([], [{}]):
+            throw(ValueError, data)
+
+        ## Keyword data.
+        kwdata_method = {}
+        kwdata_replace = {}
+        for key, value in kwdata.items():
+            if (
+                type(value) == str
+                and value.startswith(':')
+                and value != ':'
+            ):
+                kwdata_method[key] = value[1:]
+            else:
+                kwdata_replace[key] = value
+
+        # Generate SQL.
+
+        ## Part 'fields' syntax.
+        fields_replace = {
+            field
+            for row in data
+            for field in row
+        }
+        fields_replace = {
+            field
+            for field in fields_replace
+            if field not in kwdata
+        }
+        sql_fields_list = (
+            *kwdata_method,
+            *kwdata_replace,
+            *fields_replace
+        )
+        sql_fields = ', '.join(
+            [
+                f'`{field}`'
+                for field in sql_fields_list
+            ]
+        )
+
+        ## Part 'values' syntax.
+        sql_values_list = (
+            *kwdata_method.values(),
+            *[
+                ':' + field
+                for field in (
+                    *kwdata_replace,
+                    *fields_replace
+                )
+            ]
+        )
+        sql_values = ', '.join(sql_values_list)
+
+        ## Join sql part.
+        match duplicate:
+
+            ### Not handle.
+            case None:
+                sql = (
+                    f'INSERT INTO `{self.dbconn.db.database}`.`{table}`({sql_fields})\n'
+                    f'VALUES({sql_values})'
+                )
+
+            ### Ignore.
+            case 'ignore':
+                sql = (
+                    f'INSERT IGNORE INTO `{self.dbconn.db.database}`.`{table}`({sql_fields})\n'
+                    f'VALUES({sql_values})'
+                )
+
+            ### Update.
             case _:
-                result = self._rdatabase.execute_insert(self.__get_path, params)
+                sql_fields_list_update = sql_fields_list
+                if duplicate != 'update':
+                    sql_fields_list_update = [
+                        field
+                        for field in sql_fields_list
+                        if field in duplicate
+                    ]
+                update_content = ',\n    '.join(
+                    [
+                        f'`{field}` = VALUES(`{field}`)'
+                        for field in sql_fields_list_update
+                    ]
+                )
+                sql = (
+                    f'INSERT INTO `{self.dbconn.db.database}`.`{table}`({sql_fields})\n'
+                    f'VALUES({sql_values})\n'
+                    'ON DUPLICATE KEY UPDATE\n'
+                    f'    {update_content}'
+                )
+
+        # Execute SQL.
+        result = self.execute(sql, data, report, **kwdata_replace)
 
         return result
 
 
-    def __and__(
+    def update(
         self,
-        params: tuple | dict | TableData
+        table: str,
+        data: TableData,
+        where_fields: str | Iterable[str] | None = None,
+        report: bool | None = None,
+        **kwdata: Any
     ) -> Result:
         """
         Update the data of table in the datebase.
 
         Parameters
         ----------
-        params : Update parameters.
-            - `tuple`: Enter parameters in '(path, *params)' format.
-            - `dict`: Enter parameters in '(path, **params)' format.
-            - `TableData`: Enter parameters in '(path, params)' format.
+        table : Table name.
+        data : Update data, clause `SET` and `WHERE` and `ORDER BY` and `LIMIT` content.
+            - `Key`: Table field.
+                `literal['order']`: Clause `ORDER BY` content, join as `ORDER BY str`.
+                `literal['limit']`: Clause `LIMIT` content, join as `LIMIT str`.
+                `Other`: Clause `SET` and `WHERE` content.
+            - `Value`: Table value.
+                `list | tuple`: Join as `field IN :str`.
+                `Any`: Join as `field = :str`.
+        where_fields : Clause `WHERE` content fields.
+            - `None`: The first key value pair of each item is judged.
+            - `str`: This key value pair of each item is judged.
+            - `Iterable[str]`: Multiple judged, `and`: relationship.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
+            - `str and first character is ':'`: Use this syntax.
+            - `Any`: Use this value.
 
         Returns
         -------
         Result object.
+
+        Examples
+        --------
+        Parameter `data` and `kwdata`.
+        >>> data = [{'key': 'a'}, {'key': 'b'}]
+        >>> kwdata = {'value': 1, 'name': ':`key`'}
+        >>> result = Database.execute.update('table', data, **kwdata)
+        >>> print(result.rowcount)
+        2
+        >>> result = Database.execute.select('table')
+        >>> print(result.to_table())
+        [{'key': 'a', 'value': 1, 'name': 'a'}, {'key': 'b', 'value': 1, 'name': 'b'}]
         """
 
-        # Update.
-        match params:
-            case tuple():
-                result = self._rdatabase.execute_update(self.__get_path, *params)
-            case dict():
-                result = self._rdatabase.execute_update(self.__get_path, **params)
-            case _:
-                result = self._rdatabase.execute_update(self.__get_path, params)
+        # Handle parameter.
+
+        ## Data.
+        data_table = Table(data)
+        data = data_table.to_table()
+
+        ## Check.
+        if data in ([], [{}]):
+            throw(ValueError, data)
+
+        ## Keyword data.
+        kwdata_method = {}
+        kwdata_replace = {}
+        for key, value in kwdata.items():
+            if (
+                type(value) == str
+                and value.startswith(':')
+                and value != ':'
+            ):
+                kwdata_method[key] = value[1:]
+            else:
+                kwdata_replace[key] = value
+        sql_set_list_kwdata = [
+            f'`{key}` = {value}'
+            for key, value in kwdata_method.items()
+        ]
+        sql_set_list_kwdata.extend(
+            [
+                f'`{key}` = :{key}'
+                for key in kwdata_replace
+            ]
+        )
+
+        # Generate SQL.
+        data_flatten = kwdata_replace
+        if where_fields is None:
+            no_where = True
+        else:
+            no_where = False
+            if type(where_fields) == str:
+                where_fields = [where_fields]
+        sqls_list = []
+        sql_update = f'UPDATE `{self.dbconn.db.database}`.`{table}`'
+        for index, row in enumerate(data):
+            sql_parts = [sql_update]
+            for key, value in row.items():
+                if key in ('order', 'limit'):
+                    continue
+                index_key = f'{index}_{key}'
+                data_flatten[index_key] = value
+            if no_where:
+                for key in row:
+                    where_fields = [key]
+                    break
+
+            ## Part 'SET' syntax.
+            sql_set_list = sql_set_list_kwdata.copy()
+            sql_set_list.extend(
+                [
+                    f'`{key}` = :{index}_{key}'
+                    for key in row
+                    if (
+                        key not in where_fields
+                        and key not in kwdata
+                        and key not in ('order', 'limit')
+                    )
+                ]
+            )
+            sql_set = 'SET ' + ',\n    '.join(sql_set_list)
+            sql_parts.append(sql_set)
+
+            ## Part 'WHERE' syntax.
+            sql_where_list = []
+            for field in where_fields:
+                index_field = f'{index}_{field}'
+                index_value = data_flatten[index_field]
+                if type(index_value) in (list, tuple):
+                    sql_where_part = f'`{field}` IN :{index_field}'
+                else:
+                    sql_where_part = f'`{field}` = :{index_field}'
+                sql_where_list.append(sql_where_part)
+            sql_where = 'WHERE ' + '\n    AND '.join(sql_where_list)
+            sql_parts.append(sql_where)
+
+            ## Part 'ORDER BY' syntax.
+            order = row.get('order')
+            if order is not None:
+                sql_order = f'ORDER BY {order}'
+                sql_parts.append(sql_order)
+
+            ## Part 'LIMIT' syntax.
+            limit = row.get('limit')
+            if limit is not None:
+                sql_limit = f'LIMIT {limit}'
+                sql_parts.append(sql_limit)
+
+            ## Join sql part.
+            sql = '\n'.join(sql_parts)
+            sqls_list.append(sql)
+
+        ## Join sqls.
+        sqls = ';\n'.join(sqls_list)
+
+        # Execute SQL.
+        result = self.execute(sqls, data_flatten, report)
 
         return result
 
 
-    def __sub__(
+    def delete(
         self,
-        params: tuple | dict | str
+        table: str,
+        where: str | None = None,
+        order: str | None = None,
+        limit: int | str | None = None,
+        report: bool | None = None,
+        **kwdata: Any
     ) -> Result:
         """
         Delete the data of table in the datebase.
 
         Parameters
         ----------
-        params : Update parameters.
-            - `tuple`: Enter parameters in '(path, *params)' format.
-            - `dict`: Enter parameters in '(path, **params)' format.
-            - `str`: Enter parameters in '(path, params)' format.
+        table : Table name.
+        where : Clause `WHERE` content, join as `WHERE str`.
+        order : Clause `ORDER BY` content, join as `ORDER BY str`.
+        limit : Clause `LIMIT` content, join as `LIMIT int/str`.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
 
         Returns
         -------
         Result object.
+
+        Examples
+        --------
+        Parameter `where` and `kwdata`.
+        >>> where = '`id` IN :ids'
+        >>> ids = (1, 2)
+        >>> result = Database.execute.delete('table', where, ids=ids)
+        >>> print(result.rowcount)
+        2
         """
 
-        # Update.
-        match params:
-            case tuple():
-                result = self._rdatabase.execute_delete(self.__get_path, *params)
-            case dict():
-                result = self._rdatabase.execute_delete(self.__get_path, **params)
-            case _:
-                result = self._rdatabase.execute_delete(self.__get_path, params)
+        # Generate SQL.
+        sqls = []
+
+        ## Part 'DELETE' syntax.
+        sql_delete = f'DELETE FROM `{self.dbconn.db.database}`.`{table}`'
+        sqls.append(sql_delete)
+
+        ## Part 'WHERE' syntax.
+        if where is not None:
+            sql_where = f'WHERE {where}'
+            sqls.append(sql_where)
+
+        ## Part 'ORDER BY' syntax.
+        if order is not None:
+            sql_order = f'ORDER BY {order}'
+            sqls.append(sql_order)
+
+        ## Part 'LIMIT' syntax.
+        if limit is not None:
+            sql_limit = f'LIMIT {limit}'
+            sqls.append(sql_limit)
+
+        ## Join sqls.
+        sqls = '\n'.join(sqls)
+
+        # Execute SQL.
+        result = self.execute(sqls, report=report, **kwdata)
 
         return result
 
 
-    def __mul__(
+    def copy(
         self,
-        params: tuple | dict | str
+        table: str,
+        where: str | None = None,
+        limit: int | str | tuple[int, int] | None = None,
+        report: bool | None = None,
+        **kwdata: Any
     ) -> Result:
         """
         Copy record of table in the datebase.
 
         Parameters
         ----------
-        params : Update parameters.
-            - `tuple`: Enter parameters in '(path, *params)' format.
-            - `dict`: Enter parameters in '(path, **params)' format.
-            - `str`: Enter parameters in '(path, params)' format.
+        table : Table name.
+        where : Clause `WHERE` content, join as `WHERE str`.
+        limit : Clause `LIMIT` content.
+            - `int | str`: Join as `LIMIT int/str`.
+            - `tuple[int, int]`: Join as `LIMIT int, int`.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
+            - `In 'WHERE' syntax`: Fill 'WHERE' syntax.
+            - `Not in 'WHERE' syntax`: Fill 'INSERT' and 'SELECT' syntax.
+                `str and first character is ':'`: Use this syntax.
+                `Any`: Use this value.
 
         Returns
         -------
         Result object.
+
+        Examples
+        --------
+        Parameter `where` and `kwdata`.
+        >>> where = '`id` IN :ids'
+        >>> ids = (1, 2, 3)
+        >>> result = Database.execute.copy('table', where, 2, ids=ids, id=None, time=':NOW()')
+        >>> print(result.rowcount)
+        2
         """
 
-        # Update.
-        match params:
-            case tuple():
-                result = self._rdatabase.execute_copy(self.__get_path, *params)
-            case dict():
-                result = self._rdatabase.execute_copy(self.__get_path, **params)
-            case _:
-                result = self._rdatabase.execute_copy(self.__get_path, params)
+        # Handle parameter.
+        table_info: list[dict] = self.dbconn.db.info(self.dbconn.db.database)(table)()
+        field_key = 'COLUMN_NAME'
+        fields = [
+            row[field_key]
+            for row in table_info
+        ]
+        pattern = '(?<!\\\\):(\\w+)'
+        if type(where) == str:
+            where_keys = findall(pattern, where)
+        else:
+            where_keys = ()
+
+        # Generate SQL.
+        sqls = []
+
+        ## Part 'INSERT' syntax.
+        sql_fields = ', '.join(
+            f'`{field}`'
+            for field in fields
+            if field not in kwdata
+        )
+        if kwdata != {}:
+            sql_fields_kwdata = ', '.join(
+                f'`{field}`'
+                for field in kwdata
+                if field not in where_keys
+            )
+            sql_fields_filter = filter(
+                lambda sql: sql != '',
+                (
+                    sql_fields,
+                    sql_fields_kwdata
+                )
+            )
+            sql_fields = ', '.join(sql_fields_filter)
+        sql_insert = f'INSERT INTO `{self.dbconn.db.database}`.`{table}`({sql_fields})'
+        sqls.append(sql_insert)
+
+        ## Part 'SELECT' syntax.
+        sql_values = ', '.join(
+            f'`{field}`'
+            for field in fields
+            if field not in kwdata
+        )
+        if kwdata != {}:
+            sql_values_kwdata = ', '.join(
+                value[1:]
+                if (
+                    type(value) == str
+                    and value.startswith(':')
+                    and value != ':'
+                )
+                else f':{field}'
+                for field, value in kwdata.items()
+                if field not in where_keys
+            )
+            sql_values_filter = filter(
+                lambda sql: sql != '',
+                (
+                    sql_values,
+                    sql_values_kwdata
+                )
+            )
+            sql_values = ', '.join(sql_values_filter)
+        sql_select = (
+            f'SELECT {sql_values}\n'
+            f'FROM `{self.dbconn.db.database}`.`{table}`'
+        )
+        sqls.append(sql_select)
+
+        ## Part 'WHERE' syntax.
+        if where is not None:
+            sql_where = f'WHERE {where}'
+            sqls.append(sql_where)
+
+        ## Part 'LIMIT' syntax.
+        if limit is not None:
+            if type(limit) in (str, int):
+                sql_limit = f'LIMIT {limit}'
+            else:
+                if len(limit) == 2:
+                    sql_limit = f'LIMIT {limit[0]}, {limit[1]}'
+                else:
+                    throw(ValueError, limit)
+            sqls.append(sql_limit)
+
+        ## Join.
+        sql = '\n'.join(sqls)
+
+        # Execute SQL.
+        result = self.execute(sql, report=report, **kwdata)
 
         return result
 
 
-    def __contains__(
+    def count(
         self,
-        params: tuple | dict | str
+        table: str,
+        where: str | None = None,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> int:
+        """
+        Count records.
+
+        Parameters
+        ----------
+        table : Table name.
+        where : Match condition, `WHERE` clause content, join as `WHERE str`.
+            - `None`: Match all.
+            - `str`: Match condition.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
+
+        Returns
+        -------
+        Record count.
+
+        Examples
+        --------
+        Parameter `where` and `kwdata`.
+        >>> where = '`id` IN :ids'
+        >>> ids = (1, 2)
+        >>> result = Database.execute.count('table', where, ids=ids)
+        >>> print(result)
+        2
+        """
+
+        # Execute.
+        result = self.select(table, '1', where=where, report=report, **kwdata)
+        count = len(tuple(result))
+
+        return count
+
+
+    def exist(
+        self,
+        table: str,
+        where: str | None = None,
+        report: bool | None = None,
+        **kwdata: Any
     ) -> bool:
         """
         Judge the exist of record.
 
         Parameters
         ----------
-        params : Update parameters.
-            - `tuple`: Enter parameters in '(path, *params)' format.
-            - `dict`: Enter parameters in '(path, **params)' format.
-            - `str`: Enter parameters in '(path, params)' format.
+        table : Table name.
+        where : Match condition, `WHERE` clause content, join as `WHERE str`.
+            - `None`: Match all.
+            - `str`: Match condition.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
 
         Returns
         -------
-        Result object.
+        Judged result.
+
+        Examples
+        --------
+        Parameter `where` and `kwdata`.
+        >>> data = [{'id': 1}]
+        >>> Database.execute.insert('table', data)
+        >>> where = '`id` = :id_'
+        >>> id_ = 1
+        >>> result = Database.execute.exist('table', where, id_=id_)
+        >>> print(result)
+        True
         """
 
-        # Update.
-        match params:
-            case tuple():
-                result = self._rdatabase.execute_exist(self.__get_path, *params)
-            case dict():
-                result = self._rdatabase.execute_exist(self.__get_path, **params)
-            case _:
-                result = self._rdatabase.execute_exist(self.__get_path, params)
+        # Execute.
+        result = self.count(table, where, report, **kwdata)
 
-        return result
+        # Judge.
+        judge = result != 0
+
+        return judge
 
 
-    def __len__(
-        self
-    ) -> int:
+    def generator(
+        self,
+        sql: str | TextClause,
+        data: TableData,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> Generator[Result, Any, None]:
         """
-        Count records.
+        Return a generator that can execute SQL.
+
+        Parameters
+        ----------
+        sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
+        data : Data set for filling.
+        report : Whether report SQL execute information.
+            - `None`: Use attribute `default_report`.
+            - `bool`: Use this value.
+        kwdata : Keyword parameters for filling.
 
         Returns
         -------
-        Record count.
+        Generator.
         """
 
-        # Update.
-        result = self._rdatabase.execute_count(self.__get_path)
+        # Instance.
+        func_generator = FunctionGenerator(
+            self.execute,
+            sql=sql,
+            report=report,
+            **kwdata
+        )
 
-        return result
+        # Add.
+        for row in data:
+            func_generator(**row)
+
+        return func_generator.generator
+
+
+    def handle_sql(self, sql: str | TextClause) -> TextClause:
+        """
+        Handle SQL.
+
+        Parameters
+        ----------
+        sql : SQL in method `sqlalchemy.text` format, or TextClause object.
+
+        Returns
+        -------
+        TextClause instance.
+        """
+
+        # Handle parameter.
+        if type(sql) == TextClause:
+            sql = sql.text
+
+        # Handle.
+        sql = sql.strip()
+        if sql[-1] != ';':
+            sql += ';'
+        sql = sqlalchemy_text(sql)
+
+        return sql
+
+
+    def handle_data(
+        self,
+        data: list[dict],
+        sql: str | TextClause,
+    ) -> list[dict]:
+        """
+        Handle data based on the content of SQL.
+
+        Parameters
+        ----------
+        data : Data set for filling.
+        sql : SQL in method `sqlalchemy.text` format, or TextClause object.
+
+        Returns
+        -------
+        Filled data.
+        """
+
+        # Handle parameter.
+        if type(sql) == TextClause:
+            sql = sql.text
+
+        # Extract keys.
+        pattern = '(?<!\\\\):(\\w+)'
+        sql_keys = findall(pattern, sql)
+
+        # Extract keys of syntax "in".
+        pattern = '[iI][nN]\\s+(?<!\\\\):(\\w+)'
+        sql_keys_in = findall(pattern, sql)
+
+        # Loop.
+        for row in data:
+            if row == {}:
+                continue
+            for key in sql_keys:
+                value = row.get(key)
+
+                # Empty string.
+                if value == '':
+                    value = None
+
+                # Convert.
+                elif (
+                    type(value) in (list, dict)
+                    and key not in sql_keys_in
+                ):
+                    value = to_json(value)
+
+                # Enum.
+                elif isinstance(type(value), EnumType):
+                    value = value.value
+
+                row[key] = value
+
+        return data

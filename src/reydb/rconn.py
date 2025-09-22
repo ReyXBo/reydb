@@ -10,10 +10,9 @@
 
 
 from typing import Self
-from sqlalchemy.engine.base import Connection
-from sqlalchemy.sql.elements import TextClause
 
-from .rdb import Result, Database
+from .rbase import DatabaseBase
+from .rdb import Database
 
 
 __all__ = (
@@ -21,7 +20,7 @@ __all__ = (
 )
 
 
-class DatabaseConnection(Database):
+class DatabaseConnection(DatabaseBase):
     """
     Database connection type.
     """
@@ -29,66 +28,46 @@ class DatabaseConnection(Database):
 
     def __init__(
         self,
-        connection: Connection,
-        rdatabase: Database
+        db: Database,
+        autocommit: bool
     ) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        connection : Connection object.
-        rdatabase : Database object.
+        db : Database instance.
+        autocommit: Whether automatic commit connection.
         """
 
-        # Set parameter.
-        self.connection = connection
-        self.rdatabase = rdatabase
+        # Build.
+        self.db = db
+        self.autocommit = autocommit
+        self.conn = db.engine.connect()
         self.begin = None
-        self.username = rdatabase.username
-        self.password = rdatabase.password
-        self.host = rdatabase.host
-        self.port = rdatabase.port
-        self.database = rdatabase.database
-        self.query = rdatabase.query
-        self.pool_recycle = rdatabase.pool_recycle
 
 
-    def executor(
-        self,
-        sql: TextClause,
-        data: list[dict],
-        report: bool
-    ) -> Result:
+    @property
+    def execute(self):
         """
-        SQL executor.
-
-        Parameters
-        ----------
-        sql : TextClause object.
-        data : Data set for filling.
-        report : Whether report SQL execute information.
+        Build `database execute` instance.
 
         Returns
         -------
-        Result object.
+        Instance.
         """
+
+        # Import.
+        from .rexec import DatabaseExecute
 
         # Create transaction.
         if self.begin is None:
-            self.begin = self.connection.begin()
+            self.begin = self.conn.begin()
 
-        # Execute.
+        # Build.
+        exec = DatabaseExecute(self)
 
-        ## Report.
-        if report:
-            result = self.executor_report(self.connection, sql, data)
-
-        ## Not report.
-        else:
-            result = self.connection.execute(sql, data)
-
-        return result
+        return exec
 
 
     def commit(self) -> None:
@@ -119,7 +98,7 @@ class DatabaseConnection(Database):
         """
 
         # Close.
-        self.connection.close()
+        self.conn.close()
 
 
     def __enter__(self) -> Self:

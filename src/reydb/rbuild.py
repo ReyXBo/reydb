@@ -14,7 +14,7 @@ from copy import deepcopy
 from reykit.rbase import throw
 from reykit.rstdout import ask
 
-from .rbase import DatabaseBase
+from .rbase import DatabaseBase, extract_path
 from .rconn import DatabaseConnection
 from .rdb import Database
 
@@ -60,11 +60,6 @@ class DatabaseBuild(DatabaseBase):
         ----------
         database : Database or DatabaseConnection instance.
         """
-
-        # SQLite.
-        if database.backend == 'sqlite':
-            text = 'not suitable for SQLite databases'
-            throw(AssertionError, text=text)
 
         # Set attribute.
         self.database = database
@@ -285,7 +280,8 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, table, _ = self.database.extract_path(path)
+        if type(path) == str:
+            database, table, _ = extract_path(path)
         if fields.__class__ == dict:
             fields = [fields]
         if primary.__class__ == str:
@@ -375,7 +371,7 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, view, _ = self.database.extract_path(path)
+        database, view, _ = extract_path(path)
 
         # Generate SQL.
         select = select.replace('\n', '\n    ')
@@ -502,7 +498,7 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, table, _ = self.database.extract_path(path)
+        database, table, _ = extract_path(path)
 
         # Generate.
         sql = f'DROP TABLE `{database}`.`{table}`'
@@ -535,7 +531,7 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, view, _ = self.database.extract_path(path)
+        database, view, _ = extract_path(path)
 
         # Generate SQL.
         sql = 'DROP VIEW `%s`.`%s`' % (database, view)
@@ -649,7 +645,7 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, table, _ = self.database.extract_path(path)
+        database, table, _ = extract_path(path)
         if fields.__class__ == dict:
             fields = [fields]
         if primary.__class__ == str:
@@ -739,7 +735,7 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, table, _ = self.database.extract_path(path)
+        database, table, _ = extract_path(path)
         if fields.__class__ == str:
             fields = [fields]
         if indexes.__class__ == str:
@@ -829,7 +825,7 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, table, _ = self.database.extract_path(path)
+        database, table, _ = extract_path(path)
         if fields.__class__ == dict:
             fields = [fields]
 
@@ -925,7 +921,7 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, view, _ = self.database.extract_path(path)
+        database, view, _ = extract_path(path)
 
         # Generate SQL.
         sql = 'ALTER VIEW `%s`.`%s` AS\n%s' % (database, view, select)
@@ -958,7 +954,7 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, table, _ = self.database.extract_path(path)
+        database, table, _ = extract_path(path)
 
         # Generate.
         sql = f'TRUNCATE TABLE `{database}`.`{table}`'
@@ -972,7 +968,7 @@ class DatabaseBuild(DatabaseBase):
 
     def exist(
         self,
-        path: str | tuple[str, str | None, str | None]
+        path: str | tuple[str] | tuple[str, str] | tuple[str, str, str]
     ) -> bool:
         """
         Judge database or table or column exists.
@@ -981,7 +977,7 @@ class DatabaseBuild(DatabaseBase):
         ----------
         path : Database name and table name and column name.
             - `str`: Automatic extract.
-            - `tuple[str, str | None, str | None]`: Database name, table name and column name is optional.
+            - `tuple`: Format is `(database[, table, column]).`
 
         Returns
         -------
@@ -989,7 +985,7 @@ class DatabaseBuild(DatabaseBase):
         """
 
         # Handle parameter.
-        database, table, column = self.database.extract_path(path, 'database')
+        database, table, column = extract_path(path)
         if self._schema is None:
             self._schema = self.database.schema(False)
 
@@ -1101,7 +1097,7 @@ class DatabaseBuild(DatabaseBase):
         # Table.
         for params in tables:
             path = params['path']
-            database, table, _ = self.database.extract_path(path)
+            database, table, _ = extract_path(path)
 
             ## Exist.
             exist = self.database.build.exist((database, table, None))
@@ -1124,7 +1120,7 @@ class DatabaseBuild(DatabaseBase):
         # View.
         for params in views:
             path = params['path']
-            database, view, _ = self.database.extract_path(path)
+            database, view, _ = extract_path(path)
 
             ## Exist.
             exist = self.database.build.exist((database, view, None))
@@ -1147,7 +1143,7 @@ class DatabaseBuild(DatabaseBase):
         # View stats.
         for params in views_stats:
             path = params['path']
-            database, view, _ = self.database.extract_path(path)
+            database, view, _ = extract_path(path)
 
             ## Exist.
             exist = self.database.build.exist((database, view, None))

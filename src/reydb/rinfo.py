@@ -216,16 +216,11 @@ class DatabaseInformationSchema(DatabaseInformation):
         Information table.
         """
 
-        # SQLite.
-        if self._rdatabase.backend == 'sqlite':
-            throw(AssertionError, self._rdatabase.drivername)
-
         # Select.
-        else:
-            result = self._rdatabase.execute_select(
-                'information_schema.SCHEMATA',
-                order='`schema_name`'
-            )
+        result = self._rdatabase.execute.select(
+            'information_schema.SCHEMATA',
+            order='`schema_name`'
+        )
 
         # Convert.
         info_table = result.to_table()
@@ -273,13 +268,6 @@ class DatabaseInformationDatabase(DatabaseInformation):
         database_name : Database name.
         """
 
-        # SQLite.
-        if (
-            rdatabase.backend == 'sqlite'
-            and database_name != 'main'
-        ):
-            throw(ValueError, database_name)
-
         # Set parameter.
         self._rdatabase = rdatabase
         self._database_name = database_name
@@ -294,13 +282,9 @@ class DatabaseInformationDatabase(DatabaseInformation):
         Information attribute dictionary.
         """
 
-        # SQLite.
-        if self._rdatabase.backend == 'sqlite':
-            throw(AssertionError, self._rdatabase.drivername)
-
         # Select.
         where = '`SCHEMA_NAME` = :database_name'
-        result = self._rdatabase.execute_select(
+        result = self._rdatabase.execute.select(
             'information_schema.SCHEMATA',
             where=where,
             limit=1,
@@ -328,20 +312,13 @@ class DatabaseInformationDatabase(DatabaseInformation):
         """
 
         # Select.
-
-        ## SQLite.
-        if self._rdatabase.backend == 'sqlite':
-            result = self._rdatabase.execute_select('main.sqlite_master')
-
-        ## Other.
-        else:
-            where = '`TABLE_SCHEMA` = :database_name'
-            result = self._rdatabase.execute_select(
-                'information_schema.TABLES',
-                where=where,
-                order='`TABLE_NAME`',
-                database_name=self._database_name
-            )
+        where = '`TABLE_SCHEMA` = :database_name'
+        result = self._rdatabase.execute.select(
+            'information_schema.TABLES',
+            where=where,
+            order='`TABLE_NAME`',
+            database_name=self._database_name
+        )
 
         # Convert.
         info_table = result.to_table()
@@ -404,27 +381,14 @@ class DatabaseInformationTable(DatabaseInformation):
         """
 
         # Select.
-
-        ## SQLite.
-        if self._rdatabase.backend == 'sqlite':
-            where = '`name` = :name'
-            result = self._rdatabase.execute_select(
-                'main.sqlite_master',
-                where=where,
-                limit=1,
-                name=self._table_name
-            )
-
-        ## Other.
-        else:
-            where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name'
-            result = self._rdatabase.execute_select(
-                'information_schema.TABLES',
-                where=where,
-                limit=1,
-                database_name=self._database_name,
-                table_name=self._table_name
-            )
+        where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name'
+        result = self._rdatabase.execute.select(
+            'information_schema.TABLES',
+            where=where,
+            limit=1,
+            database_name=self._database_name,
+            table_name=self._table_name
+        )
 
         # Convert.
         info_table = result.to_table()
@@ -447,22 +411,14 @@ class DatabaseInformationTable(DatabaseInformation):
         """
 
         # Select.
-
-        ## SQLite.
-        if self._rdatabase.backend == 'sqlite':
-            sql = f'PRAGMA table_info("%s")' % self._table_name
-            result = self._rdatabase.execute(sql)
-
-        ## Other.
-        else:
-            where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name'
-            result = self._rdatabase.execute_select(
-                'information_schema.COLUMNS',
-                where=where,
-                order='`ORDINAL_POSITION`',
-                database_name=self._database_name,
-                table_name=self._table_name
-            )
+        where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name'
+        result = self._rdatabase.execute.select(
+            'information_schema.COLUMNS',
+            where=where,
+            order='`ORDINAL_POSITION`',
+            database_name=self._database_name,
+            table_name=self._table_name
+        )
 
         # Convert.
         info_table = result.to_table()
@@ -522,29 +478,15 @@ class DatabaseInformationColumn(DatabaseInformation):
         """
 
         # Select.
-
-        ## SQLite.
-        if self._rdatabase.backend == 'sqlite':
-            sql = f'PRAGMA table_info("%s")' % self._table_name
-            where = '`name` = :name'
-            result = self._rdatabase.execute(
-                sql,
-                where=where,
-                limit=1,
-                name=self._column_name
-            )
-
-        ## Other.
-        else:
-            where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name AND `COLUMN_NAME` = :column_name'
-            result = self._rdatabase.execute_select(
-                'information_schema.COLUMNS',
-                where=where,
-                limit=1,
-                database_name=self._database_name,
-                table_name=self._table_name,
-                column_name=self._column_name
-            )
+        where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name AND `COLUMN_NAME` = :column_name'
+        result = self._rdatabase.execute.select(
+            'information_schema.COLUMNS',
+            where=where,
+            limit=1,
+            database_name=self._database_name,
+            table_name=self._table_name,
+            column_name=self._column_name
+        )
 
         # Convert.
         info_table = result.to_table()
