@@ -19,5 +19,6 @@ rerror : Database error methods.
 rexec : Database execute methods.
 rfile : Database file methods.
 rinfo : Database information methods.
+rorm : Database ORM methods.
 rparam : Database parameter methods.
 """

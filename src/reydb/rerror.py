@@ -13,10 +13,9 @@ from typing import Any
 from collections.abc import Callable
 from traceback import StackSummary
 from functools import wraps as functools_wraps
-from reykit.rbase import T, Exit, throw, catch_exc
+from reykit.rbase import T, Exit, catch_exc
 
 from .rbase import DatabaseBase
-from .rconn import DatabaseConnection
 from .rdb import Database
 
 
@@ -32,17 +31,17 @@ class DatabaseError(DatabaseBase):
     """
 
 
-    def __init__(self, database: Database | DatabaseConnection) -> None:
+    def __init__(self, db: Database) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        database : Database or DatabaseConnection instance.
+        db: Database instance.
         """
 
         # Build.
-        self.database = database
+        self.db = db
 
         ## Database path name.
         self.db_names = {
@@ -184,7 +183,7 @@ class DatabaseError(DatabaseBase):
         ]
 
         # Build.
-        self.database.build.build(databases, tables, views_stats=views_stats)
+        self.db.build.build(databases, tables, views_stats=views_stats)
 
 
     def record(
@@ -223,7 +222,7 @@ class DatabaseError(DatabaseBase):
         }
 
         # Insert.
-        self.database.execute.insert(
+        self.db.execute.insert(
             (self.db_names['base'], self.db_names['base.error']),
             data=data
         )

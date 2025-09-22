@@ -25,11 +25,13 @@ __all__ = (
 
 class Database(DatabaseBase):
     """
-    Database type.
-    Based `MySQL`.
+    Database type, based `MySQL`.
+
+    Attributes
+    ----------
+    default_report : Whether default to report execution.
     """
 
-    # Whether default to report execution.
     default_report: bool = False
 
 
@@ -206,45 +208,6 @@ class Database(DatabaseBase):
         return keep_n, overflow_n
 
 
-    def connect(self, autocommit: bool = False):
-        """
-        Build `DatabaseConnection` instance.
-
-        Parameters
-        ----------
-        autocommit: Whether automatic commit connection.
-
-        Returns
-        -------
-        Database connection instance.
-        """
-
-        # Import.
-        from .rconn import DatabaseConnection
-
-        # Build.
-        conn = DatabaseConnection(self, autocommit)
-
-        return conn
-
-
-    @property
-    def execute(self):
-        """
-        Build `database execute` instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Build.
-        dbconn = self.connect(True)
-        exec = dbconn.execute
-
-        return exec
-
-
     def schema(self, filter_default: bool = True) -> dict[str, dict[str, list[str]]]:
         """
         Get schemata of databases and tables and columns.
@@ -309,10 +272,68 @@ class Database(DatabaseBase):
             column_list.append(column)
 
         ## Add empty database.
-        for database_name in database_names:
-            schema_dict[database_name] = None
+        for name in database_names:
+            schema_dict[name] = None
 
         return schema_dict
+
+
+    def connect(self, autocommit: bool = False):
+        """
+        Build `DatabaseConnection` instance.
+
+        Parameters
+        ----------
+        autocommit: Whether automatic commit connection.
+
+        Returns
+        -------
+        Database connection instance.
+        """
+
+        # Import.
+        from .rconn import DatabaseConnection
+
+        # Build.
+        conn = DatabaseConnection(self, autocommit)
+
+        return conn
+
+
+    @property
+    def execute(self):
+        """
+        Build `DatabaseExecute` instance.
+
+        Returns
+        -------
+        Instance.
+        """
+
+        # Build.
+        dbconn = self.connect(True)
+        exec = dbconn.execute
+
+        return exec
+
+
+    @property
+    def orm(self):
+        """
+        Build `DatabaseORM` instance.
+
+        Returns
+        -------
+        Instance.
+        """
+
+        # Import.
+        from .rorm import DatabaseORM
+
+        # Build.
+        orm = DatabaseORM(self)
+
+        return orm
 
 
     @property

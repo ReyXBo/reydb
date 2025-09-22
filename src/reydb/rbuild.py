@@ -15,7 +15,6 @@ from reykit.rbase import throw
 from reykit.rstdout import ask
 
 from .rbase import DatabaseBase, extract_path
-from .rconn import DatabaseConnection
 from .rdb import Database
 
 
@@ -52,17 +51,17 @@ class DatabaseBuild(DatabaseBase):
     """
 
 
-    def __init__(self, database: Database | DatabaseConnection) -> None:
+    def __init__(self, db: Database) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        database : Database or DatabaseConnection instance.
+        db: Database instance.
         """
 
         # Set attribute.
-        self.database = database
+        self.db = db
         self._schema: dict[str, dict[str, list[str]]] | None = None
 
 
@@ -93,7 +92,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.database.execute(sql)
+            self.db.execute(sql)
 
         return sql
 
@@ -343,7 +342,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.database.execute(sql)
+            self.db.execute(sql)
 
         return sql
 
@@ -379,7 +378,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.database.execute(sql)
+            self.db.execute(sql)
 
         return sql
 
@@ -472,7 +471,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.database.execute(sql)
+            self.db.execute(sql)
 
         return sql
 
@@ -505,7 +504,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.database.execute(sql)
+            self.db.execute(sql)
 
         return sql
 
@@ -538,7 +537,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.database.execute(sql)
+            self.db.execute(sql)
 
         return sql
 
@@ -588,7 +587,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.database.execute(sql)
+            self.db.execute(sql)
 
         return sql
 
@@ -703,7 +702,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.database.execute(sql)
+            self.db.execute(sql)
 
         return sql
 
@@ -774,7 +773,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.database.execute(sql)
+            self.db.execute(sql)
 
         return sql
 
@@ -893,7 +892,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.database.execute(sql)
+            self.db.execute(sql)
 
         return sql
 
@@ -928,7 +927,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.database.execute(sql)
+            self.db.execute(sql)
 
         return sql
 
@@ -961,7 +960,7 @@ class DatabaseBuild(DatabaseBase):
 
         # Execute.
         if execute:
-            self.database.execute(sql)
+            self.db.execute(sql)
 
         return sql
 
@@ -987,7 +986,7 @@ class DatabaseBuild(DatabaseBase):
         # Handle parameter.
         database, table, column = extract_path(path)
         if self._schema is None:
-            self._schema = self.database.schema(False)
+            self._schema = self.db.schema(False)
 
         # Judge.
         judge = (
@@ -1077,7 +1076,7 @@ class DatabaseBuild(DatabaseBase):
             database = params['name']
 
             ## Exist.
-            exist = self.database.build.exist((database, None, None))
+            exist = self.db.build.exist((database, None, None))
             if exist:
                 continue
 
@@ -1088,7 +1087,7 @@ class DatabaseBuild(DatabaseBase):
             self.input_confirm_build(sql)
 
             ## Execute.
-            self.database.execute(sql)
+            self.db.execute(sql)
 
             ## Report.
             text = f"Database '{database}' build completed."
@@ -1100,7 +1099,7 @@ class DatabaseBuild(DatabaseBase):
             database, table, _ = extract_path(path)
 
             ## Exist.
-            exist = self.database.build.exist((database, table, None))
+            exist = self.db.build.exist((database, table, None))
             if exist:
                 continue
 
@@ -1111,7 +1110,7 @@ class DatabaseBuild(DatabaseBase):
             self.input_confirm_build(sql)
 
             ## Execute.
-            self.database.execute(sql)
+            self.db.execute(sql)
 
             ## Report.
             text = f"Table '{table}' of database '{database}' build completed."
@@ -1123,7 +1122,7 @@ class DatabaseBuild(DatabaseBase):
             database, view, _ = extract_path(path)
 
             ## Exist.
-            exist = self.database.build.exist((database, view, None))
+            exist = self.db.build.exist((database, view, None))
             if exist:
                 continue
 
@@ -1134,7 +1133,7 @@ class DatabaseBuild(DatabaseBase):
             self.input_confirm_build(sql)
 
             ## Execute.
-            self.database.execute(sql)
+            self.db.execute(sql)
 
             ## Report.
             text = f"View '{view}' of database '{database}' build completed."
@@ -1146,7 +1145,7 @@ class DatabaseBuild(DatabaseBase):
             database, view, _ = extract_path(path)
 
             ## Exist.
-            exist = self.database.build.exist((database, view, None))
+            exist = self.db.build.exist((database, view, None))
             if exist:
                 continue
 
@@ -1157,7 +1156,7 @@ class DatabaseBuild(DatabaseBase):
             self.input_confirm_build(sql)
 
             ## Execute.
-            self.database.execute(sql)
+            self.db.execute(sql)
 
             ## Report.
             text = f"View '{view}' of database '{database}' build completed."

@@ -12,7 +12,6 @@
 from typing import overload
 
 from .rbase import DatabaseBase
-from .rconn import DatabaseConnection
 from .rdb import Database
 
 
@@ -32,7 +31,7 @@ class DatabaseParameters(DatabaseBase):
 
     def __init__(
         self,
-        rdatabase: Database | DatabaseConnection,
+        db: Database,
         global_: bool
     ) -> None:
         """
@@ -40,12 +39,12 @@ class DatabaseParameters(DatabaseBase):
 
         Parameters
         ----------
-        rdatabase : Database or DatabaseConnection instance.
+        db: Database instance.
         global\\_ : Whether base global.
         """
 
         # Set parameter.
-        self.rdatabase = rdatabase
+        self.db = db
         self.global_ = global_
 
 
@@ -126,13 +125,13 @@ class DatabaseParametersStatus(DatabaseParameters):
 
         ## Dictionary.
         if key is None:
-            result = self.rdatabase.execute(sql, key=key)
+            result = self.db.execute(sql, key=key)
             status = result.to_dict(val_field=1)
 
         ## Value.
         else:
             sql += ' LIKE :key'
-            result = self.rdatabase.execute(sql, key=key)
+            result = self.db.execute(sql, key=key)
             row = result.first()
             if row is None:
                 status = None
@@ -196,13 +195,13 @@ class DatabaseParametersVariable(DatabaseParameters):
 
         ## Dictionary.
         if key is None:
-            result = self.rdatabase.execute(sql, key=key)
+            result = self.db.execute(sql, key=key)
             variables = result.to_dict(val_field=1)
 
         ## Value.
         else:
             sql += ' LIKE :key'
-            result = self.rdatabase.execute(sql, key=key)
+            result = self.db.execute(sql, key=key)
             row = result.first()
             if row is None:
                 variables = None
@@ -244,7 +243,7 @@ class DatabaseParametersVariable(DatabaseParameters):
             sql = f'SET {sql_set}'
 
         # Execute SQL.
-        self.rdatabase.execute(sql)
+        self.db.execute(sql)
 
 
 class DatabaseParametersPragma(DatabaseParameters):
@@ -255,18 +254,18 @@ class DatabaseParametersPragma(DatabaseParameters):
 
     def __init__(
         self,
-        rdatabase: Database | DatabaseConnection
+        db: Database
     ) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : Database or DatabaseConnection instance.
+        db: Database instance.
         """
 
         # Set parameter.
-        self.rdatabase = rdatabase
+        self.db = db
 
 
     def get(self, key: str) -> str | None:
@@ -286,7 +285,7 @@ class DatabaseParametersPragma(DatabaseParameters):
         sql = f'PRAGMA %s' % key
 
         # Execute SQL.
-        result = self.rdatabase.execute(sql)
+        result = self.db.execute(sql)
         row = result.first()
         if row is None:
             variables = None
@@ -320,4 +319,4 @@ class DatabaseParametersPragma(DatabaseParameters):
         sql = ';\n'.join(sql_set_list)
 
         # Execute SQL.
-        self.rdatabase.execute(sql)
+        self.db.execute(sql)

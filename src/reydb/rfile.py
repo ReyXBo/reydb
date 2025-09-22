@@ -11,11 +11,9 @@
 
 from typing import TypedDict, overload
 from datetime import datetime
-from reykit.rbase import throw
 from reykit.ros import File, Folder, get_md5
 
 from .rbase import DatabaseBase
-from .rconn import DatabaseConnection
 from .rdb import Database
 
 
@@ -34,17 +32,17 @@ class DatabaseFile(DatabaseBase):
     """
 
 
-    def __init__(self, database: Database | DatabaseConnection) -> None:
+    def __init__(self, db: Database) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        database : Database or DatabaseConnection instance.
+        db: Database instance.
         """
 
         # Build.
-        self.database = database
+        self.db = db
 
         ## Database path name.
         self.db_names = {
@@ -274,7 +272,7 @@ class DatabaseFile(DatabaseBase):
         ]
 
         # Build.
-        self.database.build.build(databases, tables, views, views_stats)
+        self.db.build.build(databases, tables, views, views_stats)
 
 
     def upload(
@@ -302,7 +300,7 @@ class DatabaseFile(DatabaseBase):
         """
 
         # Handle parameter.
-        conn = self.database.connect()
+        conn = self.db.connect()
         match source:
 
             ## File path.
@@ -419,7 +417,7 @@ class DatabaseFile(DatabaseBase):
         )
 
         # Execute SQL.
-        result = self.database.execute(sql, file_id=file_id)
+        result = self.db.execute(sql, file_id=file_id)
 
         # Check.
         if result.empty:
@@ -471,7 +469,7 @@ class DatabaseFile(DatabaseBase):
         )
 
         # Execute SQL.
-        result = self.database.execute(sql, file_id=file_id)
+        result = self.db.execute(sql, file_id=file_id)
 
         # Check.
         if result.empty:

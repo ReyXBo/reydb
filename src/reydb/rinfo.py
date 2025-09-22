@@ -11,10 +11,8 @@
 
 from __future__ import annotations
 from typing import Any, Literal, overload
-from reykit.rbase import throw
 
 from .rbase import DatabaseBase
-from .rconn import DatabaseConnection
 from .rdb import Database
 
 
@@ -151,11 +149,11 @@ class DatabaseInformation(DatabaseBase):
         # Build.
         match self:
             case DatabaseInformationSchema():
-                table = DatabaseInformationDatabase(self._rdatabase, name)
+                table = DatabaseInformationDatabase(self.db, name)
             case DatabaseInformationDatabase():
-                table = DatabaseInformationTable(self._rdatabase, self._database_name, name)
+                table = DatabaseInformationTable(self.db, self.database, name)
             case DatabaseInformationTable():
-                table = DatabaseInformationColumn(self._rdatabase, self._database_name, self._table_name, name)
+                table = DatabaseInformationColumn(self.db, self.database, self.table, name)
             case _:
                 raise AssertionError("class '%s' does not have this method" % type(self).__name__)
 
@@ -193,18 +191,18 @@ class DatabaseInformationSchema(DatabaseInformation):
 
     def __init__(
         self,
-        rdatabase: Database | DatabaseConnection
+        db: Database
     ) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : Database or DatabaseConnection instance.
+        db: Database instance.
         """
 
         # Set parameter.
-        self._rdatabase = rdatabase
+        self.db = db
 
 
     def _get_info_table(self) -> list[dict]:
@@ -217,7 +215,7 @@ class DatabaseInformationSchema(DatabaseInformation):
         """
 
         # Select.
-        result = self._rdatabase.execute.select(
+        result = self.db.execute.select(
             'information_schema.SCHEMATA',
             order='`schema_name`'
         )
@@ -256,21 +254,21 @@ class DatabaseInformationDatabase(DatabaseInformation):
 
     def __init__(
         self,
-        rdatabase: Database | DatabaseConnection,
-        database_name: str
+        db: Database,
+        database: str
     ) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : Database or DatabaseConnection instance.
-        database_name : Database name.
+        db: Database instance.
+        database : Database name.
         """
 
         # Set parameter.
-        self._rdatabase = rdatabase
-        self._database_name = database_name
+        self.db = db
+        self.database = database
 
 
     def _get_info_attrs(self) -> dict:
@@ -283,19 +281,19 @@ class DatabaseInformationDatabase(DatabaseInformation):
         """
 
         # Select.
-        where = '`SCHEMA_NAME` = :database_name'
-        result = self._rdatabase.execute.select(
+        where = '`SCHEMA_NAME` = :database'
+        result = self.db.execute.select(
             'information_schema.SCHEMATA',
             where=where,
             limit=1,
-            database_name=self._database_name
+            database=self.database
         )
 
         # Convert.
         info_table = result.to_table()
 
         ## Check.
-        assert len(info_table) != 0, "database '%s' not exist" % self._database_name
+        assert len(info_table) != 0, "database '%s' not exist" % self.database
 
         info_attrs = info_table[0]
 
@@ -312,19 +310,19 @@ class DatabaseInformationDatabase(DatabaseInformation):
         """
 
         # Select.
-        where = '`TABLE_SCHEMA` = :database_name'
-        result = self._rdatabase.execute.select(
+        where = '`TABLE_SCHEMA` = :database'
+        result = self.db.execute.select(
             'information_schema.TABLES',
             where=where,
             order='`TABLE_NAME`',
-            database_name=self._database_name
+            database=self.database
         )
 
         # Convert.
         info_table = result.to_table()
 
         ## Check.
-        assert len(info_table) != 0, "database '%s' not exist" % self._database_name
+        assert len(info_table) != 0, "database '%s' not exist" % self.database
 
         return info_table
 
@@ -351,24 +349,24 @@ class DatabaseInformationTable(DatabaseInformation):
 
     def __init__(
         self,
-        rdatabase: Database | DatabaseConnection,
-        database_name: str,
-        table_name: str
+        db: Database,
+        database: str,
+        table: str
     ) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : Database or DatabaseConnection instance.
-        database_name : Database name.
-        table_name : Table name.
+        db: Database instance.
+        database : Database name.
+        table : Table name.
         """
 
         # Set parameter.
-        self._rdatabase = rdatabase
-        self._database_name = database_name
-        self._table_name = table_name
+        self.db = db
+        self.database = database
+        self.table = table
 
 
     def _get_info_attrs(self) -> dict:
@@ -381,20 +379,20 @@ class DatabaseInformationTable(DatabaseInformation):
         """
 
         # Select.
-        where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name'
-        result = self._rdatabase.execute.select(
+        where = '`TABLE_SCHEMA` = :database AND `TABLE_NAME` = :table_'
+        result = self.db.execute.select(
             'information_schema.TABLES',
             where=where,
             limit=1,
-            database_name=self._database_name,
-            table_name=self._table_name
+            database=self.database,
+            table_=self.table
         )
 
         # Convert.
         info_table = result.to_table()
 
         ## Check.
-        assert len(info_table) != 0, "database '%s' or table '%s' not exist" % (self._database_name, self._table_name)
+        assert len(info_table) != 0, "database '%s' or table '%s' not exist" % (self.database, self.table)
 
         info_attrs = info_table[0]
 
@@ -411,20 +409,20 @@ class DatabaseInformationTable(DatabaseInformation):
         """
 
         # Select.
-        where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name'
-        result = self._rdatabase.execute.select(
+        where = '`TABLE_SCHEMA` = :database AND `TABLE_NAME` = :table_'
+        result = self.db.execute.select(
             'information_schema.COLUMNS',
             where=where,
             order='`ORDINAL_POSITION`',
-            database_name=self._database_name,
-            table_name=self._table_name
+            database=self.database,
+            table_=self.table
         )
 
         # Convert.
         info_table = result.to_table()
 
         ## Check.
-        assert len(info_table) != 0, "database '%s' or table '%s' not exist" % (self._database_name, self._table_name)
+        assert len(info_table) != 0, "database '%s' or table '%s' not exist" % (self.database, self.table)
 
         return info_table
 
@@ -445,27 +443,27 @@ class DatabaseInformationColumn(DatabaseInformation):
 
     def __init__(
         self,
-        rdatabase: Database | DatabaseConnection,
-        database_name: str,
-        table_name: str,
-        column_name: str
+        db: Database,
+        database: str,
+        table: str,
+        column: str
     ) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        rdatabase : Database or DatabaseConnection instance.
-        database_name : Database name.
-        table_name : Table name.
-        column_name : Column name.
+        db: Database instance.
+        database : Database name.
+        table : Table name.
+        column : Column name.
         """
 
         # Set parameter.
-        self._rdatabase = rdatabase
-        self._database_name = database_name
-        self._table_name = table_name
-        self._column_name = column_name
+        self.db = db
+        self.database = database
+        self.table = table
+        self.column = column
 
 
     def _get_info_attrs(self) -> dict:
@@ -478,21 +476,21 @@ class DatabaseInformationColumn(DatabaseInformation):
         """
 
         # Select.
-        where = '`TABLE_SCHEMA` = :database_name AND `TABLE_NAME` = :table_name AND `COLUMN_NAME` = :column_name'
-        result = self._rdatabase.execute.select(
+        where = '`TABLE_SCHEMA` = :database AND `TABLE_NAME` = :table_ AND `COLUMN_NAME` = :column'
+        result = self.db.execute.select(
             'information_schema.COLUMNS',
             where=where,
             limit=1,
-            database_name=self._database_name,
-            table_name=self._table_name,
-            column_name=self._column_name
+            database=self.database,
+            table_=self.table,
+            column=self.column
         )
 
         # Convert.
         info_table = result.to_table()
 
         ## Check.
-        assert len(info_table) != 0, "database '%s' or table '%s' or column '%s' not exist" % (self._database_name, self._table_name, self._column_name)
+        assert len(info_table) != 0, "database '%s' or table '%s' or column '%s' not exist" % (self.database, self.table, self.column)
 
         info_attrs = info_table[0]
 

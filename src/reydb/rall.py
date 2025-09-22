@@ -18,4 +18,5 @@ from .rerror import *
 from .rexec import *
 from .rfile import *
 from .rinfo import *
+from .rorm import *
 from .rparam import *

@@ -19,7 +19,6 @@ from datetime import (
 )
 from reykit.rbase import null, throw
 
-from .rconn import DatabaseConnection
 from .rdb import Database
 
 
@@ -49,13 +48,17 @@ class DatabaseConfig(object):
     """
 
 
-    def __init__(self, database: Database | DatabaseConnection) -> None:
+    def __init__(self, db: Database) -> None:
         """
         Build instance attributes.
+
+        Parameters
+        ----------
+        db: Database instance.
         """
 
         # Build.
-        self.database = database
+        self.db = db
 
         ## Database path name.
         self.db_names = {
@@ -180,7 +183,7 @@ class DatabaseConfig(object):
         ]
 
         # Build.
-        self.database.build.build(databases, tables, views_stats=views_stats)
+        self.db.build.build(databases, tables, views_stats=views_stats)
 
 
     @property
@@ -194,7 +197,7 @@ class DatabaseConfig(object):
         """
 
         # Get.
-        result = self.database.execute.select(
+        result = self.db.execute.select(
             (self.db_names['base'], self.db_names['base.config']),
             ['key', 'value', 'type', 'note'],
             order='IFNULL(`update_time`, `create_time`) DESC'
@@ -230,7 +233,7 @@ class DatabaseConfig(object):
 
         # Get.
         where = '`key` = :key'
-        result = self.database.execute.select(
+        result = self.db.execute.select(
             (self.db_names['base'], self.db_names['base.config']),
             '`value`',
             where,
@@ -276,7 +279,7 @@ class DatabaseConfig(object):
             'type': type(default).__name__,
             'note': default_note
         }
-        result = self.database.execute.insert(
+        result = self.db.execute.insert(
             (self.db_names['base'], self.db_names['base.config']),
             data,
             'ignore'
@@ -317,7 +320,7 @@ class DatabaseConfig(object):
                 row['type'] = type(row['value']).__name__
 
         # Update.
-        self.database.execute.insert(
+        self.db.execute.insert(
             (self.db_names['base'], self.db_names['base.config']),
             data,
             'update'
@@ -340,7 +343,7 @@ class DatabaseConfig(object):
         else:
             where = '`key` in :key'
             limit = None
-        result = self.database.execute.delete(
+        result = self.db.execute.delete(
             (self.db_names['base'], self.db_names['base.config']),
             where,
             limit=limit,
@@ -362,7 +365,7 @@ class DatabaseConfig(object):
         """
 
         # Get.
-        result = self.database.execute.select(
+        result = self.db.execute.select(
             (self.db_names['base'], self.db_names['base.config']),
             ['key', 'value']
         )
@@ -388,7 +391,7 @@ class DatabaseConfig(object):
         """
 
         # Get.
-        result = self.database.execute.select(
+        result = self.db.execute.select(
             (self.db_names['base'], self.db_names['base.config']),
             '`key`'
         )
@@ -413,7 +416,7 @@ class DatabaseConfig(object):
         """
 
         # Get.
-        result = self.database.execute.select(
+        result = self.db.execute.select(
             (self.db_names['base'], self.db_names['base.config']),
             '`value`'
         )
@@ -475,7 +478,7 @@ class DatabaseConfig(object):
             'type': type(value).__name__,
             'note': note
         }
-        self.database.execute.insert(
+        self.db.execute.insert(
             (self.db_names['base'], self.db_names['base.config']),
             data,
             'update'
