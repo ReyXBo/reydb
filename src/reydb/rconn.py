@@ -157,3 +157,21 @@ class DatabaseConnection(Database):
 
 
     __del__ = close
+
+
+    @property
+    def insert_id(self) -> int:
+        """
+        Return last self increasing ID.
+
+        Returns
+        -------
+        ID.
+        """
+
+        # Get.
+        sql = 'SELECT LAST_INSERT_ID()'
+        result = self.execute(sql)
+        id_ = result.scalar()
+
+        return id_

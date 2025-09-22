@@ -366,7 +366,7 @@ class DatabaseFile(DatabaseBase):
         )
 
         # Get ID.
-        file_id = conn.variables['identity']
+        file_id = conn.insert_id
 
         # Commit.
         conn.commit()
