@@ -37,7 +37,7 @@ class DatabaseError(DatabaseBase):
 
         Parameters
         ----------
-        db: Database instance.
+        db: `Database` instance.
         """
 
         # Build.

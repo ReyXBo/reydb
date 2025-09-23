@@ -57,7 +57,7 @@ class DatabaseBuild(DatabaseBase):
 
         Parameters
         ----------
-        db: Database instance.
+        db: `Database` instance.
         """
 
         # Set attribute.

@@ -10,6 +10,7 @@
 
 
 from typing import Self
+from sqlalchemy import Transaction
 
 from .rbase import DatabaseBase
 from .rdb import Database
@@ -36,38 +37,19 @@ class DatabaseConnection(DatabaseBase):
 
         Parameters
         ----------
-        db : Database instance.
+        db : `Database` instance.
         autocommit: Whether automatic commit connection.
-        """
-
-        # Build.
-        self.db = db
-        self.autocommit = autocommit
-        self.conn = db.engine.connect()
-        self.begin = None
-
-
-    @property
-    def execute(self):
-        """
-        Build `database execute` instance.
-
-        Returns
-        -------
-        Instance.
         """
 
         # Import.
         from .rexec import DatabaseExecute
 
-        # Create transaction.
-        if self.begin is None:
-            self.begin = self.conn.begin()
-
         # Build.
-        exec = DatabaseExecute(self)
-
-        return exec
+        self.db = db
+        self.autocommit = autocommit
+        self.conn = db.engine.connect()
+        self.exec = DatabaseExecute(self)
+        self.begin: Transaction | None = None
 
 
     def commit(self) -> None:
@@ -136,6 +118,23 @@ class DatabaseConnection(DatabaseBase):
 
 
     __del__ = close
+
+
+    @property
+    def execute(self):
+        """
+        Build `database execute` instance.
+
+        Returns
+        -------
+        Instance.
+        """
+
+        # Create transaction.
+        if self.begin is None:
+            self.begin = self.conn.begin()
+
+        return self.exec
 
 
     @property

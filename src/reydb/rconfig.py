@@ -54,7 +54,7 @@ class DatabaseConfig(object):
 
         Parameters
         ----------
-        db: Database instance.
+        db: `Database` instance.
         """
 
         # Build.

@@ -50,7 +50,7 @@ class DatabaseExecute(DatabaseBase):
 
         Parameters
         ----------
-        dbconn : DatabaseConnection instance.
+        dbconn : `DatabaseConnection` instance.
         """
 
         # Build.

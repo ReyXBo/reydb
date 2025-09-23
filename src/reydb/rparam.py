@@ -39,7 +39,7 @@ class DatabaseParameters(DatabaseBase):
 
         Parameters
         ----------
-        db: Database instance.
+        db: `Database` instance.
         global\\_ : Whether base global.
         """
 
@@ -261,7 +261,7 @@ class DatabaseParametersPragma(DatabaseParameters):
 
         Parameters
         ----------
-        db: Database instance.
+        db: `Database` instance.
         """
 
         # Set parameter.

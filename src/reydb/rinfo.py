@@ -198,7 +198,7 @@ class DatabaseInformationSchema(DatabaseInformation):
 
         Parameters
         ----------
-        db: Database instance.
+        db: `Database` instance.
         """
 
         # Set parameter.
@@ -262,7 +262,7 @@ class DatabaseInformationDatabase(DatabaseInformation):
 
         Parameters
         ----------
-        db: Database instance.
+        db: `Database` instance.
         database : Database name.
         """
 
@@ -358,7 +358,7 @@ class DatabaseInformationTable(DatabaseInformation):
 
         Parameters
         ----------
-        db: Database instance.
+        db: `Database` instance.
         database : Database name.
         table : Table name.
         """
@@ -453,7 +453,7 @@ class DatabaseInformationColumn(DatabaseInformation):
 
         Parameters
         ----------
-        db: Database instance.
+        db: `Database` instance.
         database : Database name.
         table : Table name.
         column : Column name.

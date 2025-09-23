@@ -38,7 +38,7 @@ class DatabaseFile(DatabaseBase):
 
         Parameters
         ----------
-        db: Database instance.
+        db: `Database` instance.
         """
 
         # Build.
