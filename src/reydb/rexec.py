@@ -9,7 +9,7 @@
 """
 
 
-from typing import Any, Literal
+from typing import Any, Literal, overload
 from collections.abc import Iterable, Generator, Container
 from enum import EnumType
 from sqlalchemy import text as sqlalchemy_text
@@ -17,6 +17,7 @@ from sqlalchemy.sql.elements import TextClause
 from reykit.rbase import throw, get_first_notnone
 from reykit.rdata import FunctionGenerator, to_json
 from reykit.rmonkey import monkey_sqlalchemy_result_more_fetch, monkey_sqlalchemy_row_index_field
+from reykit.rrand import randn
 from reykit.rre import findall
 from reykit.rstdout import echo
 from reykit.rtable import TableData, Table
@@ -889,6 +890,61 @@ class DatabaseExecute(DatabaseBase):
             func_generator(**row)
 
         return func_generator.generator
+
+
+    @overload
+    def sleep(self, report: bool | None = None) -> int: ...
+
+    @overload
+    def sleep(self, second: int, report: bool | None = None) -> int: ...
+
+    @overload
+    def sleep(self, low: int = 0, high: int = 10, report: bool | None = None) -> int: ...
+
+    @overload
+    def sleep(self, *thresholds: float, report: bool | None = None) -> float: ...
+
+    @overload
+    def sleep(self, *thresholds: float, precision: Literal[0], report: bool | None = None) -> int: ...
+
+    @overload
+    def sleep(self, *thresholds: float, precision: int, report: bool | None = None) -> float: ...
+
+    def sleep(self, *thresholds: float, precision: int | None = None, report: bool | None = None) -> float:
+        """
+        Let the database wait random seconds.
+
+        Parameters
+        ----------
+        thresholds : Low and high thresholds of random range, range contains thresholds.
+            - When `length is 0`, then low and high thresholds is `0` and `10`.
+            - When `length is 1`, then low and high thresholds is `0` and `thresholds[0]`.
+            - When `length is 2`, then low and high thresholds is `thresholds[0]` and `thresholds[1]`.
+        precision : Precision of random range, that is maximum decimal digits of return value.
+            - `None`: Set to Maximum decimal digits of element of parameter `thresholds`.
+            - `int`: Set to this value.
+        report : Whether report SQL execute information.
+            - `None`: Use attribute `default_report`.
+            - `bool`: Use this value.
+
+        Returns
+        -------
+        Random seconds.
+            - When parameters `precision` is `0`, then return int.
+            - When parameters `precision` is `greater than 0`, then return float.
+        """
+
+        # Handle parameter.
+        if len(thresholds) == 1:
+            second = thresholds[0]
+        else:
+            second = randn(*thresholds, precision=precision)
+
+        # Sleep.
+        sql = f'SELECT SLEEP({second})'
+        self.execute(sql, report=report)
+
+        return second
 
 
     def handle_sql(self, sql: str | TextClause) -> TextClause:

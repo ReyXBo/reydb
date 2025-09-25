@@ -9,7 +9,6 @@
 """
 
 
-from __future__ import annotations
 from typing import Any, Literal, overload
 
 from .rbase import DatabaseBase
@@ -32,21 +31,21 @@ class DatabaseInformation(DatabaseBase):
 
 
     @overload
-    def __call__(self: DatabaseInformationSchema | DatabaseInformationSchema | DatabaseInformationDatabase | DatabaseInformationTable) -> list[dict]: ...
+    def __call__(self: 'DatabaseInformationSchema | DatabaseInformationSchema | DatabaseInformationDatabase | DatabaseInformationTable') -> list[dict]: ...
 
     @overload
-    def __call__(self: DatabaseInformationSchema, name: str) -> DatabaseInformationDatabase: ...
+    def __call__(self: 'DatabaseInformationSchema', name: str) -> 'DatabaseInformationDatabase': ...
 
     @overload
-    def __call__(self: DatabaseInformationDatabase, name: str) -> DatabaseInformationTable: ...
+    def __call__(self: 'DatabaseInformationDatabase', name: str) -> 'DatabaseInformationTable': ...
 
     @overload
-    def __call__(self: DatabaseInformationTable, name: str) -> DatabaseInformationColumn: ...
+    def __call__(self: 'DatabaseInformationTable', name: str) -> 'DatabaseInformationColumn': ...
 
     @overload
-    def __call__(self: DatabaseInformationColumn) -> dict: ...
+    def __call__(self: 'DatabaseInformationColumn') -> dict: ...
 
-    def __call__(self, name: str | None = None) -> DatabaseInformationDatabase | DatabaseInformationTable | DatabaseInformationColumn | list[dict] | dict:
+    def __call__(self, name: str | None = None) -> 'DatabaseInformationDatabase | DatabaseInformationTable | DatabaseInformationColumn | list[dict] | dict':
         """
         Get information table or subclass instance.
 
@@ -125,15 +124,15 @@ class DatabaseInformation(DatabaseBase):
 
 
     @overload
-    def __getattr__(self: DatabaseInformationSchema, name: str) -> DatabaseInformationDatabase: ...
+    def __getattr__(self: 'DatabaseInformationSchema', name: str) -> 'DatabaseInformationDatabase': ...
 
     @overload
-    def __getattr__(self: DatabaseInformationDatabase, name: str) -> DatabaseInformationTable: ...
+    def __getattr__(self: 'DatabaseInformationDatabase', name: str) -> 'DatabaseInformationTable': ...
 
     @overload
-    def __getattr__(self: DatabaseInformationTable, name: str) -> DatabaseInformationColumn: ...
+    def __getattr__(self: 'DatabaseInformationTable', name: str) -> 'DatabaseInformationColumn': ...
 
-    def __getattr__(self, name: str) -> DatabaseInformationDatabase | DatabaseInformationTable | DatabaseInformationColumn:
+    def __getattr__(self, name: str) -> 'DatabaseInformationDatabase | DatabaseInformationTable | DatabaseInformationColumn':
         """
         Build subclass instance.
 

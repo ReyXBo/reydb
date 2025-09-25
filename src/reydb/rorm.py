@@ -11,9 +11,10 @@
 
 from typing import Self, Any, Type, TypeVar, Generic, Final
 from functools import wraps as functools_wraps
+from pydantic import ConfigDict, field_validator as pydantic_field_validator, model_validator as pydantic_model_validator
 from sqlalchemy.orm import SessionTransaction
 from sqlalchemy.sql.dml import Insert, Update, Delete
-from sqlmodel import SQLModel, Session, Field as sqlmodel_Field
+from sqlmodel import SQLModel, Session, Table, Field as sqlmodel_Field
 from sqlmodel.sql._expression_select_cls import SelectOfScalar as Select
 from reykit.rbase import CallableT, is_instance
 
@@ -40,10 +41,40 @@ class DatabaseORMBase(DatabaseBase):
     """
 
 
+class DatabaseORMModelField(DatabaseBase):
+    """
+    Database ORM model filed type.
+    """
+
+
 class DatabaseORMModel(DatabaseORMBase, SQLModel):
     """
     Database ORM model type.
     """
+
+
+    def update(self, data: 'DatabaseORMModel | dict[dict, Any]') -> None:
+        """
+        Update attributes.
+
+        Parameters
+        ----------
+        data : `DatabaseORMModel` or `dict`.
+        """
+
+        # Update.
+        self.sqlmodel_update(data)
+
+
+    def validate(self) -> Self:
+        """
+        Validate all attributes, and copy self instance to new instance.
+        """
+
+        # Validate.
+        model = self.model_validate(self)
+
+        return model
 
 
     def copy(self) -> Self:
@@ -56,10 +87,74 @@ class DatabaseORMModel(DatabaseORMBase, SQLModel):
         """
 
         # Copy.
-        data = self.model_dump()
+        data = self.data
         instance = self.__class__(**data)
 
         return instance
+
+
+    @property
+    def data(self) -> dict[str, Any]:
+        """
+        All attributes data.
+
+        Returns
+        -------
+        data.
+        """
+
+        # Get.
+        data = self.model_dump()
+
+        return data
+
+
+    @classmethod
+    def table(cls_or_self) -> Table:
+        """
+        Mapping `Table` instance.
+
+        Returns
+        -------
+        Instance.
+        """
+
+        # Get.
+        table: Table = cls_or_self.__table__
+
+        return table
+
+
+    @classmethod
+    def comment(cls_or_self) -> str | None:
+        """
+        Table comment.
+
+        Returns
+        -------
+        Comment.
+        """
+
+        # Get.
+        table = cls_or_self.table()
+        comment = table.comment
+
+        return comment
+
+
+    @classmethod
+    def set_comment(cls_or_self, comment: str) -> None:
+        """
+        Set table comment.
+
+        Parameters
+        ----------
+        comment : Comment.
+        """
+
+        # Set.
+        table = cls_or_self.table()
+        table.comment = comment
 
 
 ModelT = TypeVar('ModelT', bound=DatabaseORMModel)
@@ -77,6 +172,9 @@ class DatabaseORM(DatabaseORMBase):
 
     Model = DatabaseORMModel
     Field = sqlmodel_Field
+    Config = ConfigDict
+    wrap_validate_filed = pydantic_field_validator
+    wrap_validate_model = pydantic_model_validator
 
 
     def __init__(self, db: Database) -> None:
@@ -90,14 +188,25 @@ class DatabaseORM(DatabaseORMBase):
 
         # Build.
         self.db = db
+        self._session = self.session(True)
+
+        ## Method.
+        self.get = self._session.get
+        self.gets = self._session.gets
+        self.all = self._session.all
+        self.add = self._session.add
 
         ## Avoid descriptor error.
         self.Field = sqlmodel_Field
 
 
-    def session(self):
+    def session(self, autocommit: bool = False):
         """
         Build `DataBaseORMSession` instance.
+
+        Parameters
+        ----------
+        autocommit: Whether automatic commit execute.
 
         Returns
         -------
@@ -105,12 +214,49 @@ class DatabaseORM(DatabaseORMBase):
         """
 
         # Build.
-        sess = DataBaseORMSession(self)
+        sess = DataBaseORMSession(self, autocommit)
 
         return sess
 
 
-    __call__ = session
+    def create(
+        self,
+        *models: Type[DatabaseORMModel] | DatabaseORMModel,
+        skip: bool = False
+    ) -> None:
+        """
+        Create table.
+
+        Parameters
+        ----------
+        models : ORM model instances.
+        check : Skip existing table.
+        """
+
+        # Create.
+        for model in models:
+            table = model.table()
+            table.create(self.db.engine, checkfirst=skip)
+
+
+    def drop(
+        self,
+        *models: Type[DatabaseORMModel] | DatabaseORMModel,
+        skip: bool = False
+    ) -> None:
+        """
+        Delete table.
+
+        Parameters
+        ----------
+        models : ORM model instances.
+        check : Skip not exist table.
+        """
+
+        # Create.
+        for model in models:
+            table = model.table()
+            table.drop(self.db.engine, checkfirst=skip)
 
 
 class DataBaseORMSession(DatabaseORMBase):
@@ -119,18 +265,24 @@ class DataBaseORMSession(DatabaseORMBase):
     """
 
 
-    def __init__(self, orm: DatabaseORM) -> None:
+    def __init__(
+        self,
+        orm: 'DatabaseORM',
+        autocommit: bool = False
+    ) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
         orm : `DatabaseORM` instance.
+        autocommit: Whether automatic commit execute.
         """
 
         # Build.
         self.orm = orm
-        self.session = Session(orm.db.engine)
+        self.autocommit = autocommit
+        self.session: Session | None = None
         self.begin: SessionTransaction | None = None
 
 
@@ -162,7 +314,9 @@ class DataBaseORMSession(DatabaseORMBase):
         """
 
         # Close.
-        self.session.close()
+        if self.session is not None:
+            self.session.close()
+            self.session = None
 
 
     def __enter__(self) -> Self:
@@ -202,9 +356,9 @@ class DataBaseORMSession(DatabaseORMBase):
     __del__ = close
 
 
-    def wrap_begin(method: CallableT) -> CallableT:
+    def wrap_transact(method: CallableT) -> CallableT:
         """
-        Decorator, create and store `SessionTransaction` instance.
+        Decorator, automated transaction.
 
         Parameters
         ----------
@@ -218,14 +372,23 @@ class DataBaseORMSession(DatabaseORMBase):
 
         # Define.
         @functools_wraps(method)
-        def wrap(self, *args, **kwargs):
+        def wrap(self: 'DataBaseORMSession', *args, **kwargs):
 
-            # Create.
+            # Session.
+            if self.session is None:
+                self.session = Session(self.orm.db.engine)
+
+            # Begin.
             if self.begin is None:
                 self.begin = self.session.begin()
 
             # Execute.
             result = method(self, *args, **kwargs)
+
+            # Autucommit.
+            if self.autocommit:
+                self.commit()
+                self.close()
 
             return result
 
@@ -233,10 +396,52 @@ class DataBaseORMSession(DatabaseORMBase):
         return wrap
 
 
-    @wrap_begin
+    @wrap_transact
+    def create(
+        self,
+        *models: Type[DatabaseORMModel] | DatabaseORMModel,
+        skip: bool = False
+    ) -> None:
+        """
+        Create table.
+
+        Parameters
+        ----------
+        models : ORM model instances.
+        check : Skip existing table.
+        """
+
+        # Create.
+        for model in models:
+            table = model.table()
+            table.create(self.session.connection(), checkfirst=skip)
+
+
+    @wrap_transact
+    def drop(
+        self,
+        *models: Type[DatabaseORMModel] | DatabaseORMModel,
+        skip: bool = False
+    ) -> None:
+        """
+        Delete table.
+
+        Parameters
+        ----------
+        models : ORM model instances.
+        check : Skip not exist table.
+        """
+
+        # Create.
+        for model in models:
+            table = model.table()
+            table.drop(self.session.connection(), checkfirst=skip)
+
+
+    @wrap_transact
     def get(self, model: Type[ModelT] | ModelT, key: Any | tuple[Any]) -> ModelT | None:
         """
-        select records by primary key.
+        Select records by primary key.
 
         Parameters
         ----------
@@ -257,10 +462,17 @@ class DataBaseORMSession(DatabaseORMBase):
         # Get.
         result = self.session.get(model, key)
 
+        # Autucommit.
+        if (
+            self.autocommit
+            and result is not None
+        ):
+            self.session.expunge(result)
+
         return result
 
 
-    @wrap_begin
+    @wrap_transact
     def gets(self, model: Type[ModelT] | ModelT, *keys: Any | tuple[Any]) -> list[ModelT]:
         """
         Select records by primary key sequence.
@@ -291,7 +503,7 @@ class DataBaseORMSession(DatabaseORMBase):
         return results
 
 
-    @wrap_begin
+    @wrap_transact
     def all(self, model: Type[ModelT] | ModelT) -> list[ModelT]:
         """
         Select all records.
@@ -305,13 +517,19 @@ class DataBaseORMSession(DatabaseORMBase):
         With records ORM model instance list.
         """
 
+        # Handle parameter.
+        if is_instance(model):
+            model = type(model)
+
         # Get.
-        models = self.select(model).execute()
+        select = Select(model)
+        models = self.session.exec(select)
+        models = list(models)
 
         return models
 
 
-    @wrap_begin
+    @wrap_transact
     def add(self, *models: DatabaseORMModel) -> None:
         """
         Insert records.
@@ -325,7 +543,7 @@ class DataBaseORMSession(DatabaseORMBase):
         self.session.add_all(models)
 
 
-    @wrap_begin
+    @wrap_transact
     def rm(self, *models: DatabaseORMModel) -> None:
         """
         Delete records.
@@ -340,7 +558,7 @@ class DataBaseORMSession(DatabaseORMBase):
             self.session.delete(model)
 
 
-    @wrap_begin
+    @wrap_transact
     def refresh(self, *models: DatabaseORMModel) -> None:
         """
         Refresh records.
@@ -355,7 +573,7 @@ class DataBaseORMSession(DatabaseORMBase):
             self.session.refresh(model)
 
 
-    @wrap_begin
+    @wrap_transact
     def expire(self, *models: DatabaseORMModel) -> None:
         """
         Mark records to expire, refresh on next call.
@@ -370,7 +588,7 @@ class DataBaseORMSession(DatabaseORMBase):
             self.session.expire(model)
 
 
-    @wrap_begin
+    @wrap_transact
     def select(self, model: Type[ModelT] | ModelT):
         """
         Build `DatabaseORMSelect` instance.
@@ -394,7 +612,7 @@ class DataBaseORMSession(DatabaseORMBase):
         return select
 
 
-    @wrap_begin
+    @wrap_transact
     def insert(self, model: Type[ModelT] | ModelT):
         """
         Build `DatabaseORMInsert` instance.
@@ -418,7 +636,7 @@ class DataBaseORMSession(DatabaseORMBase):
         return select
 
 
-    @wrap_begin
+    @wrap_transact
     def update(self, model: Type[ModelT] | ModelT):
         """
         Build `DatabaseORMUpdate` instance.
@@ -442,7 +660,7 @@ class DataBaseORMSession(DatabaseORMBase):
         return select
 
 
-    @wrap_begin
+    @wrap_transact
     def delete(self, model: Type[ModelT] | ModelT):
         """
         Build `DatabaseORMDelete` instance.

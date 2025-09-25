@@ -38,7 +38,7 @@ class DatabaseConnection(DatabaseBase):
         Parameters
         ----------
         db : `Database` instance.
-        autocommit: Whether automatic commit connection.
+        autocommit: Whether automatic commit execute.
         """
 
         # Import.

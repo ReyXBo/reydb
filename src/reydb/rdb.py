@@ -284,7 +284,7 @@ class Database(DatabaseBase):
 
         Parameters
         ----------
-        autocommit: Whether automatic commit connection.
+        autocommit: Whether automatic commit execute.
 
         Returns
         -------
