@@ -9,10 +9,12 @@
 """
 
 
+from typing import Literal, Final, overload
 from urllib.parse import quote as urllib_quote
 from pymysql.constants.CLIENT import MULTI_STATEMENTS
 from sqlalchemy import create_engine as sqlalchemy_create_engine
 from sqlalchemy.engine.base import Engine
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine as sqlalchemy_create_async_engine
 from reykit.rtext import join_data_text
 
 from .rbase import DatabaseBase, extract_url
@@ -26,10 +28,6 @@ __all__ = (
 class Database(DatabaseBase):
     """
     Database type, based `MySQL`.
-
-    Attributes
-    ----------
-    default_report : Whether default to report execution.
     """
 
     default_report: bool = False
@@ -45,7 +43,7 @@ class Database(DatabaseBase):
         pool_size: int = 5,
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
-        pool_recycle: int | None = None,
+        pool_recycle: int | None = 3600,
         **query: str
     ) -> None:
         """
@@ -62,10 +60,7 @@ class Database(DatabaseBase):
         max_overflow : Number of connections `allowed overflow`.
         pool_timeout : Number of seconds `wait create` connection.
         pool_recycle : Number of seconds `recycle` connection.
-            - `None`: Automatic select.
-                When is remote server database, then is database variable `wait_timeout` value.
-                When is local database file, then is `-1`.
-            - `Literal[-1]`: No recycle.
+            - `None | Literal[-1]`: No recycle.
             - `int`: Use this value.
         query : Remote server database parameters.
         """
@@ -90,14 +85,8 @@ class Database(DatabaseBase):
         self.query = query
 
         # Create engine.
-        self.engine = self.__create_engine()
-
-        # Server recycle time.
-        if pool_recycle is None:
-            wait_timeout = self.variables['wait_timeout']
-            if wait_timeout is not None:
-                self.pool_recycle = int(wait_timeout)
-            self.engine.pool._recycle = self.pool_recycle
+        self.engine = self.__create_engine(False)
+        self.aengine = self.__create_engine(True)
 
 
     @property
@@ -146,7 +135,10 @@ class Database(DatabaseBase):
 
         # Generate URL.
         password = urllib_quote(self.password)
-        url_ = f'mysql+pymysql://{self.username}:{password}@{self.host}:{self.port}/{self.database}'
+        if self.is_async:
+            url_ = f'mysql+aiomysql://{self.username}:{password}@{self.host}:{self.port}/{self.database}'
+        else:
+            url_ = f'mysql+pymysql://{self.username}:{password}@{self.host}:{self.port}/{self.database}'
 
         # Add Server parameter.
         if self.query != {}:
@@ -161,9 +153,19 @@ class Database(DatabaseBase):
         return url_
 
 
-    def __create_engine(self) -> Engine:
+    @overload
+    def __create_engine(self, is_async: Literal[False]) -> Engine: ...
+
+    @overload
+    def __create_engine(self, is_async: Literal[True]) -> AsyncEngine: ...
+
+    def __create_engine(self, is_async: bool) -> Engine | AsyncEngine:
         """
         Create database `Engine` object.
+
+        Parameters
+        ----------
+        is_async : Whether to use asynchronous engine.
 
         Returns
         -------
@@ -181,13 +183,47 @@ class Database(DatabaseBase):
         }
 
         # Create Engine.
-        engine = sqlalchemy_create_engine(**engine_params)
+        if is_async:
+            engine = sqlalchemy_create_async_engine(**engine_params)
+        else:
+            engine = sqlalchemy_create_engine(**engine_params)
 
         return engine
 
 
+    def __conn_count(self, is_async: bool) -> tuple[int, int]:
+        """
+        Count number of keep open and allowed overflow connection.
+
+        Parameters
+        ----------
+        is_async : Whether to use asynchronous engine.
+
+        Returns
+        -------
+        Number of keep open and allowed overflow connection.
+        """
+
+        # Handle parameter.
+        if is_async:
+            engine = self.aengine
+        else:
+            engine = self.engine
+
+        # Count.
+        _overflow: int = engine.pool._overflow
+        if _overflow < 0:
+            keep_n = self.pool_size + _overflow
+            overflow_n = 0
+        else:
+            keep_n = self.pool_size
+            overflow_n = _overflow
+
+        return keep_n, overflow_n
+
+
     @property
-    def count_conn(self) -> tuple[int, int]:
+    def conn_count(self) -> tuple[int, int]:
         """
         Count number of keep open and allowed overflow connection.
 
@@ -197,13 +233,23 @@ class Database(DatabaseBase):
         """
 
         # Count.
-        _overflow = self.engine.pool._overflow
-        if _overflow < 0:
-            keep_n = self.pool_size + _overflow
-            overflow_n = 0
-        else:
-            keep_n = self.pool_size
-            overflow_n = _overflow
+        keep_n, overflow_n = self.__conn_count(False)
+
+        return keep_n, overflow_n
+
+
+    @property
+    def aconn_count(self) -> tuple[int, int]:
+        """
+        Count number of keep open and allowed overflow asynchronous connection.
+
+        Returns
+        -------
+        Number of keep open and allowed overflow asynchronous connection.
+        """
+
+        # Count.
+        keep_n, overflow_n = self.__conn_count(True)
 
         return keep_n, overflow_n
 
@@ -312,6 +358,45 @@ class Database(DatabaseBase):
 
         # Build.
         dbconn = self.connect(True)
+        exec = dbconn.execute
+
+        return exec
+
+
+    def aconnect(self, autocommit: bool = False):
+        """
+        Build `DatabaseConnectionAsync` instance.
+
+        Parameters
+        ----------
+        autocommit: Whether automatic commit execute.
+
+        Returns
+        -------
+        Database connection instance.
+        """
+
+        # Import.
+        from .rconn import DatabaseConnectionAsync
+
+        # Build.
+        conn = DatabaseConnectionAsync(self, autocommit)
+
+        return conn
+
+
+    @property
+    def aexecute(self):
+        """
+        Build `DatabaseConnectionAsync` instance.
+
+        Returns
+        -------
+        Instance.
+        """
+
+        # Build.
+        dbconn = self.aconnect(True)
         exec = dbconn.execute
 
         return exec
@@ -546,7 +631,8 @@ class Database(DatabaseBase):
             for key, value in self.__dict__.items()
             if key not in filter_key
         }
-        info['count'] = self.count_conn
+        info['conn_count'] = self.conn_count
+        info['aconn_count'] = self.aconn_count
         text = join_data_text(info)
 
         return text

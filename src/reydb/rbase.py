@@ -9,19 +9,28 @@
 """
 
 
-from typing import Any, TypedDict, Literal, overload
+from typing import Any, TypedDict, Literal
+from enum import EnumType
+from sqlalchemy import text as sqlalchemy_text
 from sqlalchemy.engine.base import Engine, Connection
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.elements import TextClause
 from reykit.rbase import Base, throw
 from reykit.rre import search
 
+from reykit.rdata import to_json
+from reykit.rre import findall
+
 
 __all__ = (
     'DatabaseBase',
+    'handle_sql',
+    'handle_data',
     'extract_url',
     'extract_engine',
-    'extract_path'
+    'extract_path',
+    'get_syntax',
+    'is_multi_sql'
 )
 
 
@@ -45,6 +54,85 @@ class DatabaseBase(Base):
     """
     Database base type.
     """
+
+
+def handle_sql(sql: str | TextClause) -> TextClause:
+    """
+    Handle SQL.
+
+    Parameters
+    ----------
+    sql : SQL in method `sqlalchemy.text` format, or TextClause object.
+
+    Returns
+    -------
+    TextClause instance.
+    """
+
+    # Handle parameter.
+    if type(sql) == TextClause:
+        sql = sql.text
+
+    # Handle.
+    sql = sql.strip()
+    if sql[-1] != ';':
+        sql += ';'
+    sql = sqlalchemy_text(sql)
+
+    return sql
+
+
+def handle_data(data: list[dict], sql: str | TextClause) -> list[dict]:
+    """
+    Handle data based on the content of SQL.
+
+    Parameters
+    ----------
+    data : Data set for filling.
+    sql : SQL in method `sqlalchemy.text` format, or TextClause object.
+
+    Returns
+    -------
+    Filled data.
+    """
+
+    # Handle parameter.
+    if type(sql) == TextClause:
+        sql = sql.text
+
+    # Extract keys.
+    pattern = '(?<!\\\\):(\\w+)'
+    sql_keys = findall(pattern, sql)
+
+    # Extract keys of syntax "in".
+    pattern = '[iI][nN]\\s+(?<!\\\\):(\\w+)'
+    sql_keys_in = findall(pattern, sql)
+
+    # Loop.
+    for row in data:
+        if row == {}:
+            continue
+        for key in sql_keys:
+            value = row.get(key)
+
+            # Empty string.
+            if value == '':
+                value = None
+
+            # Convert.
+            elif (
+                type(value) in (list, dict)
+                and key not in sql_keys_in
+            ):
+                value = to_json(value)
+
+            # Enum.
+            elif isinstance(type(value), EnumType):
+                value = value.value
+
+            row[key] = value
+
+    return data
 
 
 def extract_url(url: str | URL) -> URLParameters:

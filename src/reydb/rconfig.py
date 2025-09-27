@@ -17,7 +17,7 @@ from datetime import (
     time as Time,
     timedelta as Timedelta
 )
-from reykit.rbase import null, throw
+from reykit.rbase import Null, throw
 
 from .rdb import Database
 
@@ -445,10 +445,10 @@ class DatabaseConfig(object):
         """
 
         # Get.
-        value = self.get(key, null)
+        value = self.get(key, Null)
 
         # Check.
-        if value == null:
+        if value == Null:
             throw(KeyError, key)
 
         return value

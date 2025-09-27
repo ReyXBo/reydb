@@ -10,26 +10,27 @@
 
 
 from typing import Any, Literal, overload
-from collections.abc import Iterable, Generator, Container
-from enum import EnumType
-from sqlalchemy import text as sqlalchemy_text
+from collections.abc import Iterable, Generator, AsyncGenerator, Container
+from datetime import timedelta as Timedelta
 from sqlalchemy.sql.elements import TextClause
 from reykit.rbase import throw, get_first_notnone
-from reykit.rdata import FunctionGenerator, to_json
+from reykit.rdata import FunctionGenerator
 from reykit.rmonkey import monkey_sqlalchemy_result_more_fetch, monkey_sqlalchemy_row_index_field
 from reykit.rrand import randn
 from reykit.rre import findall
 from reykit.rstdout import echo
 from reykit.rtable import TableData, Table
+from reykit.rtime import TimeMark, time_to
 from reykit.rwrap import wrap_runtime
 
-from .rbase import DatabaseBase
-from .rconn import DatabaseConnection
+from .rbase import DatabaseBase, handle_sql, handle_data
+from .rconn import DatabaseConnection, DatabaseConnectionAsync
 
 
 __all__ = (
     'Result',
-    'DatabaseExecute'
+    'DatabaseExecute',
+    'DatabaseExecuteAsync'
 )
 
 
@@ -39,9 +40,9 @@ Result = Result_
 monkey_sqlalchemy_row_index_field()
 
 
-class DatabaseExecute(DatabaseBase):
+class DatabaseExecuteBase(DatabaseBase):
     """
-    Database execute type.
+    Database execute base type.
     """
 
 
@@ -58,15 +59,15 @@ class DatabaseExecute(DatabaseBase):
         self.dbconn = dbconn
 
 
-    def execute(
+    def handle_execute(
         self,
         sql: str | TextClause,
         data: TableData | None = None,
         report: bool | None = None,
         **kwdata: Any
-    ) -> Result:
+    ) -> tuple[TextClause, list[dict], bool]:
         """
-        Execute SQL.
+        Handle parameters before execute SQL.
 
         Parameters
         ----------
@@ -79,12 +80,12 @@ class DatabaseExecute(DatabaseBase):
 
         Returns
         -------
-        Result object.
+        Parameters `sql` and `data` and `report`.
         """
 
         # Handle parameter.
         report = get_first_notnone(report, self.dbconn.db.default_report)
-        sql = self.handle_sql(sql)
+        sql = handle_sql(sql)
         if data is None:
             if kwdata == {}:
                 data = []
@@ -95,43 +96,12 @@ class DatabaseExecute(DatabaseBase):
             data = data_table.to_table()
             for row in data:
                 row.update(kwdata)
-        data = self.handle_data(data, sql)
+        data = handle_data(data, sql)
 
-        # Execute.
-
-        ## Report.
-        if report:
-            execute = wrap_runtime(self.conn.execute, to_return=True)
-            result, report_runtime, *_ = execute(sql, data)
-            report_info = (
-                f'{report_runtime}\n'
-                f'Row Count: {result.rowcount}'
-            )
-            sqls = [
-                sql_part.strip()
-                for sql_part in sql.text.split(';')
-                if sql_part != ''
-            ]
-            if data == []:
-                echo(report_info, *sqls, title='SQL')
-            else:
-                echo(report_info, *sqls, data, title='SQL')
-
-        ## Not report.
-        else:
-            result = self.dbconn.conn.execute(sql, data)
-
-        # Automatic commit.
-        if self.dbconn.autocommit:
-            self.dbconn.conn.commit()
-
-        return result
+        return sql, data, report
 
 
-    __call__ = execute
-
-
-    def select(
+    def handle_select(
         self,
         table: str,
         fields: str | Iterable[str] | None = None,
@@ -139,12 +109,10 @@ class DatabaseExecute(DatabaseBase):
         group: str | None = None,
         having: str | None = None,
         order: str | None = None,
-        limit: int | str | tuple[int, int] | None = None,
-        report: bool | None = None,
-        **kwdata: Any
-    ) -> Result:
+        limit: int | str | tuple[int, int] | None = None
+    ) -> str:
         """
-        Execute select SQL.
+        Handle parameters before execute select SQL.
 
         Parameters
         ----------
@@ -162,28 +130,10 @@ class DatabaseExecute(DatabaseBase):
         limit : Clause `LIMIT` content.
             - `int | str`: Join as `LIMIT int/str`.
             - `tuple[int, int]`: Join as `LIMIT int, int`.
-        report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
-        kwdata : Keyword parameters for filling.
 
         Returns
         -------
-        Result object.
-
-        Examples
-        --------
-        Parameter `fields`.
-        >>> fields = ['id', ':`id` + 1 AS `id_`']
-        >>> result = Database.execute.select('table', fields)
-        >>> print(result.to_table())
-        [{'id': 1, 'id_': 2}, ...]
-
-        Parameter `kwdata`.
-        >>> fields = '`id`, `id` + :value AS `id_`'
-        >>> result = Database.execute.select('table', fields, value=1)
-        >>> print(result.to_table())
-        [{'id': 1, 'id_': 2}, ...]
+        Parameters `sql`.
         """
 
         # Generate SQL.
@@ -245,22 +195,18 @@ class DatabaseExecute(DatabaseBase):
         ## Join sql part.
         sql = '\n'.join(sql_list)
 
-        # Execute SQL.
-        result = self.execute(sql, report=report, **kwdata)
-
-        return result
+        return sql
 
 
-    def insert(
+    def handle_insert(
         self,
         table: str,
         data: TableData,
         duplicate: Literal['ignore', 'update'] | Container[str] | None = None,
-        report: bool | None = None,
         **kwdata: Any
     ) -> Result:
         """
-        Insert the data of table in the datebase.
+        Handle parameters before execute insert SQL.
 
         Parameters
         ----------
@@ -271,28 +217,13 @@ class DatabaseExecute(DatabaseBase):
             - `ignore`: Use `UPDATE IGNORE INTO` clause.
             - `update`: Use `ON DUPLICATE KEY UPDATE` clause and update all fields.
             - `Container[str]`: Use `ON DUPLICATE KEY UPDATE` clause and update this fields.
-        report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
         kwdata : Keyword parameters for filling.
             - `str and first character is ':'`: Use this syntax.
             - `Any`: Use this value.
 
         Returns
         -------
-        Result object.
-
-        Examples
-        --------
-        Parameter `data` and `kwdata`.
-        >>> data = [{'key': 'a'}, {'key': 'b'}]
-        >>> kwdata = {'value1': 1, 'value2': ':(SELECT 2)'}
-        >>> result = Database.execute.insert('table', data, **kwdata)
-        >>> print(result.rowcount)
-        2
-        >>> result = Database.execute.select('table')
-        >>> print(result.to_table())
-        [{'key': 'a', 'value1': 1, 'value2': 2}, {'key': 'b', 'value1': 1, 'value2': 2}]
+        Parameters `sql` and `kwdata`.
         """
 
         # Handle parameter.
@@ -395,22 +326,18 @@ class DatabaseExecute(DatabaseBase):
                     f'    {update_content}'
                 )
 
-        # Execute SQL.
-        result = self.execute(sql, data, report, **kwdata_replace)
-
-        return result
+        return sql, kwdata_replace
 
 
-    def update(
+    def handle_update(
         self,
         table: str,
         data: TableData,
         where_fields: str | Iterable[str] | None = None,
-        report: bool | None = None,
         **kwdata: Any
     ) -> Result:
         """
-        Update the data of table in the datebase.
+        Execute update SQL.
 
         Parameters
         ----------
@@ -427,28 +354,13 @@ class DatabaseExecute(DatabaseBase):
             - `None`: The first key value pair of each item is judged.
             - `str`: This key value pair of each item is judged.
             - `Iterable[str]`: Multiple judged, `and`: relationship.
-        report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
         kwdata : Keyword parameters for filling.
             - `str and first character is ':'`: Use this syntax.
             - `Any`: Use this value.
 
         Returns
         -------
-        Result object.
-
-        Examples
-        --------
-        Parameter `data` and `kwdata`.
-        >>> data = [{'key': 'a'}, {'key': 'b'}]
-        >>> kwdata = {'value': 1, 'name': ':`key`'}
-        >>> result = Database.execute.update('table', data, **kwdata)
-        >>> print(result.rowcount)
-        2
-        >>> result = Database.execute.select('table')
-        >>> print(result.to_table())
-        [{'key': 'a', 'value': 1, 'name': 'a'}, {'key': 'b', 'value': 1, 'name': 'b'}]
+        Parameters `sql` and `data`.
         """
 
         # Handle parameter.
@@ -554,23 +466,18 @@ class DatabaseExecute(DatabaseBase):
         ## Join sqls.
         sqls = ';\n'.join(sqls_list)
 
-        # Execute SQL.
-        result = self.execute(sqls, data_flatten, report)
-
-        return result
+        return sqls, data_flatten
 
 
-    def delete(
+    def handle_delete(
         self,
         table: str,
         where: str | None = None,
         order: str | None = None,
-        limit: int | str | None = None,
-        report: bool | None = None,
-        **kwdata: Any
+        limit: int | str | None = None
     ) -> Result:
         """
-        Delete the data of table in the datebase.
+        Execute delete SQL.
 
         Parameters
         ----------
@@ -578,23 +485,10 @@ class DatabaseExecute(DatabaseBase):
         where : Clause `WHERE` content, join as `WHERE str`.
         order : Clause `ORDER BY` content, join as `ORDER BY str`.
         limit : Clause `LIMIT` content, join as `LIMIT int/str`.
-        report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
-        kwdata : Keyword parameters for filling.
 
         Returns
         -------
-        Result object.
-
-        Examples
-        --------
-        Parameter `where` and `kwdata`.
-        >>> where = '`id` IN :ids'
-        >>> ids = (1, 2)
-        >>> result = Database.execute.delete('table', where, ids=ids)
-        >>> print(result.rowcount)
-        2
+        Parameter `sql`.
         """
 
         # Generate SQL.
@@ -622,22 +516,18 @@ class DatabaseExecute(DatabaseBase):
         ## Join sqls.
         sqls = '\n'.join(sqls)
 
-        # Execute SQL.
-        result = self.execute(sqls, report=report, **kwdata)
-
-        return result
+        return sqls
 
 
-    def copy(
+    def handle_copy(
         self,
         table: str,
         where: str | None = None,
         limit: int | str | tuple[int, int] | None = None,
-        report: bool | None = None,
         **kwdata: Any
     ) -> Result:
         """
-        Copy record of table in the datebase.
+        Execute inesrt SQL of copy records.
 
         Parameters
         ----------
@@ -646,9 +536,6 @@ class DatabaseExecute(DatabaseBase):
         limit : Clause `LIMIT` content.
             - `int | str`: Join as `LIMIT int/str`.
             - `tuple[int, int]`: Join as `LIMIT int, int`.
-        report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
         kwdata : Keyword parameters for filling.
             - `In 'WHERE' syntax`: Fill 'WHERE' syntax.
             - `Not in 'WHERE' syntax`: Fill 'INSERT' and 'SELECT' syntax.
@@ -657,16 +544,7 @@ class DatabaseExecute(DatabaseBase):
 
         Returns
         -------
-        Result object.
-
-        Examples
-        --------
-        Parameter `where` and `kwdata`.
-        >>> where = '`id` IN :ids'
-        >>> ids = (1, 2, 3)
-        >>> result = Database.execute.copy('table', where, 2, ids=ids, id=None, time=':NOW()')
-        >>> print(result.rowcount)
-        2
+        Parameters `sql`.
         """
 
         # Handle parameter.
@@ -759,6 +637,358 @@ class DatabaseExecute(DatabaseBase):
         ## Join.
         sql = '\n'.join(sqls)
 
+        return sql
+
+
+class DatabaseExecute(DatabaseExecuteBase):
+    """
+    Database execute type.
+    """
+
+
+    def __init__(self, dbconn: DatabaseConnection) -> None:
+        """
+        Build instance attributes.
+
+        Parameters
+        ----------
+        dbconn : `DatabaseConnection` instance.
+        """
+
+        # Build.
+        self.dbconn = dbconn
+
+
+    def execute(
+        self,
+        sql: str | TextClause,
+        data: TableData | None = None,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> Result:
+        """
+        Execute SQL.
+
+        Parameters
+        ----------
+        sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
+        data : Data set for filling.
+        report : Whether report SQL execute information.
+            - `None`: Use attribute `default_report`.
+            - `bool`: Use this value.
+        kwdata : Keyword parameters for filling.
+
+        Returns
+        -------
+        Result object.
+        """
+
+        # Handle parameter.
+        sql, data, report = self.handle_execute(sql, data, report, **kwdata)
+
+        # Transaction.
+        self.dbconn.get_begin()
+
+        # Execute.
+
+        ## Report.
+        if report:
+            execute = wrap_runtime(self.dbconn.execute, to_return=True)
+            result, report_runtime, *_ = execute(sql, data)
+            report_info = (
+                f'{report_runtime}\n'
+                f'Row Count: {result.rowcount}'
+            )
+            sqls = [
+                sql_part.strip()
+                for sql_part in sql.text.split(';')
+                if sql_part != ''
+            ]
+            if data == []:
+                echo(report_info, *sqls, title='SQL')
+            else:
+                echo(report_info, *sqls, data, title='SQL')
+
+        ## Not report.
+        else:
+            result = self.dbconn.conn.execute(sql, data)
+
+        # Automatic commit.
+        if self.dbconn.autocommit:
+            self.dbconn.commit()
+
+        return result
+
+
+    __call__ = execute
+
+
+    def select(
+        self,
+        table: str,
+        fields: str | Iterable[str] | None = None,
+        where: str | None = None,
+        group: str | None = None,
+        having: str | None = None,
+        order: str | None = None,
+        limit: int | str | tuple[int, int] | None = None,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> Result:
+        """
+        Execute select SQL.
+
+        Parameters
+        ----------
+        table : Table name.
+        fields : Select clause content.
+            - `None`: Is `SELECT *`.
+            - `str`: Join as `SELECT str`.
+            - `Iterable[str]`, Join as `SELECT ``str``: ...`.
+                `str and first character is ':'`: Use this syntax.
+                `str`: Use this field.
+        where : Clause `WHERE` content, join as `WHERE str`.
+        group : Clause `GROUP BY` content, join as `GROUP BY str`.
+        having : Clause `HAVING` content, join as `HAVING str`.
+        order : Clause `ORDER BY` content, join as `ORDER BY str`.
+        limit : Clause `LIMIT` content.
+            - `int | str`: Join as `LIMIT int/str`.
+            - `tuple[int, int]`: Join as `LIMIT int, int`.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
+
+        Returns
+        -------
+        Result object.
+
+        Examples
+        --------
+        Parameter `fields`.
+        >>> fields = ['id', ':`id` + 1 AS `id_`']
+        >>> result = Database.execute.select('table', fields)
+        >>> print(result.to_table())
+        [{'id': 1, 'id_': 2}, ...]
+
+        Parameter `kwdata`.
+        >>> fields = '`id`, `id` + :value AS `id_`'
+        >>> result = Database.execute.select('table', fields, value=1)
+        >>> print(result.to_table())
+        [{'id': 1, 'id_': 2}, ...]
+        """
+
+        # Handle parameter.
+        sql = self.handle_select(table, fields, where, group, having, order, limit)
+
+        # Execute SQL.
+        result = self.execute(sql, report=report, **kwdata)
+
+        return result
+
+
+    def insert(
+        self,
+        table: str,
+        data: TableData,
+        duplicate: Literal['ignore', 'update'] | Container[str] | None = None,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> Result:
+        """
+        Execute insert SQL.
+
+        Parameters
+        ----------
+        table : Table name.
+        data : Insert data.
+        duplicate : Handle method when constraint error.
+            - `None`: Not handled.
+            - `ignore`: Use `UPDATE IGNORE INTO` clause.
+            - `update`: Use `ON DUPLICATE KEY UPDATE` clause and update all fields.
+            - `Container[str]`: Use `ON DUPLICATE KEY UPDATE` clause and update this fields.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
+            - `str and first character is ':'`: Use this syntax.
+            - `Any`: Use this value.
+
+        Returns
+        -------
+        Result object.
+
+        Examples
+        --------
+        Parameter `data` and `kwdata`.
+        >>> data = [{'key': 'a'}, {'key': 'b'}]
+        >>> kwdata = {'value1': 1, 'value2': ':(SELECT 2)'}
+        >>> result = Database.execute.insert('table', data, **kwdata)
+        >>> print(result.rowcount)
+        2
+        >>> result = Database.execute.select('table')
+        >>> print(result.to_table())
+        [{'key': 'a', 'value1': 1, 'value2': 2}, {'key': 'b', 'value1': 1, 'value2': 2}]
+        """
+
+        # Handle parameter.
+        sql, kwdata = self.handle_insert(table, data, duplicate, **kwdata)
+
+        # Execute SQL.
+        result = self.execute(sql, data, report, **kwdata)
+
+        return result
+
+
+    def update(
+        self,
+        table: str,
+        data: TableData,
+        where_fields: str | Iterable[str] | None = None,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> Result:
+        """
+        Execute update SQL.
+
+        Parameters
+        ----------
+        table : Table name.
+        data : Update data, clause `SET` and `WHERE` and `ORDER BY` and `LIMIT` content.
+            - `Key`: Table field.
+                `literal['order']`: Clause `ORDER BY` content, join as `ORDER BY str`.
+                `literal['limit']`: Clause `LIMIT` content, join as `LIMIT str`.
+                `Other`: Clause `SET` and `WHERE` content.
+            - `Value`: Table value.
+                `list | tuple`: Join as `field IN :str`.
+                `Any`: Join as `field = :str`.
+        where_fields : Clause `WHERE` content fields.
+            - `None`: The first key value pair of each item is judged.
+            - `str`: This key value pair of each item is judged.
+            - `Iterable[str]`: Multiple judged, `and`: relationship.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
+            - `str and first character is ':'`: Use this syntax.
+            - `Any`: Use this value.
+
+        Returns
+        -------
+        Result object.
+
+        Examples
+        --------
+        Parameter `data` and `kwdata`.
+        >>> data = [{'key': 'a'}, {'key': 'b'}]
+        >>> kwdata = {'value': 1, 'name': ':`key`'}
+        >>> result = Database.execute.update('table', data, **kwdata)
+        >>> print(result.rowcount)
+        2
+        >>> result = Database.execute.select('table')
+        >>> print(result.to_table())
+        [{'key': 'a', 'value': 1, 'name': 'a'}, {'key': 'b', 'value': 1, 'name': 'b'}]
+        """
+
+        # Handle parameter.
+        sql, data = self.handle_update(table, data, where_fields, **kwdata)
+
+        # Execute SQL.
+        result = self.execute(sql, data, report)
+
+        return result
+
+
+    def delete(
+        self,
+        table: str,
+        where: str | None = None,
+        order: str | None = None,
+        limit: int | str | None = None,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> Result:
+        """
+        Execute delete SQL.
+
+        Parameters
+        ----------
+        table : Table name.
+        where : Clause `WHERE` content, join as `WHERE str`.
+        order : Clause `ORDER BY` content, join as `ORDER BY str`.
+        limit : Clause `LIMIT` content, join as `LIMIT int/str`.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
+
+        Returns
+        -------
+        Result object.
+
+        Examples
+        --------
+        Parameter `where` and `kwdata`.
+        >>> where = '`id` IN :ids'
+        >>> ids = (1, 2)
+        >>> result = Database.execute.delete('table', where, ids=ids)
+        >>> print(result.rowcount)
+        2
+        """
+
+        # Handle parameter.
+        sql = self.handle_delete(table, where, order, limit)
+
+        # Execute SQL.
+        result = self.execute(sql, report=report, **kwdata)
+
+        return result
+
+
+    def copy(
+        self,
+        table: str,
+        where: str | None = None,
+        limit: int | str | tuple[int, int] | None = None,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> Result:
+        """
+        Execute inesrt SQL of copy records.
+
+        Parameters
+        ----------
+        table : Table name.
+        where : Clause `WHERE` content, join as `WHERE str`.
+        limit : Clause `LIMIT` content.
+            - `int | str`: Join as `LIMIT int/str`.
+            - `tuple[int, int]`: Join as `LIMIT int, int`.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
+            - `In 'WHERE' syntax`: Fill 'WHERE' syntax.
+            - `Not in 'WHERE' syntax`: Fill 'INSERT' and 'SELECT' syntax.
+                `str and first character is ':'`: Use this syntax.
+                `Any`: Use this value.
+
+        Returns
+        -------
+        Result object.
+
+        Examples
+        --------
+        Parameter `where` and `kwdata`.
+        >>> where = '`id` IN :ids'
+        >>> ids = (1, 2, 3)
+        >>> result = Database.execute.copy('table', where, 2, ids=ids, id=None, time=':NOW()')
+        >>> print(result.rowcount)
+        2
+        """
+
+        # Handle parameter.
+        sql = self.handle_copy(table, where, limit, **kwdata)
+
         # Execute SQL.
         result = self.execute(sql, report=report, **kwdata)
 
@@ -773,7 +1003,7 @@ class DatabaseExecute(DatabaseBase):
         **kwdata: Any
     ) -> int:
         """
-        Count records.
+        Execute inesrt SQL of count records.
 
         Parameters
         ----------
@@ -815,7 +1045,7 @@ class DatabaseExecute(DatabaseBase):
         **kwdata: Any
     ) -> bool:
         """
-        Judge the exist of record.
+        Execute inesrt SQL of Judge the exist of record.
 
         Parameters
         ----------
@@ -889,7 +1119,10 @@ class DatabaseExecute(DatabaseBase):
         for row in data:
             func_generator(**row)
 
-        return func_generator.generator
+        # Create.
+        generator = func_generator.generator()
+
+        return generator
 
 
     @overload
@@ -947,84 +1180,557 @@ class DatabaseExecute(DatabaseBase):
         return second
 
 
-    def handle_sql(self, sql: str | TextClause) -> TextClause:
+class DatabaseExecuteAsync(DatabaseExecuteBase):
+    """
+    Asynchronous database execute type.
+    """
+
+
+    def __init__(self, dbconn: DatabaseConnectionAsync) -> None:
         """
-        Handle SQL.
+        Build instance attributes.
 
         Parameters
         ----------
-        sql : SQL in method `sqlalchemy.text` format, or TextClause object.
-
-        Returns
-        -------
-        TextClause instance.
+        dbconn : `DatabaseConnectionAsync` instance.
         """
 
-        # Handle parameter.
-        if type(sql) == TextClause:
-            sql = sql.text
-
-        # Handle.
-        sql = sql.strip()
-        if sql[-1] != ';':
-            sql += ';'
-        sql = sqlalchemy_text(sql)
-
-        return sql
+        # Build.
+        self.dbconn = dbconn
 
 
-    def handle_data(
+    async def execute(
         self,
-        data: list[dict],
         sql: str | TextClause,
-    ) -> list[dict]:
+        data: TableData | None = None,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> Result:
         """
-        Handle data based on the content of SQL.
+        Asynchronous execute SQL.
 
         Parameters
         ----------
+        sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
         data : Data set for filling.
-        sql : SQL in method `sqlalchemy.text` format, or TextClause object.
+        report : Whether report SQL execute information.
+            - `None`: Use attribute `default_report`.
+            - `bool`: Use this value.
+        kwdata : Keyword parameters for filling.
 
         Returns
         -------
-        Filled data.
+        Result object.
         """
 
         # Handle parameter.
-        if type(sql) == TextClause:
-            sql = sql.text
+        sql, data, report = self.handle_execute(sql, data, report, **kwdata)
 
-        # Extract keys.
-        pattern = '(?<!\\\\):(\\w+)'
-        sql_keys = findall(pattern, sql)
+        # Transaction.
+        await self.dbconn.get_begin()
 
-        # Extract keys of syntax "in".
-        pattern = '[iI][nN]\\s+(?<!\\\\):(\\w+)'
-        sql_keys_in = findall(pattern, sql)
+        # Execute.
 
-        # Loop.
+        ## Report.
+        if report:
+            tm = TimeMark()
+            tm()
+            result = await self.dbconn.conn.execute(sql, data)
+            tm()
+
+            ### Generate report.
+            start_time = tm.records[0]['datetime']
+            spend_time: Timedelta = tm.records[1]['timedelta']
+            end_time = tm.records[1]['datetime']
+            start_str = time_to(start_time, True)[:-3]
+            spend_str = time_to(spend_time, True)[:-3]
+            end_str = time_to(end_time, True)[:-3]
+            report_runtime = 'Start: %s -> Spend: %ss -> End: %s' % (
+                start_str,
+                spend_str,
+                end_str
+            )
+            report_info = (
+                f'{report_runtime}\n'
+                f'Row Count: {result.rowcount}'
+            )
+            sqls = [
+                sql_part.strip()
+                for sql_part in sql.text.split(';')
+                if sql_part != ''
+            ]
+
+            if data == []:
+                echo(report_info, *sqls, title='SQL')
+            else:
+                echo(report_info, *sqls, data, title='SQL')
+
+        ## Not report.
+        else:
+            result = await self.dbconn.conn.execute(sql, data)
+
+        # Automatic commit.
+        if self.dbconn.autocommit:
+            await self.dbconn.commit()
+
+        return result
+
+
+    __call__ = execute
+
+
+    async def select(
+        self,
+        table: str,
+        fields: str | Iterable[str] | None = None,
+        where: str | None = None,
+        group: str | None = None,
+        having: str | None = None,
+        order: str | None = None,
+        limit: int | str | tuple[int, int] | None = None,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> Result:
+        """
+        Asynchronous execute select SQL.
+
+        Parameters
+        ----------
+        table : Table name.
+        fields : Select clause content.
+            - `None`: Is `SELECT *`.
+            - `str`: Join as `SELECT str`.
+            - `Iterable[str]`, Join as `SELECT ``str``: ...`.
+                `str and first character is ':'`: Use this syntax.
+                `str`: Use this field.
+        where : Clause `WHERE` content, join as `WHERE str`.
+        group : Clause `GROUP BY` content, join as `GROUP BY str`.
+        having : Clause `HAVING` content, join as `HAVING str`.
+        order : Clause `ORDER BY` content, join as `ORDER BY str`.
+        limit : Clause `LIMIT` content.
+            - `int | str`: Join as `LIMIT int/str`.
+            - `tuple[int, int]`: Join as `LIMIT int, int`.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
+
+        Returns
+        -------
+        Result object.
+
+        Examples
+        --------
+        Parameter `fields`.
+        >>> fields = ['id', ':`id` + 1 AS `id_`']
+        >>> result = Database.execute.select('table', fields)
+        >>> print(result.to_table())
+        [{'id': 1, 'id_': 2}, ...]
+
+        Parameter `kwdata`.
+        >>> fields = '`id`, `id` + :value AS `id_`'
+        >>> result = Database.execute.select('table', fields, value=1)
+        >>> print(result.to_table())
+        [{'id': 1, 'id_': 2}, ...]
+        """
+
+        # Handle parameter.
+        sql = self.handle_select(table, fields, where, group, having, order, limit)
+
+        # Execute SQL.
+        result = await self.execute(sql, report=report, **kwdata)
+
+        return result
+
+
+    async def insert(
+        self,
+        table: str,
+        data: TableData,
+        duplicate: Literal['ignore', 'update'] | Container[str] | None = None,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> Result:
+        """
+        Asynchronous execute insert SQL.
+
+        Parameters
+        ----------
+        table : Table name.
+        data : Insert data.
+        duplicate : Handle method when constraint error.
+            - `None`: Not handled.
+            - `ignore`: Use `UPDATE IGNORE INTO` clause.
+            - `update`: Use `ON DUPLICATE KEY UPDATE` clause and update all fields.
+            - `Container[str]`: Use `ON DUPLICATE KEY UPDATE` clause and update this fields.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
+            - `str and first character is ':'`: Use this syntax.
+            - `Any`: Use this value.
+
+        Returns
+        -------
+        Result object.
+
+        Examples
+        --------
+        Parameter `data` and `kwdata`.
+        >>> data = [{'key': 'a'}, {'key': 'b'}]
+        >>> kwdata = {'value1': 1, 'value2': ':(SELECT 2)'}
+        >>> result = Database.execute.insert('table', data, **kwdata)
+        >>> print(result.rowcount)
+        2
+        >>> result = Database.execute.select('table')
+        >>> print(result.to_table())
+        [{'key': 'a', 'value1': 1, 'value2': 2}, {'key': 'b', 'value1': 1, 'value2': 2}]
+        """
+
+        # Handle parameter.
+        sql, kwdata = self.handle_insert(table, data, duplicate, **kwdata)
+
+        # Execute SQL.
+        result = await self.execute(sql, data, report, **kwdata)
+
+        return result
+
+
+    async def update(
+        self,
+        table: str,
+        data: TableData,
+        where_fields: str | Iterable[str] | None = None,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> Result:
+        """
+        Asynchronous execute update SQL.
+
+        Parameters
+        ----------
+        table : Table name.
+        data : Update data, clause `SET` and `WHERE` and `ORDER BY` and `LIMIT` content.
+            - `Key`: Table field.
+                `literal['order']`: Clause `ORDER BY` content, join as `ORDER BY str`.
+                `literal['limit']`: Clause `LIMIT` content, join as `LIMIT str`.
+                `Other`: Clause `SET` and `WHERE` content.
+            - `Value`: Table value.
+                `list | tuple`: Join as `field IN :str`.
+                `Any`: Join as `field = :str`.
+        where_fields : Clause `WHERE` content fields.
+            - `None`: The first key value pair of each item is judged.
+            - `str`: This key value pair of each item is judged.
+            - `Iterable[str]`: Multiple judged, `and`: relationship.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
+            - `str and first character is ':'`: Use this syntax.
+            - `Any`: Use this value.
+
+        Returns
+        -------
+        Result object.
+
+        Examples
+        --------
+        Parameter `data` and `kwdata`.
+        >>> data = [{'key': 'a'}, {'key': 'b'}]
+        >>> kwdata = {'value': 1, 'name': ':`key`'}
+        >>> result = Database.execute.update('table', data, **kwdata)
+        >>> print(result.rowcount)
+        2
+        >>> result = Database.execute.select('table')
+        >>> print(result.to_table())
+        [{'key': 'a', 'value': 1, 'name': 'a'}, {'key': 'b', 'value': 1, 'name': 'b'}]
+        """
+
+        # Handle parameter.
+        sql, data = self.handle_update(table, data, where_fields, **kwdata)
+
+        # Execute SQL.
+        result = await self.execute(sql, data, report)
+
+        return result
+
+
+    async def delete(
+        self,
+        table: str,
+        where: str | None = None,
+        order: str | None = None,
+        limit: int | str | None = None,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> Result:
+        """
+        Asynchronous execute delete SQL.
+
+        Parameters
+        ----------
+        table : Table name.
+        where : Clause `WHERE` content, join as `WHERE str`.
+        order : Clause `ORDER BY` content, join as `ORDER BY str`.
+        limit : Clause `LIMIT` content, join as `LIMIT int/str`.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
+
+        Returns
+        -------
+        Result object.
+
+        Examples
+        --------
+        Parameter `where` and `kwdata`.
+        >>> where = '`id` IN :ids'
+        >>> ids = (1, 2)
+        >>> result = Database.execute.delete('table', where, ids=ids)
+        >>> print(result.rowcount)
+        2
+        """
+
+        # Handle parameter.
+        sql = self.handle_delete(table, where, order, limit)
+
+        # Execute SQL.
+        result = await self.execute(sql, report=report, **kwdata)
+
+        return result
+
+
+    async def copy(
+        self,
+        table: str,
+        where: str | None = None,
+        limit: int | str | tuple[int, int] | None = None,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> Result:
+        """
+        Asynchronous execute inesrt SQL of copy records.
+
+        Parameters
+        ----------
+        table : Table name.
+        where : Clause `WHERE` content, join as `WHERE str`.
+        limit : Clause `LIMIT` content.
+            - `int | str`: Join as `LIMIT int/str`.
+            - `tuple[int, int]`: Join as `LIMIT int, int`.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
+            - `In 'WHERE' syntax`: Fill 'WHERE' syntax.
+            - `Not in 'WHERE' syntax`: Fill 'INSERT' and 'SELECT' syntax.
+                `str and first character is ':'`: Use this syntax.
+                `Any`: Use this value.
+
+        Returns
+        -------
+        Result object.
+
+        Examples
+        --------
+        Parameter `where` and `kwdata`.
+        >>> where = '`id` IN :ids'
+        >>> ids = (1, 2, 3)
+        >>> result = Database.execute.copy('table', where, 2, ids=ids, id=None, time=':NOW()')
+        >>> print(result.rowcount)
+        2
+        """
+
+        # Handle parameter.
+        sql = self.handle_copy(table, where, limit, **kwdata)
+
+        # Execute SQL.
+        result = await self.execute(sql, report=report, **kwdata)
+
+        return result
+
+
+    async def count(
+        self,
+        table: str,
+        where: str | None = None,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> int:
+        """
+        Asynchronous execute inesrt SQL of count records.
+
+        Parameters
+        ----------
+        table : Table name.
+        where : Match condition, `WHERE` clause content, join as `WHERE str`.
+            - `None`: Match all.
+            - `str`: Match condition.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
+
+        Returns
+        -------
+        Record count.
+
+        Examples
+        --------
+        Parameter `where` and `kwdata`.
+        >>> where = '`id` IN :ids'
+        >>> ids = (1, 2)
+        >>> result = Database.execute.count('table', where, ids=ids)
+        >>> print(result)
+        2
+        """
+
+        # Execute.
+        result = await self.select(table, '1', where=where, report=report, **kwdata)
+        count = len(tuple(result))
+
+        return count
+
+
+    async def exist(
+        self,
+        table: str,
+        where: str | None = None,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> bool:
+        """
+        Asynchronous execute inesrt SQL of Judge the exist of record.
+
+        Parameters
+        ----------
+        table : Table name.
+        where : Match condition, `WHERE` clause content, join as `WHERE str`.
+            - `None`: Match all.
+            - `str`: Match condition.
+        report : Whether report SQL execute information.
+            - `None`, Use attribute `report_execute_info`: of object `ROption`.
+            - `int`: Use this value.
+        kwdata : Keyword parameters for filling.
+
+        Returns
+        -------
+        Judged result.
+
+        Examples
+        --------
+        Parameter `where` and `kwdata`.
+        >>> data = [{'id': 1}]
+        >>> Database.execute.insert('table', data)
+        >>> where = '`id` = :id_'
+        >>> id_ = 1
+        >>> result = Database.execute.exist('table', where, id_=id_)
+        >>> print(result)
+        True
+        """
+
+        # Execute.
+        result = await self.count(table, where, report, **kwdata)
+
+        # Judge.
+        judge = result != 0
+
+        return judge
+
+
+    async def generator(
+        self,
+        sql: str | TextClause,
+        data: TableData,
+        report: bool | None = None,
+        **kwdata: Any
+    ) -> AsyncGenerator[Result, Any]:
+        """
+        Asynchronous return a generator that can execute SQL.
+
+        Parameters
+        ----------
+        sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
+        data : Data set for filling.
+        report : Whether report SQL execute information.
+            - `None`: Use attribute `default_report`.
+            - `bool`: Use this value.
+        kwdata : Keyword parameters for filling.
+
+        Returns
+        -------
+        AsyncGenerator.
+        """
+
+        # Instance.
+        func_generator = FunctionGenerator(
+            self.execute,
+            sql=sql,
+            report=report,
+            **kwdata
+        )
+
+        # Add.
         for row in data:
-            if row == {}:
-                continue
-            for key in sql_keys:
-                value = row.get(key)
+            func_generator(**row)
 
-                # Empty string.
-                if value == '':
-                    value = None
+        # Create.
+        agenerator = func_generator.agenerator()
 
-                # Convert.
-                elif (
-                    type(value) in (list, dict)
-                    and key not in sql_keys_in
-                ):
-                    value = to_json(value)
+        return agenerator
 
-                # Enum.
-                elif isinstance(type(value), EnumType):
-                    value = value.value
 
-                row[key] = value
+    @overload
+    async def sleep(self, report: bool | None = None) -> int: ...
 
-        return data
+    @overload
+    async def sleep(self, second: int, report: bool | None = None) -> int: ...
+
+    @overload
+    async def sleep(self, low: int = 0, high: int = 10, report: bool | None = None) -> int: ...
+
+    @overload
+    async def sleep(self, *thresholds: float, report: bool | None = None) -> float: ...
+
+    @overload
+    async def sleep(self, *thresholds: float, precision: Literal[0], report: bool | None = None) -> int: ...
+
+    @overload
+    async def sleep(self, *thresholds: float, precision: int, report: bool | None = None) -> float: ...
+
+    async def sleep(self, *thresholds: float, precision: int | None = None, report: bool | None = None) -> float:
+        """
+        Asynchronous let the database wait random seconds.
+
+        Parameters
+        ----------
+        thresholds : Low and high thresholds of random range, range contains thresholds.
+            - When `length is 0`, then low and high thresholds is `0` and `10`.
+            - When `length is 1`, then low and high thresholds is `0` and `thresholds[0]`.
+            - When `length is 2`, then low and high thresholds is `thresholds[0]` and `thresholds[1]`.
+        precision : Precision of random range, that is maximum decimal digits of return value.
+            - `None`: Set to Maximum decimal digits of element of parameter `thresholds`.
+            - `int`: Set to this value.
+        report : Whether report SQL execute information.
+            - `None`: Use attribute `default_report`.
+            - `bool`: Use this value.
+
+        Returns
+        -------
+        Random seconds.
+            - When parameters `precision` is `0`, then return int.
+            - When parameters `precision` is `greater than 0`, then return float.
+        """
+
+        # Handle parameter.
+        if len(thresholds) == 1:
+            second = thresholds[0]
+        else:
+            second = randn(*thresholds, precision=precision)
+
+        # Sleep.
+        sql = f'SELECT SLEEP({second})'
+        await self.execute(sql, report=report)
+
+        return second

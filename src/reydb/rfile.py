@@ -359,7 +359,7 @@ class DatabaseFile(DatabaseBase):
         )
 
         # Get ID.
-        file_id = conn.insert_id
+        file_id = conn.insert_id()
 
         # Commit.
         conn.commit()

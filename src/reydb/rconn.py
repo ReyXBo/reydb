@@ -10,7 +10,8 @@
 
 
 from typing import Self
-from sqlalchemy import Transaction
+from sqlalchemy import Connection, Transaction
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncTransaction
 
 from .rbase import DatabaseBase
 from .rdb import Database
@@ -18,6 +19,7 @@ from .rdb import Database
 
 __all__ = (
     'DatabaseConnection',
+    'DatabaseConnectionAsync'
 )
 
 
@@ -47,9 +49,42 @@ class DatabaseConnection(DatabaseBase):
         # Build.
         self.db = db
         self.autocommit = autocommit
-        self.conn = db.engine.connect()
-        self.exec = DatabaseExecute(self)
+        self.execute = DatabaseExecute(self)
+        self.conn: Connection | None = None
         self.begin: Transaction | None = None
+
+
+    def get_conn(self) -> Connection:
+        """
+        Get `Connection` instance.
+
+        Returns
+        -------
+        Instance.
+        """
+
+        # Create.
+        if self.conn is None:
+            self.conn = self.db.engine.connect()
+
+        return self.conn
+
+
+    def get_begin(self) -> Transaction:
+        """
+        Get `Transaction` instance.
+
+        Returns
+        -------
+        Instance.
+        """
+
+        # Create.
+        if self.begin is None:
+            conn = self.get_conn()
+            self.begin = conn.begin()
+
+        return self.begin
 
 
     def commit(self) -> None:
@@ -80,7 +115,12 @@ class DatabaseConnection(DatabaseBase):
         """
 
         # Close.
-        self.conn.close()
+        if self.begin is not None:
+            self.begin.close()
+            self.begin = None
+        if self.conn is not None:
+            self.conn.close()
+            self.conn = None
 
 
     def __enter__(self) -> Self:
@@ -117,27 +157,6 @@ class DatabaseConnection(DatabaseBase):
             self.close()
 
 
-    __del__ = close
-
-
-    @property
-    def execute(self):
-        """
-        Build `database execute` instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Create transaction.
-        if self.begin is None:
-            self.begin = self.conn.begin()
-
-        return self.exec
-
-
-    @property
     def insert_id(self) -> int:
         """
         Return last self increasing ID.
@@ -150,6 +169,157 @@ class DatabaseConnection(DatabaseBase):
         # Get.
         sql = 'SELECT LAST_INSERT_ID()'
         result = self.execute(sql)
+        id_ = result.scalar()
+
+        return id_
+
+
+class DatabaseConnectionAsync(DatabaseBase):
+    """
+    Asynchronous database connection type.
+    """
+
+
+    def __init__(
+        self,
+        db: Database,
+        autocommit: bool
+    ) -> None:
+        """
+        Build instance attributes.
+
+        Parameters
+        ----------
+        db : `DatabaseAsync` instance.
+        autocommit: Whether automatic commit execute.
+        """
+
+        # Import.
+        from .rexec import DatabaseExecuteAsync
+
+        # Build.
+        self.db = db
+        self.autocommit = autocommit
+        self.execute = DatabaseExecuteAsync(self)
+        self.conn: AsyncConnection | None = None
+        self.begin: AsyncTransaction | None = None
+
+
+    async def get_conn(self) -> AsyncConnection:
+        """
+        Asynchronous get `Connection` instance.
+
+        Returns
+        -------
+        Instance.
+        """
+
+        # Create.
+        if self.conn is None:
+            self.conn = await self.db.aengine.connect()
+
+        return self.conn
+
+
+    async def get_begin(self) -> AsyncTransaction:
+        """
+        Asynchronous get `Transaction` instance.
+
+        Returns
+        -------
+        Instance.
+        """
+
+        # Create.
+        if self.begin is None:
+            conn = await self.get_conn()
+            self.begin = await conn.begin()
+
+        return self.begin
+
+
+    async def commit(self) -> None:
+        """
+        Asynchronous commit cumulative executions.
+        """
+
+        # Commit.
+        if self.begin is not None:
+            await self.begin.commit()
+            self.begin = None
+
+
+    async def rollback(self) -> None:
+        """
+        Asynchronous rollback cumulative executions.
+        """
+
+        # Rollback.
+        if self.begin is not None:
+            await self.begin.rollback()
+            self.begin = None
+
+
+    async def close(self) -> None:
+        """
+        Asynchronous close database connection.
+        """
+
+        # Close.
+        if self.begin is not None:
+            await self.begin.close()
+            self.begin = None
+        if self.conn is not None:
+            await self.conn.close()
+            self.conn = None
+
+
+    async def __aenter__(self) -> Self:
+        """
+        Asynchronous enter syntax `async with`.
+
+        Returns
+        -------
+        Self.
+        """
+
+        return self
+
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        *_
+    ) -> None:
+        """
+        Asynchronous exit syntax `async with`.
+
+        Parameters
+        ----------
+        exc_type : Exception type.
+        """
+
+        # Commit.
+        if exc_type is None:
+            await self.commit()
+
+        # Close.
+        else:
+            await self.close()
+
+
+    async def insert_id(self) -> int:
+        """
+        Asynchronous return last self increasing ID.
+
+        Returns
+        -------
+        ID.
+        """
+
+        # Get.
+        sql = 'SELECT LAST_INSERT_ID()'
+        result = await self.execute(sql)
         id_ = result.scalar()
 
         return id_

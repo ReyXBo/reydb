@@ -9,14 +9,18 @@
 """
 
 
-from typing import Self, Any, Type, TypeVar, Generic, Final
+from typing import Self, Any, Type, TypeVar, Generic, Final, overload
+from collections.abc import Callable
 from functools import wraps as functools_wraps
 from pydantic import ConfigDict, field_validator as pydantic_field_validator, model_validator as pydantic_model_validator
 from sqlalchemy.orm import SessionTransaction
+from sqlalchemy.sql import sqltypes
+from sqlalchemy.sql.sqltypes import TypeEngine
 from sqlalchemy.sql.dml import Insert, Update, Delete
-from sqlmodel import SQLModel, Session, Table, Field as sqlmodel_Field
+from sqlmodel import SQLModel, Session, Table
+from sqlmodel.main import SQLModelMetaclass, FieldInfo
 from sqlmodel.sql._expression_select_cls import SelectOfScalar as Select
-from reykit.rbase import CallableT, is_instance
+from reykit.rbase import CallableT, Null, is_instance
 
 from .rbase import DatabaseBase
 from .rdb import Database
@@ -24,7 +28,9 @@ from .rdb import Database
 
 __all__ = (
     'DatabaseORMBase',
+    'DatabaseORMModelMeta',
     'DatabaseORMModel',
+    'DatabaseORMModelField',
     'DatabaseORM',
     'DatabaseORMSession',
     'DatabaseORMStatement',
@@ -35,21 +41,72 @@ __all__ = (
 )
 
 
+ModelT = TypeVar('ModelT', bound='DatabaseORMModel')
+
+
 class DatabaseORMBase(DatabaseBase):
     """
     Database ORM base type.
     """
 
 
-class DatabaseORMModelField(DatabaseBase):
+class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
     """
-    Database ORM model filed type.
+    Database ORM base meta type.
     """
 
 
-class DatabaseORMModel(DatabaseORMBase, SQLModel):
+    def __new__(
+        cls,
+        name: str,
+        bases: tuple[Type],
+        attrs: dict[str, Any],
+        **kwargs: Any
+    ) -> Type:
+        """
+        Create type.
+
+        Parameters
+        ----------
+        name : Type name.
+        bases : Type base types.
+        attrs : Type attributes and methods dictionary.
+        kwargs : Type other key arguments.
+        """
+
+        # Handle parameter.
+        if attrs['__module__'] == '__main__':
+            table_args = attrs.setdefault('__table_args__', {})
+            table_args['quote'] = True
+            if '__comment__' in attrs:
+                table_args['comment'] = attrs.pop('__comment__')
+
+            ## Field.
+            for __name__ in attrs['__annotations__']:
+                field = attrs.get(__name__)
+                if field is None:
+                    field = attrs[__name__] = DatabaseORMModelField()
+                sa_column_kwargs: dict = field.sa_column_kwargs
+                sa_column_kwargs.setdefault('name', __name__)
+
+        # Base.
+        new_cls = super().__new__(cls, name, bases, attrs, **kwargs)
+
+        return new_cls
+
+
+model_metaclass: SQLModelMetaclass = DatabaseORMModelMeta
+
+
+class DatabaseORMModel(DatabaseORMBase, SQLModel, metaclass=model_metaclass):
     """
     Database ORM model type.
+
+    Examples
+    --------
+    >>> class Foo(DatabaseORMModel, table=True):
+    ...     __comment__ = 'Table comment.'
+    ...     ...
     """
 
 
@@ -110,40 +167,23 @@ class DatabaseORMModel(DatabaseORMBase, SQLModel):
 
 
     @classmethod
-    def table(cls_or_self) -> Table:
+    def table(cls_or_self) -> Table | None:
         """
         Mapping `Table` instance.
 
         Returns
         -------
-        Instance.
+        Instance or null.
         """
 
         # Get.
-        table: Table = cls_or_self.__table__
+        table: Table | None = getattr(cls_or_self, '__table__', None)
 
         return table
 
 
     @classmethod
-    def comment(cls_or_self) -> str | None:
-        """
-        Table comment.
-
-        Returns
-        -------
-        Comment.
-        """
-
-        # Get.
-        table = cls_or_self.table()
-        comment = table.comment
-
-        return comment
-
-
-    @classmethod
-    def set_comment(cls_or_self, comment: str) -> None:
+    def comment(cls_or_self, comment: str) -> None:
         """
         Set table comment.
 
@@ -157,7 +197,158 @@ class DatabaseORMModel(DatabaseORMBase, SQLModel):
         table.comment = comment
 
 
-ModelT = TypeVar('ModelT', bound=DatabaseORMModel)
+class DatabaseORMModelField(DatabaseBase, FieldInfo):
+    """
+    Database ORM model filed type.
+
+    Examples
+    --------
+    >>> class Foo(DatabaseORMModel, table=True):
+    ...     key: int = DatabaseORMModelField(key=True, commment='Field commment.')
+    """
+
+
+    @overload
+    def __init__(
+        self,
+        arg_default: Any | Callable[[], Any] | Null = Null,
+        *,
+        arg_name: str | None = None,
+        field_default: str | None = None,
+        filed_name: str | None = None,
+        field_type: TypeEngine | None = None,
+        key: bool = False,
+        key_auto: bool = False,
+        non_null: bool = False,
+        index_n: bool = False,
+        index_u: bool = False,
+        comment: str | None = None,
+        unique: bool = False,
+        re: str | None = None,
+        len_min: int | None = None,
+        len_max: int | None = None,
+        num_gt: float | None = None,
+        num_ge: float | None = None,
+        num_lt: float | None = None,
+        num_le: float | None = None,
+        num_multiple: float | None = None,
+        num_places: int | None = None,
+        num_places_dec: int | None = None,
+        **kwargs: Any
+    ) -> None: ...
+
+    def __init__(
+        self,
+        arg_default: Any | Callable[[], Any] | Null = Null,
+        **kwargs: Any
+    ) -> None:
+        """
+        Build instance attributes.
+
+        Parameters
+        ----------
+        arg_default : Call argument default value.
+        arg_name : Call argument name.
+            - `None`: Same as attribute name.
+        field_default : Database field defualt value.
+        filed_name : Database field name.
+            - `None`: Same as attribute name.
+        field_type : Database field type.
+            - `None`: Based type annotation automatic judgment.
+        key : Whether the field is primary key.
+        key_auto : Whether the field is automatic increment primary key.
+        non_null : Whether the field is non null constraint.
+        index_n : Whether the field add normal index.
+        index_u : Whether the field add unique index.
+        comment : Field commment.
+        unique : Require the sequence element if is all unique.
+        re : Require the partial string if is match regular expression.
+        len_min : Require the sequence or string minimum length.
+        len_max : Require the sequence or string maximum length.
+        num_gt : Require the number greater than this value. (i.e. `number > num_gt`)
+        num_lt : Require the number less than this value. (i.e. `number < num_lt`)
+        num_ge : Require the number greater than and equal to this value. (i.e. `number >= num_ge`)
+        num_le : Require the number less than and equal to this value. (i.e. `number <= num_le`)
+        num_multiple : Require the number to be multiple of this value. (i.e. `number % num_multiple == 0`)
+        num_places : Require the number digit places maximum length.
+        num_places_dec : Require the number decimal places maximum length.
+        **kwargs : Other key arguments.
+        """
+
+        # Handle parameter.
+        kwargs = {
+            key: value
+            for key, value in kwargs.items()
+            if value not in (None, False)
+        }
+        kwargs.setdefault('sa_column_kwargs', {})
+        kwargs['sa_column_kwargs']['quote'] = True
+
+        ## Convert argument name.
+        mapping_keys = {
+            'arg_name': 'alias',
+            'key': 'primary_key',
+            'index_n': 'index',
+            'index_u': 'unique',
+            're': 'pattern',
+            'len_min': ('min_length', 'min_items'),
+            'len_max': ('max_length', 'max_items'),
+            'num_gt': 'gt',
+            'num_ge': 'ge',
+            'num_lt': 'lt',
+            'num_le': 'le',
+            'num_multiple': 'multiple_of',
+            'num_places': 'max_digits',
+            'num_places_dec': 'decimal_places'
+        }
+
+        for key_old, key_new in mapping_keys.items():
+            if type(key_new) != tuple:
+                key_new = (key_new,)
+            if key_old in kwargs:
+                value = kwargs.pop(key_old)
+                for key in key_new:
+                    kwargs[key] = value
+
+        ## Argument default.
+        if (
+            arg_default != Null
+            and callable(arg_default)
+        ):
+            kwargs['default_factory'] = arg_default
+        else:
+            kwargs['default'] = arg_default
+
+        ## Field default.
+        if 'field_default' in kwargs:
+            kwargs['sa_column_kwargs']['server_default'] = kwargs.pop('field_default')
+
+        ## Field name.
+        if 'filed_name' in kwargs:
+            kwargs['sa_column_kwargs']['name'] = kwargs.pop('filed_name')
+
+        ## Field type.
+        if 'filed_name' in kwargs:
+            kwargs['sa_column_kwargs']['type_'] = kwargs.pop('filed_type')
+
+        ## Key auto.
+        if 'key_auto' in kwargs:
+            kwargs['sa_column_kwargs']['autoincrement'] = True
+        else:
+            kwargs['sa_column_kwargs']['autoincrement'] = False
+
+        ## Non null.
+        if 'non_null' in kwargs:
+            kwargs['nullable'] = not kwargs.pop('non_null')
+        else:
+            kwargs['nullable'] = True
+
+        ## Comment.
+        if 'comment' in kwargs:
+            kwargs['sa_column_kwargs']['comment'] = kwargs.pop('comment')
+
+        # Base.
+        super().__init__(**kwargs)
 
 
 class DatabaseORM(DatabaseORMBase):
@@ -171,8 +362,9 @@ class DatabaseORM(DatabaseORMBase):
     """
 
     Model = DatabaseORMModel
-    Field = sqlmodel_Field
+    Field = DatabaseORMModelField
     Config = ConfigDict
+    tyeps = sqltypes
     wrap_validate_filed = pydantic_field_validator
     wrap_validate_model = pydantic_model_validator
 
@@ -195,9 +387,6 @@ class DatabaseORM(DatabaseORMBase):
         self.gets = self._session.gets
         self.all = self._session.all
         self.add = self._session.add
-
-        ## Avoid descriptor error.
-        self.Field = sqlmodel_Field
 
 
     def session(self, autocommit: bool = False):
@@ -230,13 +419,17 @@ class DatabaseORM(DatabaseORMBase):
         Parameters
         ----------
         models : ORM model instances.
-        check : Skip existing table.
+        check : Skip existing table and not mapping model.
         """
 
         # Create.
         for model in models:
             table = model.table()
-            table.create(self.db.engine, checkfirst=skip)
+            if (
+                not skip
+                or table is not None
+            ):
+                table.create(self.db.engine, checkfirst=skip)
 
 
     def drop(
@@ -250,13 +443,17 @@ class DatabaseORM(DatabaseORMBase):
         Parameters
         ----------
         models : ORM model instances.
-        check : Skip not exist table.
+        check : Skip not exist table and not mapping model.
         """
 
         # Create.
         for model in models:
             table = model.table()
-            table.drop(self.db.engine, checkfirst=skip)
+            if (
+                not skip
+                or table is not None
+            ):
+                table.drop(self.db.engine, checkfirst=skip)
 
 
 class DataBaseORMSession(DatabaseORMBase):
@@ -704,12 +901,12 @@ class DatabaseORMStatement(DatabaseORMBase):
         model : ORM model instance.
         """
 
+        # Base.
+        super().__init__(self.model)
+
         # Build.
         self.sess = sess
         self.model = model
-
-        # Init.
-        super().__init__(self.model)
 
 
     def execute(self) -> None:
