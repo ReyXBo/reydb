@@ -716,6 +716,7 @@ class DatabaseExecute(DatabaseExecuteBase):
         # Automatic commit.
         if self.dbconn.autocommit:
             self.dbconn.commit()
+            self.dbconn.close()
 
         return result
 
@@ -1235,7 +1236,7 @@ class DatabaseExecuteAsync(DatabaseExecuteBase):
         if report:
             tm = TimeMark()
             tm()
-            result = await self.dbconn.conn.execute(sql, data)
+            result = await self.dbconn.aconn.execute(sql, data)
             tm()
 
             ### Generate report.
@@ -1267,11 +1268,13 @@ class DatabaseExecuteAsync(DatabaseExecuteBase):
 
         ## Not report.
         else:
-            result = await self.dbconn.conn.execute(sql, data)
+            result = await self.dbconn.aconn.execute(sql, data)
 
         # Automatic commit.
         if self.dbconn.autocommit:
             await self.dbconn.commit()
+            await self.dbconn.close()
+            await self.dbconn.db.dispose()
 
         return result
 

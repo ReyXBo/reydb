@@ -100,7 +100,8 @@ class Database(DatabaseBase):
         """
 
         # Get.
-        url_params = extract_url(self.url)
+        url = self.url(False)
+        url_params = extract_url(url)
         backend = url_params['backend']
 
         return backend
@@ -117,16 +118,56 @@ class Database(DatabaseBase):
         """
 
         # Get.
-        url_params = extract_url(self.url)
+        url = self.url(False)
+        url_params = extract_url(url)
         driver = url_params['driver']
 
         return driver
 
 
     @property
-    def url(self) -> str:
+    def abackend(self) -> str:
+        """
+        Asynchronous database backend name.
+
+        Returns
+        -------
+        Name.
+        """
+
+        # Get.
+        url = self.url(True)
+        url_params = extract_url(url)
+        backend = url_params['backend']
+
+        return backend
+
+
+    @property
+    def adriver(self) -> str:
+        """
+        Asynchronous database driver name.
+
+        Returns
+        -------
+        Name.
+        """
+
+        # Get.
+        url = self.url(True)
+        url_params = extract_url(url)
+        driver = url_params['driver']
+
+        return driver
+
+
+    def url(self, is_async: bool) -> str:
         """
         Generate server URL.
+
+        Parameters
+        ----------
+        is_async : Whether to use asynchronous engine.
 
         Returns
         -------
@@ -135,7 +176,7 @@ class Database(DatabaseBase):
 
         # Generate URL.
         password = urllib_quote(self.password)
-        if self.is_async:
+        if is_async:
             url_ = f'mysql+aiomysql://{self.username}:{password}@{self.host}:{self.port}/{self.database}'
         else:
             url_ = f'mysql+pymysql://{self.username}:{password}@{self.host}:{self.port}/{self.database}'
@@ -173,8 +214,9 @@ class Database(DatabaseBase):
         """
 
         # Handle parameter.
+        url = self.url(is_async)
         engine_params = {
-            'url': self.url,
+            'url': url,
             'pool_size': self.pool_size,
             'max_overflow': self.max_overflow,
             'pool_timeout': self.pool_timeout,
@@ -189,6 +231,15 @@ class Database(DatabaseBase):
             engine = sqlalchemy_create_engine(**engine_params)
 
         return engine
+
+
+    async def dispose(self) -> None:
+        """
+        Dispose asynchronous connections.
+        """
+
+        # Dispose.
+        await self.aengine.dispose()
 
 
     def __conn_count(self, is_async: bool) -> tuple[int, int]:
@@ -397,7 +448,7 @@ class Database(DatabaseBase):
 
         # Build.
         dbconn = self.aconnect(True)
-        exec = dbconn.execute
+        exec = dbconn.aexecute
 
         return exec
 

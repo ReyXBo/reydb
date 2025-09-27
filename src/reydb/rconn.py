@@ -153,8 +153,7 @@ class DatabaseConnection(DatabaseBase):
             self.commit()
 
         # Close.
-        else:
-            self.close()
+        self.close()
 
 
     def insert_id(self) -> int:
@@ -200,9 +199,9 @@ class DatabaseConnectionAsync(DatabaseBase):
         # Build.
         self.db = db
         self.autocommit = autocommit
-        self.execute = DatabaseExecuteAsync(self)
-        self.conn: AsyncConnection | None = None
-        self.begin: AsyncTransaction | None = None
+        self.aexecute = DatabaseExecuteAsync(self)
+        self.aconn: AsyncConnection | None = None
+        self.abegin: AsyncTransaction | None = None
 
 
     async def get_conn(self) -> AsyncConnection:
@@ -215,10 +214,10 @@ class DatabaseConnectionAsync(DatabaseBase):
         """
 
         # Create.
-        if self.conn is None:
-            self.conn = await self.db.aengine.connect()
+        if self.aconn is None:
+            self.aconn = await self.db.aengine.connect()
 
-        return self.conn
+        return self.aconn
 
 
     async def get_begin(self) -> AsyncTransaction:
@@ -231,11 +230,11 @@ class DatabaseConnectionAsync(DatabaseBase):
         """
 
         # Create.
-        if self.begin is None:
+        if self.abegin is None:
             conn = await self.get_conn()
-            self.begin = await conn.begin()
+            self.abegin = await conn.begin()
 
-        return self.begin
+        return self.abegin
 
 
     async def commit(self) -> None:
@@ -244,9 +243,9 @@ class DatabaseConnectionAsync(DatabaseBase):
         """
 
         # Commit.
-        if self.begin is not None:
-            await self.begin.commit()
-            self.begin = None
+        if self.abegin is not None:
+            await self.abegin.commit()
+            self.abegin = None
 
 
     async def rollback(self) -> None:
@@ -255,9 +254,9 @@ class DatabaseConnectionAsync(DatabaseBase):
         """
 
         # Rollback.
-        if self.begin is not None:
-            await self.begin.rollback()
-            self.begin = None
+        if self.abegin is not None:
+            await self.abegin.rollback()
+            self.abegin = None
 
 
     async def close(self) -> None:
@@ -266,15 +265,15 @@ class DatabaseConnectionAsync(DatabaseBase):
         """
 
         # Close.
-        if self.begin is not None:
-            await self.begin.close()
-            self.begin = None
-        if self.conn is not None:
-            await self.conn.close()
-            self.conn = None
+        if self.abegin is not None:
+            await self.abegin.close()
+            self.abegin = None
+        if self.aconn is not None:
+            await self.aconn.close()
+            self.aconn = None
 
 
-    async def __aenter__(self) -> Self:
+    async def __aenter__(self):
         """
         Asynchronous enter syntax `async with`.
 
@@ -304,8 +303,8 @@ class DatabaseConnectionAsync(DatabaseBase):
             await self.commit()
 
         # Close.
-        else:
-            await self.close()
+        await self.close()
+        await self.db.dispose()
 
 
     async def insert_id(self) -> int:
@@ -319,7 +318,7 @@ class DatabaseConnectionAsync(DatabaseBase):
 
         # Get.
         sql = 'SELECT LAST_INSERT_ID()'
-        result = await self.execute(sql)
+        result = await self.aexecute(sql)
         id_ = result.scalar()
 
         return id_
