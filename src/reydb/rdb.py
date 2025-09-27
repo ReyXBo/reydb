@@ -9,7 +9,7 @@
 """
 
 
-from typing import Literal, Final, overload
+from typing import Literal, overload
 from urllib.parse import quote as urllib_quote
 from pymysql.constants.CLIENT import MULTI_STATEMENTS
 from sqlalchemy import create_engine as sqlalchemy_create_engine
