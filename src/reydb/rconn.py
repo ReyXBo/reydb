@@ -63,6 +63,39 @@ class DatabaseConnection(DatabaseConnectionSuper['rdb.Database', 'rexec.Database
     """
 
 
+    def __enter__(self) -> Self:
+        """
+        Enter syntax `with`.
+
+        Returns
+        -------
+        Self.
+        """
+
+        return self
+
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        *_
+    ) -> None:
+        """
+        Exit syntax `with`.
+
+        Parameters
+        ----------
+        exc_type : Exception type.
+        """
+
+        # Commit.
+        if exc_type is None:
+            self.commit()
+
+        # Close.
+        self.close()
+
+
     def get_conn(self) -> Connection:
         """
         Get `Connection` instance.
@@ -132,39 +165,6 @@ class DatabaseConnection(DatabaseConnectionSuper['rdb.Database', 'rexec.Database
             self.conn = None
 
 
-    def __enter__(self) -> Self:
-        """
-        Enter syntax `with`.
-
-        Returns
-        -------
-        Self.
-        """
-
-        return self
-
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        *_
-    ) -> None:
-        """
-        Exit syntax `with`.
-
-        Parameters
-        ----------
-        exc_type : Exception type.
-        """
-
-        # Commit.
-        if exc_type is None:
-            self.commit()
-
-        # Close.
-        self.close()
-
-
     def insert_id(self) -> int:
         """
         Return last self increasing ID.
@@ -188,9 +188,43 @@ class DatabaseConnectionAsync(DatabaseConnectionSuper['rdb.DatabaseAsync', 'rexe
     """
 
 
+    async def __aenter__(self):
+        """
+        Asynchronous enter syntax `async with`.
+
+        Returns
+        -------
+        Self.
+        """
+
+        return self
+
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        *_
+    ) -> None:
+        """
+        Asynchronous exit syntax `async with`.
+
+        Parameters
+        ----------
+        exc_type : Exception type.
+        """
+
+        # Commit.
+        if exc_type is None:
+            await self.commit()
+
+        # Close.
+        await self.close()
+        await self.db.dispose()
+
+
     async def get_conn(self) -> AsyncConnection:
         """
-        Asynchronous get `Connection` instance.
+        Asynchronous get `AsyncConnection` instance.
 
         Returns
         -------
@@ -206,7 +240,7 @@ class DatabaseConnectionAsync(DatabaseConnectionSuper['rdb.DatabaseAsync', 'rexe
 
     async def get_begin(self) -> AsyncTransaction:
         """
-        Asynchronous get `Transaction` instance.
+        Asynchronous get `AsyncTransaction` instance.
 
         Returns
         -------
@@ -255,40 +289,6 @@ class DatabaseConnectionAsync(DatabaseConnectionSuper['rdb.DatabaseAsync', 'rexe
         if self.conn is not None:
             await self.conn.close()
             self.conn = None
-
-
-    async def __aenter__(self):
-        """
-        Asynchronous enter syntax `async with`.
-
-        Returns
-        -------
-        Self.
-        """
-
-        return self
-
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        *_
-    ) -> None:
-        """
-        Asynchronous exit syntax `async with`.
-
-        Parameters
-        ----------
-        exc_type : Exception type.
-        """
-
-        # Commit.
-        if exc_type is None:
-            await self.commit()
-
-        # Close.
-        await self.close()
-        await self.db.dispose()
 
 
     async def insert_id(self) -> int:

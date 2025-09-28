@@ -12,18 +12,31 @@
 from typing import Self, Any, Type, TypeVar, Generic, Final, overload
 from collections.abc import Callable
 from functools import wraps as functools_wraps
+from inspect import iscoroutinefunction as inspect_iscoroutinefunction
 from pydantic import ConfigDict, field_validator as pydantic_field_validator, model_validator as pydantic_model_validator
 from sqlalchemy.orm import SessionTransaction
+from sqlalchemy.ext.asyncio import AsyncSessionTransaction
 from sqlalchemy.sql import sqltypes
 from sqlalchemy.sql.sqltypes import TypeEngine
 from sqlalchemy.sql.dml import Insert, Update, Delete
 from sqlmodel import SQLModel, Session, Table
-from sqlmodel.main import SQLModelMetaclass, FieldInfo
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlmodel.main import SQLModelMetaclass, FieldInfo, default_registry
 from sqlmodel.sql._expression_select_cls import SelectOfScalar as Select
-from reykit.rbase import CallableT, Null, is_instance
+from reykit.rbase import CallableT, Null, throw, is_instance
 
 from . import rdb
-from .rbase import DatabaseBase
+from .rbase import (
+    SessionT,
+    SessionTransactionT,
+    DatabaseT,
+    DatabaseORMT,
+    DatabaseORMStatementSelectT,
+    DatabaseORMStatementInsertT,
+    DatabaseORMStatementUpdateT,
+    DatabaseORMStatementDeleteT,
+    DatabaseBase
+)
 
 
 __all__ = (
@@ -31,17 +44,29 @@ __all__ = (
     'DatabaseORMModelMeta',
     'DatabaseORMModel',
     'DatabaseORMModelField',
+    'DatabaseORMSuper',
     'DatabaseORM',
+    'DatabaseORMAsync',
+    'DatabaseORMSessionSuper',
     'DatabaseORMSession',
+    'DatabaseORMSessionAsync',
+    'DatabaseORMStatementSuper',
     'DatabaseORMStatement',
+    'DatabaseORMStatementAsync',
     'DatabaseORMStatementSelect',
     'DatabaseORMStatementInsert',
     'DatabaseORMStatementUpdate',
-    'DatabaseORMStatementDelete'
+    'DatabaseORMStatementDelete',
+    'DatabaseORMStatementSelectAsync',
+    'DatabaseORMStatementInsertAsync',
+    'DatabaseORMStatementUpdateAsync',
+    'DatabaseORMStatementDeleteAsync'
 )
 
 
-ModelT = TypeVar('ModelT', bound='DatabaseORMModel')
+DatabaseORMModelT = TypeVar('DatabaseORMModelT', bound='DatabaseORMModel')
+DatabaseORMSessionT = TypeVar('DatabaseORMSessionT', 'DatabaseORMSession', 'DatabaseORMSessionAsync')
+DatabaseORMStatementReturn = TypeVar('DatabaseORMStatementReturn')
 
 
 class DatabaseORMBase(DatabaseBase):
@@ -351,25 +376,31 @@ class DatabaseORMModelField(DatabaseBase, FieldInfo):
         super().__init__(**kwargs)
 
 
-class DatabaseORM(DatabaseORMBase):
+class DatabaseORMSuper(DatabaseORMBase, Generic[DatabaseT, DatabaseORMSessionT]):
     """
-    Database ORM type.
+    Database ORM super type.
 
     Attributes
     ----------
+    metaData : Registry metadata instance.
     DatabaseModel : Database ORM model type.
-    Field : Factory function of database ORM model field.
+    Field : Database ORM model field type.
+    Config : Database ORM model config type.
+    types : Database ORM model filed types module.
+    wrap_validate_model : Create decorator of validate database ORM model.
+    wrap_validate_filed : Create decorator of validate database ORM model field.
     """
 
+    metaData = default_registry.metadata
     Model = DatabaseORMModel
     Field = DatabaseORMModelField
     Config = ConfigDict
     tyeps = sqltypes
-    wrap_validate_filed = pydantic_field_validator
     wrap_validate_model = pydantic_model_validator
+    wrap_validate_filed = pydantic_field_validator
 
 
-    def __init__(self, db: 'rdb.Database') -> None:
+    def __init__(self, db: DatabaseT) -> None:
         """
         Build instance attributes.
 
@@ -380,16 +411,22 @@ class DatabaseORM(DatabaseORMBase):
 
         # Build.
         self.db = db
-        self._session = self.session(True)
+        self.__sess = self.session(True)
 
         ## Method.
-        self.get = self._session.get
-        self.gets = self._session.gets
-        self.all = self._session.all
-        self.add = self._session.add
+        self.create = self.__sess.create
+        self.drop = self.__sess.drop
+        self.get = self.__sess.get
+        self.gets = self.__sess.gets
+        self.all = self.__sess.all
+        self.add = self.__sess.add
+        self.select = self.__sess.select
+        self.insert = self.__sess.insert
+        self.update = self.__sess.update
+        self.delete = self.__sess.delete
 
 
-    def session(self, autocommit: bool = False):
+    def session(self, autocommit: bool = False) -> DatabaseORMSessionT:
         """
         Build DataBase ORM session instance.
 
@@ -403,68 +440,67 @@ class DatabaseORM(DatabaseORMBase):
         """
 
         # Build.
-        sess = DatabaseORMSession(self, autocommit)
+        match self:
+            case DatabaseORM():
+                sess = DatabaseORMSession(self, autocommit)
+            case DatabaseORMAsync():
+                sess = DatabaseORMSessionAsync(self, autocommit)
 
         return sess
 
 
-    def create(
-        self,
-        *models: Type[DatabaseORMModel] | DatabaseORMModel,
-        skip: bool = False
-    ) -> None:
-        """
-        Create table.
-
-        Parameters
-        ----------
-        models : ORM model instances.
-        check : Skip existing table and not mapping model.
-        """
-
-        # Create.
-        for model in models:
-            table = model.table()
-            if (
-                not skip
-                or table is not None
-            ):
-                table.create(self.db.engine, checkfirst=skip)
-
-
-    def drop(
-        self,
-        *models: Type[DatabaseORMModel] | DatabaseORMModel,
-        skip: bool = False
-    ) -> None:
-        """
-        Delete table.
-
-        Parameters
-        ----------
-        models : ORM model instances.
-        check : Skip not exist table and not mapping model.
-        """
-
-        # Create.
-        for model in models:
-            table = model.table()
-            if (
-                not skip
-                or table is not None
-            ):
-                table.drop(self.db.engine, checkfirst=skip)
-
-
-class DatabaseORMSession(DatabaseORMBase):
+class DatabaseORM(DatabaseORMSuper['rdb.Database', 'DatabaseORMSession']):
     """
-    Database ORM session type, based ORM model.
+    Database ORM type.
+
+    Attributes
+    ----------
+    metaData : Registry metadata instance.
+    DatabaseModel : Database ORM model type.
+    Field : Database ORM model field type.
+    Config : Database ORM model config type.
+    types : Database ORM model filed types module.
+    wrap_validate_model : Create decorator of validate database ORM model.
+    wrap_validate_filed : Create decorator of validate database ORM model field.
+    """
+
+
+class DatabaseORMAsync(DatabaseORMSuper['rdb.DatabaseAsync', 'DatabaseORMSessionAsync']):
+    """
+    Asynchronous database ORM type.
+
+    Attributes
+    ----------
+    metaData : Registry metadata instance.
+    DatabaseModel : Database ORM model type.
+    Field : Database ORM model field type.
+    Config : Database ORM model config type.
+    types : Database ORM model filed types module.
+    wrap_validate_model : Create decorator of validate database ORM model.
+    wrap_validate_filed : Create decorator of validate database ORM model field.
+    """
+
+
+class DatabaseORMSessionSuper(
+    DatabaseORMBase,
+    Generic[
+        DatabaseORMT,
+        SessionT,
+        SessionTransactionT,
+        DatabaseORMStatementSelectT,
+        DatabaseORMStatementInsertT,
+        DatabaseORMStatementUpdateT,
+        DatabaseORMStatementDeleteT
+    ]
+):
+    """
+    Database ORM session super type.
     """
 
 
     def __init__(
         self,
-        orm: 'DatabaseORM',
+        orm: DatabaseORMT,
         autocommit: bool = False
     ) -> None:
         """
@@ -479,41 +515,132 @@ class DatabaseORMSession(DatabaseORMBase):
         # Build.
         self.orm = orm
         self.autocommit = autocommit
-        self.session: Session | None = None
-        self.begin: SessionTransaction | None = None
+        self.sess: SessionT | None = None
+        self.begin: SessionTransactionT | None = None
 
 
-    def commit(self) -> None:
+    def select(self, model: Type[DatabaseORMModelT] | DatabaseORMModelT) -> DatabaseORMStatementSelectT:
         """
-        Commit cumulative executions.
-        """
+        Build database ORM select instance.
 
-        # Commit.
-        if self.begin is not None:
-            self.begin.commit()
-            self.begin = None
+        Parameters
+        ----------
+        model : ORM model instance.
 
-
-    def rollback(self) -> None:
-        """
-        Rollback cumulative executions.
+        Returns
+        -------
+        Instance.
         """
 
-        # Rollback.
-        if self.begin is not None:
-            self.begin.rollback()
-            self.begin = None
+        # Handle parameter.
+        if is_instance(model):
+            model = type(model)
+
+        # Build.
+        match self:
+            case DatabaseORMSession():
+                select = DatabaseORMStatementSelect[DatabaseORMModelT](self, model)
+            case DatabaseORMSessionAsync():
+                select = DatabaseORMStatementSelectAsync[DatabaseORMModelT](self, model)
+
+        return select
 
 
-    def close(self) -> None:
+    def insert(self, model: Type[DatabaseORMModelT] | DatabaseORMModelT) -> DatabaseORMStatementInsertT:
         """
-        Close database connection.
+        Build database ORM insert instance.
+
+        Parameters
+        ----------
+        model : ORM model instance.
+
+        Returns
+        -------
+        Instance.
+        """
+        print(model)
+        # Handle parameter.
+        if is_instance(model):
+            model = type(model)
+
+        # Build.
+        match self:
+            case DatabaseORMSession():
+                insert = DatabaseORMStatementInsert[DatabaseORMModelT](self, model)
+            case DatabaseORMSessionAsync():
+                insert = DatabaseORMStatementInsertAsync[DatabaseORMModelT](self, model)
+
+        return insert
+
+
+    def update(self, model: Type[DatabaseORMModelT] | DatabaseORMModelT) -> DatabaseORMStatementUpdateT:
+        """
+        Build database ORM update instance.
+
+        Parameters
+        ----------
+        model : ORM model instance.
+
+        Returns
+        -------
+        Instance.
         """
 
-        # Close.
-        if self.session is not None:
-            self.session.close()
-            self.session = None
+        # Handle parameter.
+        if is_instance(model):
+            model = type(model)
+
+        # Build.
+        match self:
+            case DatabaseORMSession():
+                update = DatabaseORMStatementUpdate[DatabaseORMModelT](self, model)
+            case DatabaseORMSessionAsync():
+                update = DatabaseORMStatementUpdateAsync[DatabaseORMModelT](self, model)
+
+        return update
+
+
+    def delete(self, model: Type[DatabaseORMModelT] | DatabaseORMModelT) -> DatabaseORMStatementDeleteT:
+        """
+        Build database ORM delete instance.
+
+        Parameters
+        ----------
+        model : ORM model instance.
+
+        Returns
+        -------
+        Instance.
+        """
+
+        # Handle parameter.
+        if is_instance(model):
+            model = type(model)
+
+        # Build.
+        match self:
+            case DatabaseORMSession():
+                delete = DatabaseORMStatementDelete[DatabaseORMModelT](self, model)
+            case DatabaseORMSessionAsync():
+                delete = DatabaseORMStatementDeleteAsync[DatabaseORMModelT](self, model)
+
+        return delete
+
+
+class DatabaseORMSession(
+    DatabaseORMSessionSuper[
+        DatabaseORM,
+        Session,
+        SessionTransaction,
+        'DatabaseORMStatementSelect',
+        'DatabaseORMStatementInsert',
+        'DatabaseORMStatementUpdate',
+        'DatabaseORMStatementDelete'
+    ]
+):
+    """
+    Database ORM session type.
+    """
 
 
     def __enter__(self) -> Self:
@@ -546,11 +673,76 @@ class DatabaseORMSession(DatabaseORMBase):
             self.commit()
 
         # Close.
-        else:
-            self.close()
+        self.close()
 
 
-    __del__ = close
+    def get_sess(self) -> Session:
+        """
+        Get `Session` instance.
+
+        Returns
+        -------
+        Instance.
+        """
+
+        # Create.
+        if self.sess is None:
+            self.sess = Session(self.orm.db.engine)
+
+        return self.sess
+
+
+    def get_begin(self) -> SessionTransaction:
+        """
+        Get `SessionTransaction` instance.
+
+        Returns
+        -------
+        Instance.
+        """
+
+        # Create.
+        if self.begin is None:
+            conn = self.get_sess()
+            self.begin = conn.begin()
+
+        return self.begin
+
+
+    def commit(self) -> None:
+        """
+        Commit cumulative executions.
+        """
+
+        # Commit.
+        if self.begin is not None:
+            self.begin.commit()
+            self.begin = None
+
+
+    def rollback(self) -> None:
+        """
+        Rollback cumulative executions.
+        """
+
+        # Rollback.
+        if self.begin is not None:
+            self.begin.rollback()
+            self.begin = None
+
+
+    def close(self) -> None:
+        """
+        Close database session.
+        """
+
+        # Close.
+        if self.begin is not None:
+            self.begin.close()
+            self.begin = None
+        if self.sess is not None:
+            self.sess.close()
+            self.sess = None
 
 
     def wrap_transact(method: CallableT) -> CallableT:
@@ -572,12 +764,12 @@ class DatabaseORMSession(DatabaseORMBase):
         def wrap(self: 'DatabaseORMSession', *args, **kwargs):
 
             # Session.
-            if self.session is None:
-                self.session = Session(self.orm.db.engine)
+            if self.sess is None:
+                self.sess = Session(self.orm.db.engine)
 
             # Begin.
             if self.begin is None:
-                self.begin = self.session.begin()
+                self.begin = self.sess.begin()
 
             # Execute.
             result = method(self, *args, **kwargs)
@@ -605,13 +797,21 @@ class DatabaseORMSession(DatabaseORMBase):
         Parameters
         ----------
         models : ORM model instances.
-        check : Skip existing table.
+        skip : Skip existing table.
         """
 
+        # Handle parameter.
+        tables = [
+            model.table()
+            for model in models
+        ]
+
+        ## Check.
+        if None in tables:
+            throw(ValueError, tables)
+
         # Create.
-        for model in models:
-            table = model.table()
-            table.create(self.session.connection(), checkfirst=skip)
+        self.orm.metaData.create_all(self.orm.db.engine, tables, skip)
 
 
     @wrap_transact
@@ -626,17 +826,25 @@ class DatabaseORMSession(DatabaseORMBase):
         Parameters
         ----------
         models : ORM model instances.
-        check : Skip not exist table.
+        skip : Skip not exist table.
         """
 
+        # Handle parameter.
+        tables = [
+            model.table()
+            for model in models
+        ]
+
+        ## Check.
+        if None in tables:
+            throw(ValueError, tables)
+
         # Create.
-        for model in models:
-            table = model.table()
-            table.drop(self.session.connection(), checkfirst=skip)
+        self.orm.metaData.drop_all(self.orm.db.engine, tables, skip)
 
 
     @wrap_transact
-    def get(self, model: Type[ModelT] | ModelT, key: Any | tuple[Any]) -> ModelT | None:
+    def get(self, model: Type[DatabaseORMModelT] | DatabaseORMModelT, key: Any | tuple[Any]) -> DatabaseORMModelT | None:
         """
         Select records by primary key.
 
@@ -657,20 +865,20 @@ class DatabaseORMSession(DatabaseORMBase):
             model = type(model)
 
         # Get.
-        result = self.session.get(model, key)
+        result = self.sess.get(model, key)
 
         # Autucommit.
         if (
             self.autocommit
             and result is not None
         ):
-            self.session.expunge(result)
+            self.sess.expunge(result)
 
         return result
 
 
     @wrap_transact
-    def gets(self, model: Type[ModelT] | ModelT, *keys: Any | tuple[Any]) -> list[ModelT]:
+    def gets(self, model: Type[DatabaseORMModelT] | DatabaseORMModelT, *keys: Any | tuple[Any]) -> list[DatabaseORMModelT]:
         """
         Select records by primary key sequence.
 
@@ -694,14 +902,14 @@ class DatabaseORMSession(DatabaseORMBase):
         results = [
             result
             for key in keys
-            if (result := self.session.get(model, key)) is not None
+            if (result := self.sess.get(model, key)) is not None
         ]
 
         return results
 
 
     @wrap_transact
-    def all(self, model: Type[ModelT] | ModelT) -> list[ModelT]:
+    def all(self, model: Type[DatabaseORMModelT] | DatabaseORMModelT) -> list[DatabaseORMModelT]:
         """
         Select all records.
 
@@ -720,7 +928,7 @@ class DatabaseORMSession(DatabaseORMBase):
 
         # Get.
         select = Select(model)
-        models = self.session.exec(select)
+        models = self.sess.exec(select)
         models = list(models)
 
         return models
@@ -737,7 +945,7 @@ class DatabaseORMSession(DatabaseORMBase):
         """
 
         # Add.
-        self.session.add_all(models)
+        self.sess.add_all(models)
 
 
     @wrap_transact
@@ -752,7 +960,7 @@ class DatabaseORMSession(DatabaseORMBase):
 
         # Delete.
         for model in models:
-            self.session.delete(model)
+            self.sess.delete(model)
 
 
     @wrap_transact
@@ -767,7 +975,7 @@ class DatabaseORMSession(DatabaseORMBase):
 
         # Refresh.
         for model in models:
-            self.session.refresh(model)
+            self.sess.refresh(model)
 
 
     @wrap_transact
@@ -782,115 +990,387 @@ class DatabaseORMSession(DatabaseORMBase):
 
         # Refresh.
         for model in models:
-            self.session.expire(model)
+            self.sess.expire(model)
 
 
-    @wrap_transact
-    def select(self, model: Type[ModelT] | ModelT):
-        """
-        Build `DatabaseORMSelect` instance.
-
-        Parameters
-        ----------
-        model : ORM model instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Handle parameter.
-        if is_instance(model):
-            model = type(model)
-
-        # Build.
-        select = DatabaseORMStatementSelect[ModelT](self, model)
-
-        return select
-
-
-    @wrap_transact
-    def insert(self, model: Type[ModelT] | ModelT):
-        """
-        Build `DatabaseORMInsert` instance.
-
-        Parameters
-        ----------
-        model : ORM model instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Handle parameter.
-        if is_instance(model):
-            model = type(model)
-
-        # Build.
-        select = DatabaseORMStatementInsert[ModelT](self, model)
-
-        return select
-
-
-    @wrap_transact
-    def update(self, model: Type[ModelT] | ModelT):
-        """
-        Build `DatabaseORMUpdate` instance.
-
-        Parameters
-        ----------
-        model : ORM model instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Handle parameter.
-        if is_instance(model):
-            model = type(model)
-
-        # Build.
-        select = DatabaseORMStatementUpdate[ModelT](self, model)
-
-        return select
-
-
-    @wrap_transact
-    def delete(self, model: Type[ModelT] | ModelT):
-        """
-        Build `DatabaseORMDelete` instance.
-
-        Parameters
-        ----------
-        model : ORM model instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Handle parameter.
-        if is_instance(model):
-            model = type(model)
-
-        # Build.
-        select = DatabaseORMStatementDelete[ModelT](self, model)
-
-        return select
-
-
-class DatabaseORMStatement(DatabaseORMBase):
+class DatabaseORMSessionAsync(
+    DatabaseORMSessionSuper[
+        DatabaseORMAsync,
+        AsyncSession,
+        AsyncSessionTransaction,
+        'DatabaseORMStatementSelectAsync',
+        'DatabaseORMStatementInsertAsync',
+        'DatabaseORMStatementUpdateAsync',
+        'DatabaseORMStatementDeleteAsync'
+    ]
+):
     """
-    Database ORM statement type.
+    Asynchronous database ORM session type.
+    """
+
+
+    async def __aenter__(self) -> Self:
+        """
+        Asynchronous enter syntax `with`.
+
+        Returns
+        -------
+        Self.
+        """
+
+        return self
+
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        *_
+    ) -> None:
+        """
+        Asynchronous exit syntax `with`.
+
+        Parameters
+        ----------
+        exc_type : Exception type.
+        """
+
+        # Commit.
+        if exc_type is None:
+            await self.commit()
+
+        # Close.
+        await self.close()
+        await self.orm.db.dispose()
+
+
+    def get_sess(self) -> AsyncSession:
+        """
+        Get `AsyncSession` instance.
+
+        Returns
+        -------
+        Instance.
+        """
+
+        # Create.
+        if self.sess is None:
+            self.sess = AsyncSession(self.orm.db.engine)
+
+        return self.sess
+
+
+    async def get_begin(self) -> AsyncSessionTransaction:
+        """
+        Asynchronous get `AsyncSessionTransaction` instance.
+
+        Returns
+        -------
+        Instance.
+        """
+
+        # Create.
+        if self.begin is None:
+            sess = self.get_sess()
+            self.begin = await sess.begin()
+
+        return self.begin
+
+
+    async def commit(self) -> None:
+        """
+        Asynchronous commit cumulative executions.
+        """
+
+        # Commit.
+        if self.begin is not None:
+            await self.begin.commit()
+            self.begin = None
+
+
+    async def rollback(self) -> None:
+        """
+        Asynchronous rollback cumulative executions.
+        """
+
+        # Rollback.
+        if self.begin is not None:
+            await self.begin.rollback()
+            self.begin = None
+
+
+    async def close(self) -> None:
+        """
+        Asynchronous close database session.
+        """
+
+        # Close.
+        if self.begin is not None:
+            await self.begin.rollback()
+            self.begin = None
+        if self.sess is not None:
+            await self.sess.close()
+            self.sess = None
+
+
+    def wrap_transact(method: CallableT) -> CallableT:
+        """
+        Asynchronous decorator, automated transaction.
+
+        Parameters
+        ----------
+        method : Method.
+
+        Returns
+        -------
+        Decorated method.
+        """
+
+
+        # Define.
+        @functools_wraps(method)
+        async def wrap(self: 'DatabaseORMSessionAsync', *args, **kwargs):
+
+            # Transaction.
+            await self.get_begin()
+
+            # Execute.
+            if inspect_iscoroutinefunction(method):
+                result = await method(self, *args, **kwargs)
+            else:
+                result = method(self, *args, **kwargs)
+
+            # Automatic commit.
+            if self.autocommit:
+                await self.commit()
+                await self.close()
+                await self.orm.db.dispose()
+
+            return result
+
+
+        return wrap
+
+
+    @wrap_transact
+    async def create(
+        self,
+        *models: Type[DatabaseORMModel] | DatabaseORMModel,
+        skip: bool = False
+    ) -> None:
+        """
+        Asynchronous create table.
+
+        Parameters
+        ----------
+        models : ORM model instances.
+        skip : Skip existing table.
+        """
+
+        # Handle parameter.
+        tables = [
+            model.table()
+            for model in models
+        ]
+
+        ## Check.
+        if None in tables:
+            throw(ValueError, tables)
+
+        # Create.
+        conn = await self.sess.connection()
+        await conn.run_sync(self.orm.metaData.create_all, tables, skip)
+
+
+    @wrap_transact
+    async def drop(
+        self,
+        *models: Type[DatabaseORMModel] | DatabaseORMModel,
+        skip: bool = False
+    ) -> None:
+        """
+        Asynchronous delete table.
+
+        Parameters
+        ----------
+        models : ORM model instances.
+        skip : Skip not exist table.
+        """
+
+        # Handle parameter.
+        tables = [
+            model.table()
+            for model in models
+        ]
+
+        ## Check.
+        if None in tables:
+            throw(ValueError, tables)
+
+        # Create.
+        conn = await self.sess.connection()
+        await conn.run_sync(self.orm.metaData.drop_all, tables, skip)
+
+
+    @wrap_transact
+    async def get(self, model: Type[DatabaseORMModelT] | DatabaseORMModelT, key: Any | tuple[Any]) -> DatabaseORMModelT | None:
+        """
+        Asynchronous select records by primary key.
+
+        Parameters
+        ----------
+        model : ORM model type or instance.
+        key : Primary key.
+            - `Any`: Single primary key.
+            - `tuple[Any]`: Composite primary key.
+
+        Returns
+        -------
+        With records ORM model instance or null.
+        """
+
+        # Handle parameter.
+        if is_instance(model):
+            model = type(model)
+
+        # Get.
+        result = await self.sess.get(model, key)
+
+        # Autucommit.
+        if (
+            self.autocommit
+            and result is not None
+        ):
+            self.sess.expunge(result)
+
+        return result
+
+
+    @wrap_transact
+    async def gets(self, model: Type[DatabaseORMModelT] | DatabaseORMModelT, *keys: Any | tuple[Any]) -> list[DatabaseORMModelT]:
+        """
+        Asynchronous select records by primary key sequence.
+
+        Parameters
+        ----------
+        model : ORM model type or instance.
+        keys : Primary key sequence.
+            - `Any`: Single primary key.
+            - `tuple[Any]`: Composite primary key.
+
+        Returns
+        -------
+        With records ORM model instance list.
+        """
+
+        # Handle parameter.
+        if is_instance(model):
+            model = type(model)
+
+        # Get.
+        results = [
+            result
+            for key in keys
+            if (result := await self.sess.get(model, key)) is not None
+        ]
+
+        return results
+
+
+    @wrap_transact
+    async def all(self, model: Type[DatabaseORMModelT] | DatabaseORMModelT) -> list[DatabaseORMModelT]:
+        """
+        Asynchronous select all records.
+
+        Parameters
+        ----------
+        model : ORM model type or instance.
+
+        Returns
+        -------
+        With records ORM model instance list.
+        """
+
+        # Handle parameter.
+        if is_instance(model):
+            model = type(model)
+
+        # Get.
+        select = Select(model)
+        models = await self.sess.exec(select)
+        models = list(models)
+
+        return models
+
+
+    @wrap_transact
+    async def add(self, *models: DatabaseORMModel) -> None:
+        """
+        Asynchronous insert records.
+
+        Parameters
+        ----------
+        models : ORM model instances.
+        """
+
+        # Add.
+        self.sess.add_all(models)
+
+
+    @wrap_transact
+    async def rm(self, *models: DatabaseORMModel) -> None:
+        """
+        Asynchronous delete records.
+
+        Parameters
+        ----------
+        models : ORM model instances.
+        """
+
+        # Delete.
+        for model in models:
+            await self.sess.delete(model)
+
+
+    @wrap_transact
+    async def refresh(self, *models: DatabaseORMModel) -> None:
+        """
+        Asynchronous refresh records.
+
+        Parameters
+        ----------
+        models : ORM model instances.
+        """ 
+
+        # Refresh.
+        for model in models:
+            await self.sess.refresh(model)
+
+
+    @wrap_transact
+    async def expire(self, *models: DatabaseORMModel) -> None:
+        """
+        Asynchronous mark records to expire, refresh on next call.
+
+        Parameters
+        ----------
+        models : ORM model instances.
+        """ 
+
+        # Refresh.
+        for model in models:
+            self.sess.expire(model)
+
+
+class DatabaseORMStatementSuper(DatabaseORMBase, Generic[DatabaseORMSessionT]):
+    """
+    Database ORM statement super type.
     """
 
 
     def __init__(
         self,
-        sess: DatabaseORMSession,
-        model: Type[ModelT]
+        sess: DatabaseORMSessionT,
+        model: Type[DatabaseORMModelT]
     ) -> None:
         """
         Build instance attributes.
@@ -902,23 +1382,77 @@ class DatabaseORMStatement(DatabaseORMBase):
         """
 
         # Super.
-        super().__init__(self.model)
+        super().__init__(model)
 
         # Build.
         self.sess = sess
         self.model = model
 
 
-    def execute(self) -> None:
+class DatabaseORMStatement(DatabaseORMStatementSuper[DatabaseORMSession], Generic[DatabaseORMStatementReturn]):
+    """
+    Database ORM statement type.
+    """
+
+
+    def execute(self) -> DatabaseORMStatementReturn:
         """
         Execute statement.
         """
 
+        # Transaction.
+        self.sess.get_begin()
+
         # Execute.
-        self.sess.session.exec(self)
+        result = self.sess.sess.exec(self)
+
+        ## Select.
+        if isinstance(self, Select):
+            result = list(result)
+        else:
+            result = None
+
+        # Automatic commit.
+        if self.sess.autocommit:
+            self.sess.commit()
+            self.sess.close()
+
+        return result
 
 
-class DatabaseORMStatementSelect(DatabaseORMStatement, Select, Generic[ModelT]):
+class DatabaseORMStatementAsync(DatabaseORMStatementSuper[DatabaseORMSessionAsync], Generic[DatabaseORMStatementReturn]):
+    """
+    Asynchronous dtabase ORM statement type.
+    """
+
+
+    async def execute(self) -> DatabaseORMStatementReturn:
+        """
+        Asynchronous execute statement.
+        """
+
+        # Transaction.
+        await self.sess.get_begin()
+
+        # Execute.
+        result = await self.sess.sess.exec(self)
+
+        ## Select.
+        if isinstance(self, Select):
+            result = list(result)
+        else:
+            result = None
+
+        # Automatic commit.
+        if self.sess.autocommit:
+            await self.sess.commit()
+            await self.sess.close()
+            await self.sess.orm.db.dispose()
+
+        return result
+
+
+class DatabaseORMStatementSelect(DatabaseORMStatement[list[DatabaseORMModelT]], Select, Generic[DatabaseORMModelT]):
     """
     Database ORM `select` statement type.
 
@@ -930,23 +1464,7 @@ class DatabaseORMStatementSelect(DatabaseORMStatement, Select, Generic[ModelT]):
     inherit_cache: Final = True
 
 
-    def execute(self) -> list[ModelT]:
-        """
-        Execute self statement.
-
-        Returns
-        -------
-        With records ORM model instance list.
-        """
-
-        # Execute.
-        result = self.sess.session.exec(self)
-        models = list(result)
-
-        return models
-
-
-class DatabaseORMStatementInsert(Generic[ModelT], DatabaseORMStatement, Insert):
+class DatabaseORMStatementInsert(DatabaseORMStatement[None], Insert, Generic[DatabaseORMModelT]):
     """
     Database ORM `insert` statement type.
 
@@ -958,7 +1476,7 @@ class DatabaseORMStatementInsert(Generic[ModelT], DatabaseORMStatement, Insert):
     inherit_cache: Final = True
 
 
-class DatabaseORMStatementUpdate(Generic[ModelT], DatabaseORMStatement, Update):
+class DatabaseORMStatementUpdate(DatabaseORMStatement[None], Update, Generic[DatabaseORMModelT]):
     """
     Database ORM `update` statement type.
 
@@ -970,9 +1488,57 @@ class DatabaseORMStatementUpdate(Generic[ModelT], DatabaseORMStatement, Update):
     inherit_cache: Final = True
 
 
-class DatabaseORMStatementDelete(Generic[ModelT], DatabaseORMStatement, Delete):
+class DatabaseORMStatementDelete(DatabaseORMStatement[None], Delete, Generic[DatabaseORMModelT]):
     """
     Database ORM `delete` statement type.
+
+    Attributes
+    ----------
+    inherit_cache : Compatible `Delete` type.
+    """
+
+    inherit_cache: Final = True
+
+
+class DatabaseORMStatementSelectAsync(DatabaseORMStatementAsync[list[DatabaseORMModelT]], Select, Generic[DatabaseORMModelT]):
+    """
+    Asynchronous database ORM `select` statement type.
+
+    Attributes
+    ----------
+    inherit_cache : Compatible `Select` type.
+    """
+
+    inherit_cache: Final = True
+
+
+class DatabaseORMStatementInsertAsync(DatabaseORMStatementAsync[None], Insert, Generic[DatabaseORMModelT]):
+    """
+    Asynchronous database ORM `insert` statement type.
+
+    Attributes
+    ----------
+    inherit_cache : Compatible `Select` type.
+    """
+
+    inherit_cache: Final = True
+
+
+class DatabaseORMStatementUpdateAsync(DatabaseORMStatementAsync[None], Update, Generic[DatabaseORMModelT]):
+    """
+    Asynchronous database ORM `update` statement type.
+
+    Attributes
+    ----------
+    inherit_cache : Compatible `Update` type.
+    """
+
+    inherit_cache: Final = True
+
+
+class DatabaseORMStatementDeleteAsync(DatabaseORMStatementAsync[None], Delete, Generic[DatabaseORMModelT]):
+    """
+    Asynchronous database ORM `delete` statement type.
 
     Attributes
     ----------

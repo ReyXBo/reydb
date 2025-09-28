@@ -9,7 +9,7 @@
 """
 
 
-from typing import Generic
+from typing import TypeVar, Generic
 from urllib.parse import quote as urllib_quote
 from pymysql.constants.CLIENT import MULTI_STATEMENTS
 from sqlalchemy import Engine, create_engine as sqlalchemy_create_engine
@@ -32,7 +32,8 @@ class DatabaseSuper(
         rbase.EngineT,
         rbase.DatabaseConnectionT,
         rbase.DatabaseExecuteT,
-        rbase.DatabaseSchemaT
+        rbase.DatabaseSchemaT,
+        rbase.DatabaseORMT
     ]
 ):
     """
@@ -278,7 +279,7 @@ class DatabaseSuper(
 
 
     @property
-    def orm(self):
+    def orm(self) -> 'rbase.DatabaseORMT':
         """
         Build database ORM instance.
 
@@ -288,7 +289,11 @@ class DatabaseSuper(
         """
 
         # Build.
-        orm = rorm.DatabaseORM(self)
+        match self:
+            case Database():
+                orm = rorm.DatabaseORM(self)
+            case DatabaseAsync():
+                orm = rorm.DatabaseORMAsync(self)
 
         return orm
 
@@ -484,7 +489,8 @@ class Database(
         Engine,
         'rconn.DatabaseConnection',
         'rexec.DatabaseExecute',
-        'rparam.DatabaseSchema'
+        'rparam.DatabaseSchema',
+        'rorm.DatabaseORM'
     ]
 ):
     """
@@ -497,7 +503,8 @@ class DatabaseAsync(
         AsyncEngine,
         'rconn.DatabaseConnectionAsync',
         'rexec.DatabaseExecuteAsync',
-        'rparam.DatabaseSchemaAsync'
+        'rparam.DatabaseSchemaAsync',
+        'rorm.DatabaseORMAsync'
     ]
 ):
     """

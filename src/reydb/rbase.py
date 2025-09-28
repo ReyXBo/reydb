@@ -12,7 +12,8 @@
 from typing import Any, TypedDict, Literal, TypeVar
 from enum import EnumType
 from sqlalchemy import Engine, Connection, Transaction, text as sqlalchemy_text
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection, AsyncTransaction
+from sqlalchemy.orm import Session, SessionTransaction
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection, AsyncTransaction, AsyncSession, AsyncSessionTransaction
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.elements import TextClause
 from reykit.rbase import Base, throw
@@ -36,10 +37,18 @@ __all__ = (
 EngineT = TypeVar('EngineT', Engine, AsyncEngine)
 ConnectionT = TypeVar('ConnectionT', Connection, AsyncConnection)
 TransactionT = TypeVar('TransactionT', Transaction, AsyncTransaction)
+SessionT = TypeVar('SessionT', Session, AsyncSession)
+SessionTransactionT = TypeVar('SessionTransactionT', SessionTransaction, AsyncSessionTransaction)
 DatabaseT = TypeVar('DatabaseT')
 DatabaseConnectionT = TypeVar('DatabaseConnectionT')
 DatabaseExecuteT = TypeVar('DatabaseExecuteT')
 DatabaseSchemaT = TypeVar('DatabaseSchemaT')
+DatabaseORMT = TypeVar('DatabaseORMT')
+DatabaseORMSessionT = TypeVar('DatabaseSessionT')
+DatabaseORMStatementSelectT = TypeVar('DatabaseORMStatementSelectT')
+DatabaseORMStatementInsertT = TypeVar('DatabaseORMStatementInsertT')
+DatabaseORMStatementUpdateT = TypeVar('DatabaseORMStatementUpdateT')
+DatabaseORMStatementDeleteT = TypeVar('DatabaseORMStatementDeleteT')
 
 
 URLParameters = TypedDict(
