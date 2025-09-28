@@ -19,7 +19,7 @@ from datetime import (
 )
 from reykit.rbase import Null, throw
 
-from .rdb import Database
+from . import rdb
 
 
 __all__ = (
@@ -48,7 +48,7 @@ class DatabaseConfig(object):
     """
 
 
-    def __init__(self, db: Database) -> None:
+    def __init__(self, db: 'rdb.Database') -> None:
         """
         Build instance attributes.
 

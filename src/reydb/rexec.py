@@ -9,7 +9,7 @@
 """
 
 
-from typing import Any, Literal, overload
+from typing import Any, Literal, TypeVar, Generic, overload
 from collections.abc import Iterable, Generator, AsyncGenerator, Container
 from datetime import timedelta as Timedelta
 from sqlalchemy.sql.elements import TextClause
@@ -23,8 +23,8 @@ from reykit.rtable import TableData, Table
 from reykit.rtime import TimeMark, time_to
 from reykit.rwrap import wrap_runtime
 
+from . import rconn
 from .rbase import DatabaseBase, handle_sql, handle_data
-from .rconn import DatabaseConnection, DatabaseConnectionAsync
 
 
 __all__ = (
@@ -40,19 +40,22 @@ Result = Result_
 monkey_sqlalchemy_row_index_field()
 
 
-class DatabaseExecuteBase(DatabaseBase):
+DatabaseConnectionT = TypeVar('DatabaseConnectionT')
+
+
+class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
     """
-    Database execute base type.
+    Database execute super type.
     """
 
 
-    def __init__(self, dbconn: DatabaseConnection) -> None:
+    def __init__(self, dbconn: DatabaseConnectionT) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        dbconn : `DatabaseConnection` instance.
+        dbconn : `DatabaseConnection` or `DatabaseConnectionAsync`instance.
         """
 
         # Build.
@@ -74,7 +77,7 @@ class DatabaseExecuteBase(DatabaseBase):
         sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
         data : Data set for filling.
         report : Whether report SQL execute information.
-            - `None`: Use attribute `default_report`.
+            - `None`: Use attribute `Database.report`.
             - `bool`: Use this value.
         kwdata : Keyword parameters for filling.
 
@@ -84,7 +87,7 @@ class DatabaseExecuteBase(DatabaseBase):
         """
 
         # Handle parameter.
-        report = get_first_notnone(report, self.dbconn.db.default_report)
+        report = get_first_notnone(report, self.dbconn.db.report)
         sql = handle_sql(sql)
         if data is None:
             if kwdata == {}:
@@ -640,23 +643,10 @@ class DatabaseExecuteBase(DatabaseBase):
         return sql
 
 
-class DatabaseExecute(DatabaseExecuteBase):
+class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
     """
     Database execute type.
     """
-
-
-    def __init__(self, dbconn: DatabaseConnection) -> None:
-        """
-        Build instance attributes.
-
-        Parameters
-        ----------
-        dbconn : `DatabaseConnection` instance.
-        """
-
-        # Build.
-        self.dbconn = dbconn
 
 
     def execute(
@@ -674,7 +664,7 @@ class DatabaseExecute(DatabaseExecuteBase):
         sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
         data : Data set for filling.
         report : Whether report SQL execute information.
-            - `None`: Use attribute `default_report`.
+            - `None`: Use attribute `Database.report`.
             - `bool`: Use this value.
         kwdata : Keyword parameters for filling.
 
@@ -756,8 +746,7 @@ class DatabaseExecute(DatabaseExecuteBase):
             - `int | str`: Join as `LIMIT int/str`.
             - `tuple[int, int]`: Join as `LIMIT int, int`.
         report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
+            - `None`: Use attribute `Database.report`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -809,8 +798,7 @@ class DatabaseExecute(DatabaseExecuteBase):
             - `update`: Use `ON DUPLICATE KEY UPDATE` clause and update all fields.
             - `Container[str]`: Use `ON DUPLICATE KEY UPDATE` clause and update this fields.
         report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
+            - `None`: Use attribute `Database.report`.
         kwdata : Keyword parameters for filling.
             - `str and first character is ':'`: Use this syntax.
             - `Any`: Use this value.
@@ -868,8 +856,7 @@ class DatabaseExecute(DatabaseExecuteBase):
             - `str`: This key value pair of each item is judged.
             - `Iterable[str]`: Multiple judged, `and`: relationship.
         report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
+            - `None`: Use attribute `Database.report`.
         kwdata : Keyword parameters for filling.
             - `str and first character is ':'`: Use this syntax.
             - `Any`: Use this value.
@@ -919,8 +906,7 @@ class DatabaseExecute(DatabaseExecuteBase):
         order : Clause `ORDER BY` content, join as `ORDER BY str`.
         limit : Clause `LIMIT` content, join as `LIMIT int/str`.
         report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
+            - `None`: Use attribute `Database.report`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -965,8 +951,7 @@ class DatabaseExecute(DatabaseExecuteBase):
             - `int | str`: Join as `LIMIT int/str`.
             - `tuple[int, int]`: Join as `LIMIT int, int`.
         report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
+            - `None`: Use attribute `Database.report`.
         kwdata : Keyword parameters for filling.
             - `In 'WHERE' syntax`: Fill 'WHERE' syntax.
             - `Not in 'WHERE' syntax`: Fill 'INSERT' and 'SELECT' syntax.
@@ -1013,8 +998,7 @@ class DatabaseExecute(DatabaseExecuteBase):
             - `None`: Match all.
             - `str`: Match condition.
         report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
+            - `None`: Use attribute `Database.report`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1055,8 +1039,7 @@ class DatabaseExecute(DatabaseExecuteBase):
             - `None`: Match all.
             - `str`: Match condition.
         report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
+            - `None`: Use attribute `Database.report`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1099,7 +1082,7 @@ class DatabaseExecute(DatabaseExecuteBase):
         sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
         data : Data set for filling.
         report : Whether report SQL execute information.
-            - `None`: Use attribute `default_report`.
+            - `None`: Use attribute `Database.report`.
             - `bool`: Use this value.
         kwdata : Keyword parameters for filling.
 
@@ -1158,7 +1141,7 @@ class DatabaseExecute(DatabaseExecuteBase):
             - `None`: Set to Maximum decimal digits of element of parameter `thresholds`.
             - `int`: Set to this value.
         report : Whether report SQL execute information.
-            - `None`: Use attribute `default_report`.
+            - `None`: Use attribute `Database.report`.
             - `bool`: Use this value.
 
         Returns
@@ -1181,23 +1164,10 @@ class DatabaseExecute(DatabaseExecuteBase):
         return second
 
 
-class DatabaseExecuteAsync(DatabaseExecuteBase):
+class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']):
     """
     Asynchronous database execute type.
     """
-
-
-    def __init__(self, dbconn: DatabaseConnectionAsync) -> None:
-        """
-        Build instance attributes.
-
-        Parameters
-        ----------
-        dbconn : `DatabaseConnectionAsync` instance.
-        """
-
-        # Build.
-        self.dbconn = dbconn
 
 
     async def execute(
@@ -1215,7 +1185,7 @@ class DatabaseExecuteAsync(DatabaseExecuteBase):
         sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
         data : Data set for filling.
         report : Whether report SQL execute information.
-            - `None`: Use attribute `default_report`.
+            - `None`: Use attribute `DatabaseAsync.report`.
             - `bool`: Use this value.
         kwdata : Keyword parameters for filling.
 
@@ -1236,7 +1206,7 @@ class DatabaseExecuteAsync(DatabaseExecuteBase):
         if report:
             tm = TimeMark()
             tm()
-            result = await self.dbconn.aconn.execute(sql, data)
+            result = await self.dbconn.conn.execute(sql, data)
             tm()
 
             ### Generate report.
@@ -1268,7 +1238,7 @@ class DatabaseExecuteAsync(DatabaseExecuteBase):
 
         ## Not report.
         else:
-            result = await self.dbconn.aconn.execute(sql, data)
+            result = await self.dbconn.conn.execute(sql, data)
 
         # Automatic commit.
         if self.dbconn.autocommit:
@@ -1314,8 +1284,7 @@ class DatabaseExecuteAsync(DatabaseExecuteBase):
             - `int | str`: Join as `LIMIT int/str`.
             - `tuple[int, int]`: Join as `LIMIT int, int`.
         report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
+            - `None`: Use attribute `Database.report`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1367,8 +1336,7 @@ class DatabaseExecuteAsync(DatabaseExecuteBase):
             - `update`: Use `ON DUPLICATE KEY UPDATE` clause and update all fields.
             - `Container[str]`: Use `ON DUPLICATE KEY UPDATE` clause and update this fields.
         report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
+            - `None`: Use attribute `Database.report`.
         kwdata : Keyword parameters for filling.
             - `str and first character is ':'`: Use this syntax.
             - `Any`: Use this value.
@@ -1426,8 +1394,7 @@ class DatabaseExecuteAsync(DatabaseExecuteBase):
             - `str`: This key value pair of each item is judged.
             - `Iterable[str]`: Multiple judged, `and`: relationship.
         report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
+            - `None`: Use attribute `Database.report`.
         kwdata : Keyword parameters for filling.
             - `str and first character is ':'`: Use this syntax.
             - `Any`: Use this value.
@@ -1477,8 +1444,7 @@ class DatabaseExecuteAsync(DatabaseExecuteBase):
         order : Clause `ORDER BY` content, join as `ORDER BY str`.
         limit : Clause `LIMIT` content, join as `LIMIT int/str`.
         report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
+            - `None`: Use attribute `Database.report`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1523,8 +1489,7 @@ class DatabaseExecuteAsync(DatabaseExecuteBase):
             - `int | str`: Join as `LIMIT int/str`.
             - `tuple[int, int]`: Join as `LIMIT int, int`.
         report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
+            - `None`: Use attribute `Database.report`.
         kwdata : Keyword parameters for filling.
             - `In 'WHERE' syntax`: Fill 'WHERE' syntax.
             - `Not in 'WHERE' syntax`: Fill 'INSERT' and 'SELECT' syntax.
@@ -1571,8 +1536,7 @@ class DatabaseExecuteAsync(DatabaseExecuteBase):
             - `None`: Match all.
             - `str`: Match condition.
         report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
+            - `None`: Use attribute `Database.report`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1613,8 +1577,7 @@ class DatabaseExecuteAsync(DatabaseExecuteBase):
             - `None`: Match all.
             - `str`: Match condition.
         report : Whether report SQL execute information.
-            - `None`, Use attribute `report_execute_info`: of object `ROption`.
-            - `int`: Use this value.
+            - `None`: Use attribute `Database.report`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1657,7 +1620,7 @@ class DatabaseExecuteAsync(DatabaseExecuteBase):
         sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
         data : Data set for filling.
         report : Whether report SQL execute information.
-            - `None`: Use attribute `default_report`.
+            - `None`: Use attribute `DatabaseAsync.report`.
             - `bool`: Use this value.
         kwdata : Keyword parameters for filling.
 
@@ -1716,7 +1679,7 @@ class DatabaseExecuteAsync(DatabaseExecuteBase):
             - `None`: Set to Maximum decimal digits of element of parameter `thresholds`.
             - `int`: Set to this value.
         report : Whether report SQL execute information.
-            - `None`: Use attribute `default_report`.
+            - `None`: Use attribute `DatabaseAsync.report`.
             - `bool`: Use this value.
 
         Returns

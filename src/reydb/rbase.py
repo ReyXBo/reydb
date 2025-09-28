@@ -9,15 +9,14 @@
 """
 
 
-from typing import Any, TypedDict, Literal
+from typing import Any, TypedDict, Literal, TypeVar
 from enum import EnumType
-from sqlalchemy import text as sqlalchemy_text
-from sqlalchemy.engine.base import Engine, Connection
+from sqlalchemy import Engine, Connection, Transaction, text as sqlalchemy_text
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection, AsyncTransaction
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.elements import TextClause
 from reykit.rbase import Base, throw
 from reykit.rre import search
-
 from reykit.rdata import to_json
 from reykit.rre import findall
 
@@ -32,6 +31,14 @@ __all__ = (
     'get_syntax',
     'is_multi_sql'
 )
+
+
+EngineT = TypeVar('EngineT', Engine, AsyncEngine)
+ConnectionT = TypeVar('ConnectionT', Connection, AsyncConnection)
+TransactionT = TypeVar('TransactionT', Transaction, AsyncTransaction)
+DatabaseT = TypeVar('DatabaseT')
+DatabaseConnectionT = TypeVar('DatabaseConnectionT')
+DatabaseExecuteT = TypeVar('DatabaseExecuteT')
 
 
 URLParameters = TypedDict(

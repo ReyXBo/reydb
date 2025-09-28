@@ -11,8 +11,8 @@
 
 from typing import Any, Literal, overload
 
+from . import rdb
 from .rbase import DatabaseBase
-from .rdb import Database
 
 
 __all__ = (
@@ -190,7 +190,7 @@ class DatabaseInformationSchema(DatabaseInformation):
 
     def __init__(
         self,
-        db: Database
+        db: 'rdb.Database'
     ) -> None:
         """
         Build instance attributes.
@@ -253,7 +253,7 @@ class DatabaseInformationDatabase(DatabaseInformation):
 
     def __init__(
         self,
-        db: Database,
+        db: 'rdb.Database',
         database: str
     ) -> None:
         """
@@ -348,7 +348,7 @@ class DatabaseInformationTable(DatabaseInformation):
 
     def __init__(
         self,
-        db: Database,
+        db: 'rdb.Database',
         database: str,
         table: str
     ) -> None:
@@ -442,7 +442,7 @@ class DatabaseInformationColumn(DatabaseInformation):
 
     def __init__(
         self,
-        db: Database,
+        db: 'rdb.Database',
         database: str,
         table: str,
         column: str

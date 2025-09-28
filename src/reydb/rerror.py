@@ -15,8 +15,8 @@ from traceback import StackSummary
 from functools import wraps as functools_wraps
 from reykit.rbase import T, Exit, catch_exc
 
+from . import rdb
 from .rbase import DatabaseBase
-from .rdb import Database
 
 
 __all__ = (
@@ -31,7 +31,7 @@ class DatabaseError(DatabaseBase):
     """
 
 
-    def __init__(self, db: Database) -> None:
+    def __init__(self, db: 'rdb.Database') -> None:
         """
         Build instance attributes.
 

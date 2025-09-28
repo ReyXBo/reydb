@@ -9,28 +9,27 @@
 """
 
 
-from typing import Literal, overload
+from typing import Generic
 from urllib.parse import quote as urllib_quote
 from pymysql.constants.CLIENT import MULTI_STATEMENTS
-from sqlalchemy import create_engine as sqlalchemy_create_engine
-from sqlalchemy.engine.base import Engine
+from sqlalchemy import Engine, create_engine as sqlalchemy_create_engine
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine as sqlalchemy_create_async_engine
 from reykit.rtext import join_data_text
 
-from .rbase import DatabaseBase, extract_url
+from . import rbase, rbuild, rconfig, rconn, rerror, rexec, rfile, rinfo, rorm, rparam
 
 
 __all__ = (
-    'Database',
+    'DatabaseSuper',
+    'rdb.Database',
+    'rdb.DatabaseAsync'
 )
 
 
-class Database(DatabaseBase):
+class DatabaseSuper(rbase.DatabaseBase, Generic[rbase.EngineT, rbase.DatabaseConnectionT, rbase.DatabaseExecuteT]):
     """
-    Database type, based `MySQL`.
+    Database super type, based `MySQL`.
     """
-
-    default_report: bool = False
 
 
     def __init__(
@@ -44,6 +43,7 @@ class Database(DatabaseBase):
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
         pool_recycle: int | None = 3600,
+        report: bool = False,
         **query: str
     ) -> None:
         """
@@ -62,6 +62,7 @@ class Database(DatabaseBase):
         pool_recycle : Number of seconds `recycle` connection.
             - `None | Literal[-1]`: No recycle.
             - `int`: Use this value.
+        report : Whether report SQL execute information.
         query : Remote server database parameters.
         """
 
@@ -82,11 +83,35 @@ class Database(DatabaseBase):
             self.pool_recycle = -1
         else:
             self.pool_recycle = pool_recycle
+        self.report = report
         self.query = query
 
-        # Create engine.
-        self.engine = self.__create_engine(False)
-        self.aengine = self.__create_engine(True)
+        ## Create engine.
+        self.engine = self.__create_engine()
+
+
+    def __str__(self) -> str:
+        """
+        Return connection information text.
+        """
+
+        # Generate.
+        filter_key = (
+            'engine',
+            'connection',
+            'rdatabase',
+            'begin'
+        )
+        info = {
+            key: value
+            for key, value in self.__dict__.items()
+            if key not in filter_key
+        }
+        info['conn_count'] = self.conn_count
+        info['aconn_count'] = self.aconn_count
+        text = join_data_text(info)
+
+        return text
 
 
     @property
@@ -100,8 +125,7 @@ class Database(DatabaseBase):
         """
 
         # Get.
-        url = self.url(False)
-        url_params = extract_url(url)
+        url_params = rbase.extract_url(self.url)
         backend = url_params['backend']
 
         return backend
@@ -118,56 +142,16 @@ class Database(DatabaseBase):
         """
 
         # Get.
-        url = self.url(False)
-        url_params = extract_url(url)
+        url_params = rbase.extract_url(self.url)
         driver = url_params['driver']
 
         return driver
 
 
     @property
-    def abackend(self) -> str:
-        """
-        Asynchronous database backend name.
-
-        Returns
-        -------
-        Name.
-        """
-
-        # Get.
-        url = self.url(True)
-        url_params = extract_url(url)
-        backend = url_params['backend']
-
-        return backend
-
-
-    @property
-    def adriver(self) -> str:
-        """
-        Asynchronous database driver name.
-
-        Returns
-        -------
-        Name.
-        """
-
-        # Get.
-        url = self.url(True)
-        url_params = extract_url(url)
-        driver = url_params['driver']
-
-        return driver
-
-
-    def url(self, is_async: bool) -> str:
+    def url(self) -> str:
         """
         Generate server URL.
-
-        Parameters
-        ----------
-        is_async : Whether to use asynchronous engine.
 
         Returns
         -------
@@ -176,10 +160,11 @@ class Database(DatabaseBase):
 
         # Generate URL.
         password = urllib_quote(self.password)
-        if is_async:
-            url_ = f'mysql+aiomysql://{self.username}:{password}@{self.host}:{self.port}/{self.database}'
-        else:
-            url_ = f'mysql+pymysql://{self.username}:{password}@{self.host}:{self.port}/{self.database}'
+        match self:
+            case Database():
+                url_ = f'mysql+pymysql://{self.username}:{password}@{self.host}:{self.port}/{self.database}'
+            case DatabaseAsync():
+                url_ = f'mysql+aiomysql://{self.username}:{password}@{self.host}:{self.port}/{self.database}'
 
         # Add Server parameter.
         if self.query != {}:
@@ -194,19 +179,9 @@ class Database(DatabaseBase):
         return url_
 
 
-    @overload
-    def __create_engine(self, is_async: Literal[False]) -> Engine: ...
-
-    @overload
-    def __create_engine(self, is_async: Literal[True]) -> AsyncEngine: ...
-
-    def __create_engine(self, is_async: bool) -> Engine | AsyncEngine:
+    def __create_engine(self) -> rbase.EngineT:
         """
         Create database `Engine` object.
-
-        Parameters
-        ----------
-        is_async : Whether to use asynchronous engine.
 
         Returns
         -------
@@ -214,9 +189,8 @@ class Database(DatabaseBase):
         """
 
         # Handle parameter.
-        url = self.url(is_async)
         engine_params = {
-            'url': url,
+            'url': self.url,
             'pool_size': self.pool_size,
             'max_overflow': self.max_overflow,
             'pool_timeout': self.pool_timeout,
@@ -225,52 +199,13 @@ class Database(DatabaseBase):
         }
 
         # Create Engine.
-        if is_async:
-            engine = sqlalchemy_create_async_engine(**engine_params)
-        else:
-            engine = sqlalchemy_create_engine(**engine_params)
+        match self:
+            case Database():
+                engine = sqlalchemy_create_engine(**engine_params)
+            case DatabaseAsync():
+                engine = sqlalchemy_create_async_engine(**engine_params)
 
         return engine
-
-
-    async def dispose(self) -> None:
-        """
-        Dispose asynchronous connections.
-        """
-
-        # Dispose.
-        await self.aengine.dispose()
-
-
-    def __conn_count(self, is_async: bool) -> tuple[int, int]:
-        """
-        Count number of keep open and allowed overflow connection.
-
-        Parameters
-        ----------
-        is_async : Whether to use asynchronous engine.
-
-        Returns
-        -------
-        Number of keep open and allowed overflow connection.
-        """
-
-        # Handle parameter.
-        if is_async:
-            engine = self.aengine
-        else:
-            engine = self.engine
-
-        # Count.
-        _overflow: int = engine.pool._overflow
-        if _overflow < 0:
-            keep_n = self.pool_size + _overflow
-            overflow_n = 0
-        else:
-            keep_n = self.pool_size
-            overflow_n = _overflow
-
-        return keep_n, overflow_n
 
 
     @property
@@ -284,23 +219,13 @@ class Database(DatabaseBase):
         """
 
         # Count.
-        keep_n, overflow_n = self.__conn_count(False)
-
-        return keep_n, overflow_n
-
-
-    @property
-    def aconn_count(self) -> tuple[int, int]:
-        """
-        Count number of keep open and allowed overflow asynchronous connection.
-
-        Returns
-        -------
-        Number of keep open and allowed overflow asynchronous connection.
-        """
-
-        # Count.
-        keep_n, overflow_n = self.__conn_count(True)
+        _overflow: int = self.engine.pool._overflow
+        if _overflow < 0:
+            keep_n = self.pool_size + _overflow
+            overflow_n = 0
+        else:
+            keep_n = self.pool_size
+            overflow_n = _overflow
 
         return keep_n, overflow_n
 
@@ -375,9 +300,9 @@ class Database(DatabaseBase):
         return schema_dict
 
 
-    def connect(self, autocommit: bool = False):
+    def connect(self, autocommit: bool = False) -> rbase.DatabaseConnectionT:
         """
-        Build `DatabaseConnection` instance.
+        Build database connection instance.
 
         Parameters
         ----------
@@ -388,19 +313,20 @@ class Database(DatabaseBase):
         Database connection instance.
         """
 
-        # Import.
-        from .rconn import DatabaseConnection
-
         # Build.
-        conn = DatabaseConnection(self, autocommit)
+        match self:
+            case Database():
+                conn = rconn.DatabaseConnection(self, autocommit)
+            case DatabaseAsync():
+                conn = rconn.DatabaseConnectionAsync(self, autocommit)
 
         return conn
 
 
     @property
-    def execute(self):
+    def execute(self) -> rbase.DatabaseExecuteT:
         """
-        Build `DatabaseExecute` instance.
+        Build database execute instance.
 
         Returns
         -------
@@ -408,47 +334,8 @@ class Database(DatabaseBase):
         """
 
         # Build.
-        dbconn = self.connect(True)
-        exec = dbconn.execute
-
-        return exec
-
-
-    def aconnect(self, autocommit: bool = False):
-        """
-        Build `DatabaseConnectionAsync` instance.
-
-        Parameters
-        ----------
-        autocommit: Whether automatic commit execute.
-
-        Returns
-        -------
-        Database connection instance.
-        """
-
-        # Import.
-        from .rconn import DatabaseConnectionAsync
-
-        # Build.
-        conn = DatabaseConnectionAsync(self, autocommit)
-
-        return conn
-
-
-    @property
-    def aexecute(self):
-        """
-        Build `DatabaseConnectionAsync` instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Build.
-        dbconn = self.aconnect(True)
-        exec = dbconn.aexecute
+        conn = self.connect(True)
+        exec = conn.execute
 
         return exec
 
@@ -456,18 +343,15 @@ class Database(DatabaseBase):
     @property
     def orm(self):
         """
-        Build `DatabaseORM` instance.
+        Build database ORM instance.
 
         Returns
         -------
         Instance.
         """
 
-        # Import.
-        from .rorm import DatabaseORM
-
         # Build.
-        orm = DatabaseORM(self)
+        orm = rorm.DatabaseORM(self)
 
         return orm
 
@@ -475,7 +359,7 @@ class Database(DatabaseBase):
     @property
     def info(self):
         """
-        Build `DatabaseInformationSchema` instance.
+        Build database information schema instance.
 
         Returns
         -------
@@ -502,11 +386,8 @@ class Database(DatabaseBase):
         >>> database_attr = DatabaseInformationSchema.database.table.column['attribute']
         """
 
-        # Import.
-        from .rinfo import DatabaseInformationSchema
-
         # Build.
-        dbischema = DatabaseInformationSchema(self)
+        dbischema = rinfo.DatabaseInformationSchema(self)
 
         return dbischema
 
@@ -514,18 +395,15 @@ class Database(DatabaseBase):
     @property
     def build(self):
         """
-        Build `DatabaseBuild` instance.
+        Build database build instance.
 
         Returns
         -------
         Instance.
         """
 
-        # Import.
-        from .rbuild import DatabaseBuild
-
         # Build.
-        dbbuild = DatabaseBuild(self)
+        dbbuild = rbuild.DatabaseBuild(self)
 
         return dbbuild
 
@@ -533,18 +411,15 @@ class Database(DatabaseBase):
     @property
     def file(self):
         """
-        Build `DatabaseFile` instance.
+        Build database file instance.
 
         Returns
         -------
         Instance.
         """
 
-        # Import.
-        from .rfile import DatabaseFile
-
         # Build.
-        dbfile = DatabaseFile(self)
+        dbfile = rfile.DatabaseFile(self)
 
         return dbfile
 
@@ -552,18 +427,15 @@ class Database(DatabaseBase):
     @property
     def error(self):
         """
-        Build `DatabaseError` instance.
+        Build database error instance.
 
         Returns
         -------
         Instance.
         """
 
-        # Import.
-        from .rerror import DatabaseError
-
         # Build.
-        dbfile = DatabaseError(self)
+        dbfile = rerror.DatabaseError(self)
 
         return dbfile
 
@@ -571,18 +443,15 @@ class Database(DatabaseBase):
     @property
     def config(self):
         """
-        Build `DatabaseConfig` instance.
+        Build database config instance.
 
         Returns
         -------
         Instance.
         """
 
-        # Import.
-        from .rconfig import DatabaseConfig
-
         # Build.
-        dbconfig = DatabaseConfig(self)
+        dbconfig = rconfig.DatabaseConfig(self)
 
         return dbconfig
 
@@ -590,18 +459,15 @@ class Database(DatabaseBase):
     @property
     def status(self):
         """
-        Build `DatabaseParametersStatus` instance.
+        Build database parameters status instance.
 
         Returns
         -------
         Instance.
         """
 
-        # Import.
-        from .rparam import DatabaseParametersStatus
-
         # Build.
-        dbps = DatabaseParametersStatus(self, False)
+        dbps = rparam.DatabaseParametersStatus(self, False)
 
         return dbps
 
@@ -609,18 +475,15 @@ class Database(DatabaseBase):
     @property
     def global_status(self):
         """
-        Build global `DatabaseParametersStatus` instance.
+        Build global database parameters status instance.
 
         Returns
         -------
         Instance.
         """
 
-        # Import.
-        from .rparam import DatabaseParametersStatus
-
         # Build.
-        dbps = DatabaseParametersStatus(self, True)
+        dbps = rparam.DatabaseParametersStatus(self, True)
 
         return dbps
 
@@ -628,18 +491,15 @@ class Database(DatabaseBase):
     @property
     def variables(self):
         """
-        Build `DatabaseParametersVariable` instance.
+        Build database parameters variable instance.
 
         Returns
         -------
         Instance.
         """
 
-        # Import.
-        from .rparam import DatabaseParametersVariable
-
         # Build.
-        dbpv = DatabaseParametersVariable(self, False)
+        dbpv = rparam.DatabaseParametersVariable(self, False)
 
         return dbpv
 
@@ -647,43 +507,37 @@ class Database(DatabaseBase):
     @property
     def global_variables(self):
         """
-        Build global `DatabaseParametersVariable` instance.
+        Build global database parameters variable instance.
 
         Returns
         -------
         Instance.
         """
 
-        # Import.
-        from .rparam import DatabaseParametersVariable
-
         # Build.
 
         ## SQLite.
-        dbpv = DatabaseParametersVariable(self, True)
+        dbpv = rparam.DatabaseParametersVariable(self, True)
 
         return dbpv
 
 
-    def __str__(self) -> str:
+class Database(DatabaseSuper[Engine, 'rconn.DatabaseConnection', 'rexec.DatabaseExecute']):
+    """
+    Database type, based `MySQL`.
+    """
+
+
+class DatabaseAsync(DatabaseSuper[AsyncEngine, 'rconn.DatabaseConnectionAsync', 'rexec.DatabaseExecuteAsync']):
+    """
+    Asynchronous database type, based `MySQL`.
+    """
+
+
+    async def dispose(self) -> None:
         """
-        Return connection information text.
+        Dispose asynchronous connections.
         """
 
-        # Generate.
-        filter_key = (
-            'engine',
-            'connection',
-            'rdatabase',
-            'begin'
-        )
-        info = {
-            key: value
-            for key, value in self.__dict__.items()
-            if key not in filter_key
-        }
-        info['conn_count'] = self.conn_count
-        info['aconn_count'] = self.aconn_count
-        text = join_data_text(info)
-
-        return text
+        # Dispose.
+        await self.engine.dispose()

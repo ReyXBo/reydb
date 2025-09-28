@@ -14,8 +14,8 @@ from copy import deepcopy
 from reykit.rbase import throw
 from reykit.rstdout import ask
 
+from . import rdb
 from .rbase import DatabaseBase, extract_path
-from .rdb import Database
 
 
 __all__ = (
@@ -51,7 +51,7 @@ class DatabaseBuild(DatabaseBase):
     """
 
 
-    def __init__(self, db: Database) -> None:
+    def __init__(self, db: 'rdb.Database') -> None:
         """
         Build instance attributes.
 

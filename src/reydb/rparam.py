@@ -11,8 +11,8 @@
 
 from typing import overload
 
+from . import rdb
 from .rbase import DatabaseBase
-from .rdb import Database
 
 
 __all__ = (
@@ -31,7 +31,7 @@ class DatabaseParameters(DatabaseBase):
 
     def __init__(
         self,
-        db: Database,
+        db: 'rdb.Database',
         global_: bool
     ) -> None:
         """
@@ -254,7 +254,7 @@ class DatabaseParametersPragma(DatabaseParameters):
 
     def __init__(
         self,
-        db: Database
+        db: 'rdb.Database'
     ) -> None:
         """
         Build instance attributes.

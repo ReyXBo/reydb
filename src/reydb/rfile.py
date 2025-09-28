@@ -13,8 +13,8 @@ from typing import TypedDict, overload
 from datetime import datetime
 from reykit.ros import File, Folder, get_md5
 
+from . import rdb
 from .rbase import DatabaseBase
-from .rdb import Database
 
 
 __all__ = (
@@ -32,7 +32,7 @@ class DatabaseFile(DatabaseBase):
     """
 
 
-    def __init__(self, db: Database) -> None:
+    def __init__(self, db: 'rdb.Database') -> None:
         """
         Build instance attributes.
 

@@ -22,8 +22,8 @@ from sqlmodel.main import SQLModelMetaclass, FieldInfo
 from sqlmodel.sql._expression_select_cls import SelectOfScalar as Select
 from reykit.rbase import CallableT, Null, is_instance
 
+from . import rdb
 from .rbase import DatabaseBase
-from .rdb import Database
 
 
 __all__ = (
@@ -89,7 +89,7 @@ class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
                 sa_column_kwargs: dict = field.sa_column_kwargs
                 sa_column_kwargs.setdefault('name', __name__)
 
-        # Base.
+        # Super.
         new_cls = super().__new__(cls, name, bases, attrs, **kwargs)
 
         return new_cls
@@ -347,7 +347,7 @@ class DatabaseORMModelField(DatabaseBase, FieldInfo):
         if 'comment' in kwargs:
             kwargs['sa_column_kwargs']['comment'] = kwargs.pop('comment')
 
-        # Base.
+        # Super.
         super().__init__(**kwargs)
 
 
@@ -369,7 +369,7 @@ class DatabaseORM(DatabaseORMBase):
     wrap_validate_model = pydantic_model_validator
 
 
-    def __init__(self, db: Database) -> None:
+    def __init__(self, db: 'rdb.Database') -> None:
         """
         Build instance attributes.
 
@@ -403,7 +403,7 @@ class DatabaseORM(DatabaseORMBase):
         """
 
         # Build.
-        sess = DataBaseORMSession(self, autocommit)
+        sess = DatabaseORMSession(self, autocommit)
 
         return sess
 
@@ -456,7 +456,7 @@ class DatabaseORM(DatabaseORMBase):
                 table.drop(self.db.engine, checkfirst=skip)
 
 
-class DataBaseORMSession(DatabaseORMBase):
+class DatabaseORMSession(DatabaseORMBase):
     """
     Database ORM session type, based ORM model.
     """
@@ -569,7 +569,7 @@ class DataBaseORMSession(DatabaseORMBase):
 
         # Define.
         @functools_wraps(method)
-        def wrap(self: 'DataBaseORMSession', *args, **kwargs):
+        def wrap(self: 'DatabaseORMSession', *args, **kwargs):
 
             # Session.
             if self.session is None:
@@ -889,7 +889,7 @@ class DatabaseORMStatement(DatabaseORMBase):
 
     def __init__(
         self,
-        sess: DataBaseORMSession,
+        sess: DatabaseORMSession,
         model: Type[ModelT]
     ) -> None:
         """
@@ -901,7 +901,7 @@ class DatabaseORMStatement(DatabaseORMBase):
         model : ORM model instance.
         """
 
-        # Base.
+        # Super.
         super().__init__(self.model)
 
         # Build.
