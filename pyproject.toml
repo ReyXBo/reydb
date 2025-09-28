@@ -1,6 +1,6 @@
 [project]
 name = "reydb"
-version = "1.1.57"
+version = "1.1.58"
 description = "Database method set."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -10,6 +10,7 @@ authors = [
     {name = "Rey", email = "reyxbo@163.com"}
 ]
 dependencies = [
+    "aiomysql",
     "pydantic",
     "pymysql",
     "reykit",

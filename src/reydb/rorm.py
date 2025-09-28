@@ -375,7 +375,7 @@ class DatabaseORM(DatabaseORMBase):
 
         Parameters
         ----------
-        db: `Database` instance.
+        db: Database instance.
         """
 
         # Build.
@@ -391,7 +391,7 @@ class DatabaseORM(DatabaseORMBase):
 
     def session(self, autocommit: bool = False):
         """
-        Build `DataBaseORMSession` instance.
+        Build DataBase ORM session instance.
 
         Parameters
         ----------
@@ -472,7 +472,7 @@ class DatabaseORMSession(DatabaseORMBase):
 
         Parameters
         ----------
-        orm : `DatabaseORM` instance.
+        orm : Database ORM instance.
         autocommit: Whether automatic commit execute.
         """
 
@@ -897,7 +897,7 @@ class DatabaseORMStatement(DatabaseORMBase):
 
         Parameters
         ----------
-        sess : `DataBaseORMSession` instance.
+        sess : DataBase ORM session instance.
         model : ORM model instance.
         """
 

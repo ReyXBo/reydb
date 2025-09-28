@@ -21,12 +21,20 @@ from . import rbase, rbuild, rconfig, rconn, rerror, rexec, rfile, rinfo, rorm, 
 
 __all__ = (
     'DatabaseSuper',
-    'rdb.Database',
-    'rdb.DatabaseAsync'
+    'Database',
+    'DatabaseAsync'
 )
 
 
-class DatabaseSuper(rbase.DatabaseBase, Generic[rbase.EngineT, rbase.DatabaseConnectionT, rbase.DatabaseExecuteT]):
+class DatabaseSuper(
+    rbase.DatabaseBase,
+    Generic[
+        rbase.EngineT,
+        rbase.DatabaseConnectionT,
+        rbase.DatabaseExecuteT,
+        rbase.DatabaseSchemaT
+    ]
+):
     """
     Database super type, based `MySQL`.
     """
@@ -108,7 +116,6 @@ class DatabaseSuper(rbase.DatabaseBase, Generic[rbase.EngineT, rbase.DatabaseCon
             if key not in filter_key
         }
         info['conn_count'] = self.conn_count
-        info['aconn_count'] = self.aconn_count
         text = join_data_text(info)
 
         return text
@@ -230,76 +237,6 @@ class DatabaseSuper(rbase.DatabaseBase, Generic[rbase.EngineT, rbase.DatabaseCon
         return keep_n, overflow_n
 
 
-    def schema(self, filter_default: bool = True) -> dict[str, dict[str, list[str]]]:
-        """
-        Get schemata of databases and tables and columns.
-
-        Parameters
-        ----------
-        filter_default : Whether filter default database.
-
-        Returns
-        -------
-        Schemata of databases and tables and columns.
-        """
-
-        # Handle parameter.
-        filter_db = (
-            'information_schema',
-            'performance_schema',
-            'mysql',
-            'sys'
-        )
-        if filter_default:
-            where_database = 'WHERE `SCHEMA_NAME` NOT IN :filter_db\n'
-            where_column = '    WHERE `TABLE_SCHEMA` NOT IN :filter_db\n'
-        else:
-            where_database = where_column = ''
-
-        # Select.
-        sql = (
-            'SELECT GROUP_CONCAT(`SCHEMA_NAME`) AS `TABLE_SCHEMA`, NULL AS `TABLE_NAME`, NULL AS `COLUMN_NAME`\n'
-            'FROM `information_schema`.`SCHEMATA`\n'
-            f'{where_database}'
-            'UNION ALL (\n'
-            '    SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`\n'
-            '    FROM `information_schema`.`COLUMNS`\n'
-            f'{where_column}'
-            '    ORDER BY `TABLE_SCHEMA`, `TABLE_NAME`, `ORDINAL_POSITION`\n'
-            ')'
-        )
-        result = self.execute(sql, filter_db=filter_db)
-
-        # Convert.
-        database_names, *_ = result.fetchone()
-        database_names: list[str] = database_names.split(',')
-        schema_dict = {}
-        for database, table, column in result:
-            if database in database_names:
-                database_names.remove(database)
-
-            ## Index database.
-            if database not in schema_dict:
-                schema_dict[database] = {table: [column]}
-                continue
-            table_dict: dict = schema_dict[database]
-
-            ## Index table. 
-            if table not in table_dict:
-                table_dict[table] = [column]
-                continue
-            column_list: list = table_dict[table]
-
-            ## Add column.
-            column_list.append(column)
-
-        ## Add empty database.
-        for name in database_names:
-            schema_dict[name] = None
-
-        return schema_dict
-
-
     def connect(self, autocommit: bool = False) -> rbase.DatabaseConnectionT:
         """
         Build database connection instance.
@@ -354,42 +291,6 @@ class DatabaseSuper(rbase.DatabaseBase, Generic[rbase.EngineT, rbase.DatabaseCon
         orm = rorm.DatabaseORM(self)
 
         return orm
-
-
-    @property
-    def info(self):
-        """
-        Build database information schema instance.
-
-        Returns
-        -------
-        Instance.
-
-        Examples
-        --------
-        Get databases information of server.
-        >>> databases_info = DatabaseInformationSchema()
-
-        Get tables information of database.
-        >>> tables_info = DatabaseInformationSchema.database()
-
-        Get columns information of table.
-        >>> columns_info = DatabaseInformationSchema.database.table()
-
-        Get database attribute.
-        >>> database_attr = DatabaseInformationSchema.database['attribute']
-
-        Get table attribute.
-        >>> database_attr = DatabaseInformationSchema.database.table['attribute']
-
-        Get column attribute.
-        >>> database_attr = DatabaseInformationSchema.database.table.column['attribute']
-        """
-
-        # Build.
-        dbischema = rinfo.DatabaseInformationSchema(self)
-
-        return dbischema
 
 
     @property
@@ -457,6 +358,62 @@ class DatabaseSuper(rbase.DatabaseBase, Generic[rbase.EngineT, rbase.DatabaseCon
 
 
     @property
+    def info(self):
+        """
+        Build database information schema instance.
+
+        Returns
+        -------
+        Instance.
+
+        Examples
+        --------
+        Get databases information of server.
+        >>> databases_info = DatabaseInformationSchema()
+
+        Get tables information of database.
+        >>> tables_info = DatabaseInformationSchema.database()
+
+        Get columns information of table.
+        >>> columns_info = DatabaseInformationSchema.database.table()
+
+        Get database attribute.
+        >>> database_attr = DatabaseInformationSchema.database['attribute']
+
+        Get table attribute.
+        >>> database_attr = DatabaseInformationSchema.database.table['attribute']
+
+        Get column attribute.
+        >>> database_attr = DatabaseInformationSchema.database.table.column['attribute']
+        """
+
+        # Build.
+        dbischema = rinfo.DatabaseInformationSchema(self)
+
+        return dbischema
+
+
+    @property
+    def schema(self) -> rbase.DatabaseSchemaT:
+        """
+        Build database schema instance.
+
+        Returns
+        -------
+        Instance.
+        """
+
+        # Build.
+        match self:
+            case Database():
+                schema = rparam.DatabaseSchema(self)
+            case DatabaseAsync():
+                schema = rparam.DatabaseSchemaAsync(self)
+
+        return schema
+
+
+    @property
     def status(self):
         """
         Build database parameters status instance.
@@ -473,7 +430,7 @@ class DatabaseSuper(rbase.DatabaseBase, Generic[rbase.EngineT, rbase.DatabaseCon
 
 
     @property
-    def global_status(self):
+    def status_global(self):
         """
         Build global database parameters status instance.
 
@@ -505,7 +462,7 @@ class DatabaseSuper(rbase.DatabaseBase, Generic[rbase.EngineT, rbase.DatabaseCon
 
 
     @property
-    def global_variables(self):
+    def variables_global(self):
         """
         Build global database parameters variable instance.
 
@@ -522,13 +479,27 @@ class DatabaseSuper(rbase.DatabaseBase, Generic[rbase.EngineT, rbase.DatabaseCon
         return dbpv
 
 
-class Database(DatabaseSuper[Engine, 'rconn.DatabaseConnection', 'rexec.DatabaseExecute']):
+class Database(
+    DatabaseSuper[
+        Engine,
+        'rconn.DatabaseConnection',
+        'rexec.DatabaseExecute',
+        'rparam.DatabaseSchema'
+    ]
+):
     """
     Database type, based `MySQL`.
     """
 
 
-class DatabaseAsync(DatabaseSuper[AsyncEngine, 'rconn.DatabaseConnectionAsync', 'rexec.DatabaseExecuteAsync']):
+class DatabaseAsync(
+    DatabaseSuper[
+        AsyncEngine,
+        'rconn.DatabaseConnectionAsync',
+        'rexec.DatabaseExecuteAsync',
+        'rparam.DatabaseSchemaAsync'
+    ]
+):
     """
     Asynchronous database type, based `MySQL`.
     """

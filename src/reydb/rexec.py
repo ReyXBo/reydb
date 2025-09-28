@@ -83,7 +83,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
         Returns
         -------
-        Parameters `sql` and `data` and `report`.
+        Parameter `sql` and `data` and `report`.
         """
 
         # Handle parameter.
@@ -136,7 +136,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
         Returns
         -------
-        Parameters `sql`.
+        Parameter `sql`.
         """
 
         # Generate SQL.
@@ -226,7 +226,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
         Returns
         -------
-        Parameters `sql` and `kwdata`.
+        Parameter `sql` and `kwdata`.
         """
 
         # Handle parameter.
@@ -363,7 +363,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
         Returns
         -------
-        Parameters `sql` and `data`.
+        Parameter `sql` and `data`.
         """
 
         # Handle parameter.
@@ -547,7 +547,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
         Returns
         -------
-        Parameters `sql`.
+        Parameter `sql`.
         """
 
         # Handle parameter.

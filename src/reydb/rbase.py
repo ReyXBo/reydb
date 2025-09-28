@@ -39,6 +39,7 @@ TransactionT = TypeVar('TransactionT', Transaction, AsyncTransaction)
 DatabaseT = TypeVar('DatabaseT')
 DatabaseConnectionT = TypeVar('DatabaseConnectionT')
 DatabaseExecuteT = TypeVar('DatabaseExecuteT')
+DatabaseSchemaT = TypeVar('DatabaseSchemaT')
 
 
 URLParameters = TypedDict(

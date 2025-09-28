@@ -20,6 +20,7 @@ from datetime import (
 from reykit.rbase import Null, throw
 
 from . import rdb
+from .rbase import DatabaseBase
 
 
 __all__ = (
@@ -33,7 +34,7 @@ type ConfigTable = list[ConfigRow]
 ConfigValueT = TypeVar('T', bound=ConfigValue) # Any.
 
 
-class DatabaseConfig(object):
+class DatabaseConfig(DatabaseBase):
     """
     Database config type.
     Can create database used `self.build_db` method.
@@ -54,7 +55,7 @@ class DatabaseConfig(object):
 
         Parameters
         ----------
-        db: `Database` instance.
+        db: Database instance.
         """
 
         # Build.

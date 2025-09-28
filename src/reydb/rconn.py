@@ -40,7 +40,7 @@ class DatabaseConnectionSuper(DatabaseBase, Generic[DatabaseT, DatabaseExecuteT,
 
         Parameters
         ----------
-        db : `Database` or `DatabaseAsync` instance.
+        db : Database instance.
         autocommit: Whether automatic commit execute.
         """
 
