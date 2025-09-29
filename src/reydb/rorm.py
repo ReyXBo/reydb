@@ -9,11 +9,12 @@
 """
 
 
-from typing import Self, Any, Type, TypeVar, Generic, Final, overload
+from typing import Self, Any, Type, Literal, TypeVar, Generic, Final, overload
 from collections.abc import Callable
 from functools import wraps as functools_wraps
 from inspect import iscoroutinefunction as inspect_iscoroutinefunction
 from pydantic import ConfigDict, field_validator as pydantic_field_validator, model_validator as pydantic_model_validator
+from sqlalchemy import text as sqlalchemy_text
 from sqlalchemy.orm import SessionTransaction
 from sqlalchemy.ext.asyncio import AsyncSessionTransaction
 from sqlalchemy.sql import sqltypes
@@ -100,7 +101,7 @@ class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
         """
 
         # Handle parameter.
-        if attrs['__module__'] == '__main__':
+        if '__annotations__' in attrs:
             table_args = attrs.setdefault('__table_args__', {})
             table_args['quote'] = True
 
@@ -110,7 +111,7 @@ class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
 
             ## Name.
             if '__name__' in attrs:
-                table_args['name'] = attrs.pop('__name__')
+                name = attrs.pop('__name__')
 
             ## Comment.
             if '__comment__' in attrs:
@@ -232,7 +233,7 @@ class DatabaseORMModel(DatabaseORMBase, SQLModel, metaclass=model_metaclass):
         table.comment = comment
 
 
-class DatabaseORMModelField(DatabaseBase, FieldInfo):
+class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
     """
     Database ORM model filed type.
 
@@ -249,7 +250,7 @@ class DatabaseORMModelField(DatabaseBase, FieldInfo):
         arg_default: Any | Callable[[], Any] | Null = Null,
         *,
         arg_name: str | None = None,
-        field_default: str | None = None,
+        field_default: str | Literal['CURRENT_TIMESTAMP'] | Literal['ON UPDATE CURRENT_TIMESTAMP'] | None = None,
         filed_name: str | None = None,
         field_type: TypeEngine | None = None,
         key: bool = False,
@@ -286,6 +287,8 @@ class DatabaseORMModelField(DatabaseBase, FieldInfo):
         arg_name : Call argument name.
             - `None`: Same as attribute name.
         field_default : Database field defualt value.
+            - `Literal['current_timestamp']`: Set SQL syntax 'current_timestamp', case insensitive.
+            - `Literal['on update current_timestamp']`: Set SQL syntax 'on update current_timestamp', case insensitive.
         filed_name : Database field name.
             - `None`: Same as attribute name.
         field_type : Database field type.
@@ -356,7 +359,11 @@ class DatabaseORMModelField(DatabaseBase, FieldInfo):
 
         ## Field default.
         if 'field_default' in kwargs:
-            kwargs['sa_column_kwargs']['server_default'] = kwargs.pop('field_default')
+            field_default: str = kwargs.pop('field_default')
+            field_default_upper = field_default.upper()
+            if field_default_upper in ('CURRENT_TIMESTAMP', 'ON UPDATE CURRENT_TIMESTAMP'):
+                field_default = sqlalchemy_text(field_default_upper)
+            kwargs['sa_column_kwargs']['server_default'] = field_default
 
         ## Field name.
         if 'filed_name' in kwargs:

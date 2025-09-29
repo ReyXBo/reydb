@@ -29,6 +29,7 @@ from .rbase import DatabaseBase, handle_sql, handle_data, extract_path
 
 __all__ = (
     'Result',
+    'DatabaseExecuteSuper',
     'DatabaseExecute',
     'DatabaseExecuteAsync'
 )
@@ -541,9 +542,9 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
     def handle_copy(
         self,
         table: str,
+        fields: str | Iterable[str] | None = None,
         where: str | None = None,
-        limit: int | str | tuple[int, int] | None = None,
-        **kwdata: Any
+        limit: int | str | tuple[int, int] | None = None
     ) -> Result:
         """
         Execute inesrt SQL of copy records.
@@ -551,15 +552,14 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         Parameters
         ----------
         table : Table name, can include database name.
+        fields : Select clause content.
+            - `None`: Is `SELECT *`.
+            - `str`: Join as `SELECT str`.
+            - `Iterable[str]`: Join as `SELECT str`.
         where : Clause `WHERE` content, join as `WHERE str`.
         limit : Clause `LIMIT` content.
             - `int | str`: Join as `LIMIT int/str`.
             - `tuple[int, int]`: Join as `LIMIT int, int`.
-        kwdata : Keyword parameters for filling.
-            - `In 'WHERE' syntax`: Fill 'WHERE' syntax.
-            - `Not in 'WHERE' syntax`: Fill 'INSERT' and 'SELECT' syntax.
-                `str and first character is ':'`: Use this syntax.
-                `Any`: Use this value.
 
         Returns
         -------
@@ -570,72 +570,23 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         database = self.conn.db.database
         if '.' in table:
             database, table, _ = extract_path(table)
-        table_info: list[dict] = self.conn.db.info(database)(table)()
-        field_key = 'COLUMN_NAME'
-        fields = [
-            row[field_key]
-            for row in table_info
-        ]
-        pattern = '(?<!\\\\):(\\w+)'
-        if type(where) == str:
-            where_keys = findall(pattern, where)
-        else:
-            where_keys = ()
+        if fields is None:
+            fields = '*'
+        elif type(fields) != str:
+            fields = ', '.join(fields)
 
         # Generate SQL.
         sqls = []
 
         ## Part 'INSERT' syntax.
-        sql_fields = ', '.join(
-            f'`{field}`'
-            for field in fields
-            if field not in kwdata
-        )
-        if kwdata != {}:
-            sql_fields_kwdata = ', '.join(
-                f'`{field}`'
-                for field in kwdata
-                if field not in where_keys
-            )
-            sql_fields_filter = filter(
-                lambda sql: sql != '',
-                (
-                    sql_fields,
-                    sql_fields_kwdata
-                )
-            )
-            sql_fields = ', '.join(sql_fields_filter)
-        sql_insert = f'INSERT INTO `{database}`.`{table}`({sql_fields})'
+        sql_insert = f'INSERT INTO `{database}`.`{table}`'
+        if fields != '*':
+            sql_insert += f'({fields})'
         sqls.append(sql_insert)
 
         ## Part 'SELECT' syntax.
-        sql_values = ', '.join(
-            f'`{field}`'
-            for field in fields
-            if field not in kwdata
-        )
-        if kwdata != {}:
-            sql_values_kwdata = ', '.join(
-                value[1:]
-                if (
-                    type(value) == str
-                    and value.startswith(':')
-                    and value != ':'
-                )
-                else f':{field}'
-                for field, value in kwdata.items()
-                if field not in where_keys
-            )
-            sql_values_filter = filter(
-                lambda sql: sql != '',
-                (
-                    sql_values,
-                    sql_values_kwdata
-                )
-            )
-            sql_values = ', '.join(sql_values_filter)
         sql_select = (
-            f'SELECT {sql_values}\n'
+            f'SELECT {fields}\n'
             f'FROM `{database}`.`{table}`'
         )
         sqls.append(sql_select)
@@ -954,6 +905,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
     def copy(
         self,
         table: str,
+        fields: str | Iterable[str] | None = None,
         where: str | None = None,
         limit: int | str | tuple[int, int] | None = None,
         report: bool | None = None,
@@ -965,17 +917,15 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         Parameters
         ----------
         table : Table name, can include database name.
+        fields : Select clause content.
+            - `None`: Is `SELECT *`.
+            - `str`: Join as `SELECT str`.
+            - `Iterable[str]`: Join as `SELECT str`.
         where : Clause `WHERE` content, join as `WHERE str`.
         limit : Clause `LIMIT` content.
             - `int | str`: Join as `LIMIT int/str`.
             - `tuple[int, int]`: Join as `LIMIT int, int`.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `Database.report`.
         kwdata : Keyword parameters for filling.
-            - `In 'WHERE' syntax`: Fill 'WHERE' syntax.
-            - `Not in 'WHERE' syntax`: Fill 'INSERT' and 'SELECT' syntax.
-                `str and first character is ':'`: Use this syntax.
-                `Any`: Use this value.
 
         Returns
         -------
@@ -992,7 +942,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         """
 
         # Handle parameter.
-        sql = self.handle_copy(table, where, limit, **kwdata)
+        sql = self.handle_copy(table, fields, where, limit)
 
         # Execute SQL.
         result = self.execute(sql, report=report, **kwdata)
@@ -1492,6 +1442,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
     async def copy(
         self,
         table: str,
+        fields: str | Iterable[str] | None = None,
         where: str | None = None,
         limit: int | str | tuple[int, int] | None = None,
         report: bool | None = None,
@@ -1503,17 +1454,15 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         Parameters
         ----------
         table : Table name, can include database name.
+        fields : Select clause content.
+            - `None`: Is `SELECT *`.
+            - `str`: Join as `SELECT str`.
+            - `Iterable[str]`: Join as `SELECT str`.
         where : Clause `WHERE` content, join as `WHERE str`.
         limit : Clause `LIMIT` content.
             - `int | str`: Join as `LIMIT int/str`.
             - `tuple[int, int]`: Join as `LIMIT int, int`.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `Database.report`.
         kwdata : Keyword parameters for filling.
-            - `In 'WHERE' syntax`: Fill 'WHERE' syntax.
-            - `Not in 'WHERE' syntax`: Fill 'INSERT' and 'SELECT' syntax.
-                `str and first character is ':'`: Use this syntax.
-                `Any`: Use this value.
 
         Returns
         -------
@@ -1530,7 +1479,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         """
 
         # Handle parameter.
-        sql = self.handle_copy(table, where, limit, **kwdata)
+        sql = self.handle_copy(table, fields, where, limit)
 
         # Execute SQL.
         result = await self.execute(sql, report=report, **kwdata)

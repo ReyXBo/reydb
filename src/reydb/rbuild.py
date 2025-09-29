@@ -20,7 +20,9 @@ from .rorm import DatabaseORMModel
 
 
 __all__ = (
+    'DatabaseBuildSuper',
     'DatabaseBuild',
+    'DatabaseBuildAsync'
 )
 
 
@@ -1283,7 +1285,6 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
         # Handle parameter.
         databases = databases or []
         tables = tables or []
-        tables_orm = tables_orm or []
         views = views or []
         views_stats = views_stats or []
 
@@ -1320,6 +1321,7 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
                 issubclass(params, DatabaseORMModel)
                 or isinstance(params, DatabaseORMModel)
             ):
+                database = self.db.database
                 table = params.table().name
 
                 ## Exist.
@@ -1565,7 +1567,11 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
                 params_type = type(params)
 
             ## ORM.
-            if issubclass(params_type, DatabaseORMModel):
+            if (
+                is_instance(params)
+                and isinstance(params, DatabaseORMModel)
+                or issubclass(params, DatabaseORMModel)
+            ):
                 database = self.db.database
                 table = params.table().name
 

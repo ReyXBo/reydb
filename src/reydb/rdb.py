@@ -16,7 +16,7 @@ from sqlalchemy import Engine, create_engine as sqlalchemy_create_engine
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine as sqlalchemy_create_async_engine
 from reykit.rtext import join_data_text
 
-from . import rbase, rbuild, rconfig, rconn, rerror, rexec, rfile, rinfo, rorm, rparam
+from . import rbase, rbuild, rconfig, rconn, rerror, rexec, rfile, rorm, rparam
 
 
 __all__ = (
@@ -28,9 +28,14 @@ __all__ = (
 
 DatabaseConnectionT = TypeVar('DatabaseConnectionT', 'rconn.DatabaseConnection', 'rconn.DatabaseConnectionAsync')
 DatabaseExecuteT = TypeVar('DatabaseExecuteT', 'rexec.DatabaseExecute', 'rexec.DatabaseExecuteAsync')
-DatabaseSchemaT = TypeVar('DatabaseSchemaT', 'rparam.DatabaseSchema', 'rparam.DatabaseSchemaAsync')
 DatabaseORMT = TypeVar('DatabaseORMT', 'rorm.DatabaseORM', 'rorm.DatabaseORMAsync')
-DatabaseBuildT = TypeVar('DatabaseBuildT')
+DatabaseBuildT = TypeVar('DatabaseBuildT', 'rbuild.DatabaseBuild', 'rbuild.DatabaseBuildAsync')
+DatabaseConfigT = TypeVar('DatabaseConfigT', 'rconfig.DatabaseConfig', 'rconfig.DatabaseConfigAsync')
+DatabaseSchemaT = TypeVar('DatabaseSchemaT', 'rparam.DatabaseSchema', 'rparam.DatabaseSchemaAsync')
+DatabaseParametersVariablesT = TypeVar('DatabaseParametersVariablesT', 'rparam.DatabaseParametersVariables', 'rparam.DatabaseParametersVariablesAsync')
+DatabaseParametersStatusT = TypeVar('DatabaseParametersStatusT', 'rparam.DatabaseParametersStatus', 'rparam.DatabaseParametersStatusAsync')
+DatabaseParametersVariablesGlobalT = TypeVar('DatabaseParametersVariablesGlobalT', 'rparam.DatabaseParametersVariablesGlobal', 'rparam.DatabaseParametersVariablesGlobalAsync')
+DatabaseParametersStatusGlobalT = TypeVar('DatabaseParametersStatusGlobalT', 'rparam.DatabaseParametersStatusGlobal', 'rparam.DatabaseParametersStatusGlobalAsync')
 
 
 class DatabaseSuper(
@@ -39,9 +44,14 @@ class DatabaseSuper(
         rbase.EngineT,
         DatabaseConnectionT,
         DatabaseExecuteT,
-        DatabaseSchemaT,
         DatabaseORMT,
-        DatabaseBuildT
+        DatabaseBuildT,
+        DatabaseConfigT,
+        DatabaseSchemaT,
+        DatabaseParametersVariablesT,
+        DatabaseParametersStatusT,
+        DatabaseParametersVariablesGlobalT,
+        DatabaseParametersStatusGlobalT
     ]
 ):
     """
@@ -359,7 +369,7 @@ class DatabaseSuper(
 
 
     @property
-    def config(self):
+    def config(self) -> DatabaseConfigT:
         """
         Build database config instance.
 
@@ -369,45 +379,13 @@ class DatabaseSuper(
         """
 
         # Build.
-        dbconfig = rconfig.DatabaseConfig(self)
+        match self:
+            case Database():
+                config = rconfig.DatabaseConfig(self)
+            case DatabaseAsync():
+                config = rconfig.DatabaseConfigAsync(self)
 
-        return dbconfig
-
-
-    @property
-    def info(self):
-        """
-        Build database information schema instance.
-
-        Returns
-        -------
-        Instance.
-
-        Examples
-        --------
-        Get databases information of server.
-        >>> databases_info = DatabaseInformationSchema()
-
-        Get tables information of database.
-        >>> tables_info = DatabaseInformationSchema.database()
-
-        Get columns information of table.
-        >>> columns_info = DatabaseInformationSchema.database.table()
-
-        Get database attribute.
-        >>> database_attr = DatabaseInformationSchema.database['attribute']
-
-        Get table attribute.
-        >>> database_attr = DatabaseInformationSchema.database.table['attribute']
-
-        Get column attribute.
-        >>> database_attr = DatabaseInformationSchema.database.table.column['attribute']
-        """
-
-        # Build.
-        dbischema = rinfo.DatabaseInformationSchema(self)
-
-        return dbischema
+        return config
 
 
     @property
@@ -431,39 +409,7 @@ class DatabaseSuper(
 
 
     @property
-    def status(self):
-        """
-        Build database parameters status instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Build.
-        dbps = rparam.DatabaseParametersStatus(self, False)
-
-        return dbps
-
-
-    @property
-    def status_global(self):
-        """
-        Build global database parameters status instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Build.
-        dbps = rparam.DatabaseParametersStatus(self, True)
-
-        return dbps
-
-
-    @property
-    def variables(self):
+    def var(self) -> DatabaseParametersVariablesT:
         """
         Build database parameters variable instance.
 
@@ -473,13 +419,37 @@ class DatabaseSuper(
         """
 
         # Build.
-        dbpv = rparam.DatabaseParametersVariable(self, False)
+        match self:
+            case Database():
+                var = rparam.DatabaseParametersVariables(self)
+            case DatabaseAsync():
+                var = rparam.DatabaseParametersVariablesAsync(self)
 
-        return dbpv
+        return var
 
 
     @property
-    def variables_global(self):
+    def stat(self) -> DatabaseParametersVariablesT:
+        """
+        Build database parameters status instance.
+
+        Returns
+        -------
+        Instance.
+        """
+
+        # Build.
+        match self:
+            case Database():
+                stat = rparam.DatabaseParametersStatus(self)
+            case DatabaseAsync():
+                stat = rparam.DatabaseParametersStatusAsync(self)
+
+        return stat
+
+
+    @property
+    def glob_var(self) -> DatabaseParametersVariablesGlobalT:
         """
         Build global database parameters variable instance.
 
@@ -489,11 +459,33 @@ class DatabaseSuper(
         """
 
         # Build.
+        match self:
+            case Database():
+                var = rparam.DatabaseParametersVariablesGlobal(self)
+            case DatabaseAsync():
+                var = rparam.DatabaseParametersVariablesGlobalAsync(self)
 
-        ## SQLite.
-        dbpv = rparam.DatabaseParametersVariable(self, True)
+        return var
 
-        return dbpv
+
+    @property
+    def glob_stat(self) -> DatabaseParametersStatusGlobalT:
+        """
+        Build global database parameters status instance.
+
+        Returns
+        -------
+        Instance.
+        """
+
+        # Build.
+        match self:
+            case Database():
+                stat = rparam.DatabaseParametersStatusGlobal(self)
+            case DatabaseAsync():
+                stat = rparam.DatabaseParametersStatusGlobalAsync(self)
+
+        return stat
 
 
 class Database(
@@ -501,9 +493,14 @@ class Database(
         Engine,
         'rconn.DatabaseConnection',
         'rexec.DatabaseExecute',
-        'rparam.DatabaseSchema',
         'rorm.DatabaseORM',
-        'rbuild.DatabaseBuild'
+        'rbuild.DatabaseBuild',
+        'rconfig.DatabaseConfig',
+        'rparam.DatabaseSchema',
+        'rparam.DatabaseParametersVariables',
+        'rparam.DatabaseParametersStatus',
+        'rparam.DatabaseParametersVariablesGlobal',
+        'rparam.DatabaseParametersStatusGlobal'
     ]
 ):
     """
@@ -516,9 +513,14 @@ class DatabaseAsync(
         AsyncEngine,
         'rconn.DatabaseConnectionAsync',
         'rexec.DatabaseExecuteAsync',
-        'rparam.DatabaseSchemaAsync',
         'rorm.DatabaseORMAsync',
-        'rbuild.DatabaseBuildAsync'
+        'rbuild.DatabaseBuildAsync',
+        'rconfig.DatabaseConfigAsync',
+        'rparam.DatabaseSchemaAsync',
+        'rparam.DatabaseParametersVariablesAsync',
+        'rparam.DatabaseParametersStatusAsync',
+        'rparam.DatabaseParametersVariablesGlobalAsync',
+        'rparam.DatabaseParametersStatusGlobalAsync'
     ]
 ):
     """

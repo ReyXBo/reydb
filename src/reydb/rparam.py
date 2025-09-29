@@ -9,7 +9,7 @@
 """
 
 
-from typing import TypeVar, Generic, overload
+from typing import Literal, TypeVar, Generic, Final, overload
 
 from . import rdb
 from .rbase import DatabaseBase
@@ -17,10 +17,20 @@ from .rexec import Result
 
 
 __all__ = (
+    'DatabaseSchemaSuper',
     'DatabaseSchema',
+    'DatabaseSchemaAsync',
+    'DatabaseParametersSuper',
     'DatabaseParameters',
+    'DatabaseParametersAsync',
+    'DatabaseParametersVariables',
     'DatabaseParametersStatus',
-    'DatabaseParametersVariable'
+    'DatabaseParametersVariablesGlobal',
+    'DatabaseParametersStatusGlobal',
+    'DatabaseParametersVariablesAsync',
+    'DatabaseParametersStatusAsync',
+    'DatabaseParametersVariablesGlobalAsync',
+    'DatabaseParametersStatusGlobalAsync'
 )
 
 
@@ -185,16 +195,18 @@ class DatabaseSchemaAsync(DatabaseSchemaSuper['rdb.DatabaseAsync']):
         return schema_dict
 
 
-class DatabaseParameters(DatabaseBase):
+class DatabaseParametersSuper(DatabaseBase, Generic[DatabaseT]):
     """
-    Database parameters type.
+    Database parameters super type.
     """
+
+    mode: Literal['VARIABLES', 'STATUS']
+    glob: bool
 
 
     def __init__(
         self,
-        db: 'rdb.Database',
-        global_: bool
+        db: DatabaseT
     ) -> None:
         """
         Build instance attributes.
@@ -202,12 +214,16 @@ class DatabaseParameters(DatabaseBase):
         Parameters
         ----------
         db: Database instance.
-        global\\_ : Whether base global.
         """
 
         # Set parameter.
         self.db = db
-        self.global_ = global_
+
+
+class DatabaseParameters(DatabaseParametersSuper['rdb.Database']):
+    """
+    Database parameters type.
+    """
 
 
     def __getitem__(self, key: str) -> str | None:
@@ -246,12 +262,6 @@ class DatabaseParameters(DatabaseBase):
         self.update(params)
 
 
-class DatabaseParametersStatus(DatabaseParameters):
-    """
-    Database parameters status type.
-    """
-
-
     @overload
     def get(self) -> dict[str, str]: ...
 
@@ -274,14 +284,11 @@ class DatabaseParametersStatus(DatabaseParameters):
         """
 
         # Generate SQL.
-
-        ## Global.
-        if self.global_:
-            sql = 'SHOW GLOBAL STATUS'
-
-        ## Not global.
-        else:
-            sql = 'SHOW STATUS'
+        sql = 'SHOW ' + (
+            'GLOBAL '
+            if self.glob
+            else ''
+        ) + self.mode
 
         # Execute SQL.
 
@@ -312,25 +319,80 @@ class DatabaseParametersStatus(DatabaseParameters):
         params : Update parameter key value pairs.
         """
 
-        # Throw exception.
-        raise AssertionError('database status not update')
+        # Generate SQL.
+        sql_set_list = [
+            '%s = %s' % (
+                key,
+                (
+                    value
+                    if type(value) in (int, float)
+                    else "'%s'" % value
+                )
+            )
+            for key, value in params.items()
+        ]
+        sql_set = ',\n    '.join(sql_set_list)
+        sql = 'SHOW ' + (
+            'GLOBAL '
+            if self.glob
+            else ''
+        ) + sql_set
+
+        # Execute SQL.
+        self.db.execute(sql)
 
 
-class DatabaseParametersVariable(DatabaseParameters):
+class DatabaseParametersAsync(DatabaseParametersSuper['rdb.DatabaseAsync']):
     """
-    Database parameters variable type.
+    Asynchrouous database parameters type.
     """
 
 
-    @overload
-    def get(self) -> dict[str, str]: ...
-
-    @overload
-    def get(self, key: str) -> str | None: ...
-
-    def get(self, key: str | None = None) -> dict[str, str] | str | None:
+    async def __getitem__(self, key: str) -> str | None:
         """
-        Get parameter.
+        Asynchrouous get item of parameter dictionary.
+
+        Parameters
+        ----------
+        key : Parameter key.
+
+        Returns
+        -------
+        Parameter value.
+        """
+
+        # Get.
+        value = await self.get(key)
+
+        return value
+
+
+    async def __setitem__(self, key: str, value: str | float) -> None:
+        """
+        Asynchrouous set item of parameter dictionary.
+
+        Parameters
+        ----------
+        key : Parameter key.
+        value : Parameter value.
+        """
+
+        # Set.
+        params = {key: value}
+
+        # Update.
+        await self.update(params)
+
+
+    @overload
+    async def get(self) -> dict[str, str]: ...
+
+    @overload
+    async def get(self, key: str) -> str | None: ...
+
+    async def get(self, key: str | None = None) -> dict[str, str] | str | None:
+        """
+        Asynchrouous get parameter.
 
         Parameters
         ----------
@@ -340,47 +402,48 @@ class DatabaseParametersVariable(DatabaseParameters):
 
         Returns
         -------
-        Variables of database.
+        Status of database.
         """
 
         # Generate SQL.
-
-        ## Global.
-        if self.global_:
-            sql = 'SHOW GLOBAL VARIABLES'
-
-        ## Not global.
-        else:
-            sql = 'SHOW VARIABLES'
+        sql = 'SHOW ' + (
+            'GLOBAL '
+            if self.glob
+            else ''
+        ) + self.mode
 
         # Execute SQL.
 
         ## Dictionary.
         if key is None:
-            result = self.db.execute(sql, key=key)
-            variables = result.to_dict(val_field=1)
+            result = await self.db.execute(sql, key=key)
+            status = result.to_dict(val_field=1)
 
         ## Value.
         else:
             sql += ' LIKE :key'
-            result = self.db.execute(sql, key=key)
+            result = await self.db.execute(sql, key=key)
             row = result.first()
             if row is None:
-                variables = None
+                status = None
             else:
-                variables = row['Value']
+                status = row['Value']
 
-        return variables
+        return status
 
 
-    def update(self, params: dict[str, str | float]) -> None:
+    async def update(self, params: dict[str, str | float]) -> None:
         """
-        Update parameter.
+        Asynchrouous update parameter.
 
         Parameters
         ----------
         params : Update parameter key value pairs.
         """
+
+        # Check.
+        if self.mode == 'STATUS':
+            raise AssertionError('database status not update')
 
         # Generate SQL.
         sql_set_list = [
@@ -395,14 +458,83 @@ class DatabaseParametersVariable(DatabaseParameters):
             for key, value in params.items()
         ]
         sql_set = ',\n    '.join(sql_set_list)
-
-        ## Global.
-        if self.global_:
-            sql = f'SET GLOBAL {sql_set}'
-
-        ## Not global.
-        else:
-            sql = f'SET {sql_set}'
+        sql = 'SHOW ' + (
+            'GLOBAL '
+            if self.glob
+            else ''
+        ) + sql_set
 
         # Execute SQL.
-        self.db.execute(sql)
+        await self.db.execute(sql)
+
+
+class DatabaseParametersVariables(DatabaseParameters):
+    """
+    Database variable parameters type.
+    """
+
+    mode: Final = 'VARIABLES'
+    glob: Final = False
+
+
+class DatabaseParametersStatus(DatabaseParameters):
+    """
+    Database status parameters type.
+    """
+
+    mode: Final = 'STATUS'
+    glob: Final = False
+
+
+class DatabaseParametersVariablesGlobal(DatabaseParameters):
+    """
+    Database global variable parameters type.
+    """
+
+    mode: Final = 'VARIABLES'
+    glob: Final = True
+
+
+class DatabaseParametersStatusGlobal(DatabaseParameters):
+    """
+    Database global status parameters type.
+    """
+
+    mode: Final = 'STATUS'
+    glob: Final = True
+
+
+class DatabaseParametersVariablesAsync(DatabaseParametersAsync):
+    """
+    Asynchrouous database variable parameters type.
+    """
+
+    mode: Final = 'VARIABLES'
+    glob: Final = False
+
+
+class DatabaseParametersStatusAsync(DatabaseParametersAsync):
+    """
+    Asynchrouous database status parameters type.
+    """
+
+    mode: Final = 'STATUS'
+    glob: Final = False
+
+
+class DatabaseParametersVariablesGlobalAsync(DatabaseParametersAsync):
+    """
+    Asynchrouous database global variable parameters type.
+    """
+
+    mode: Final = 'VARIABLES'
+    glob: Final = True
+
+
+class DatabaseParametersStatusGlobalAsync(DatabaseParametersAsync):
+    """
+    Asynchrouous database global status parameters type.
+    """
+
+    mode: Final = 'STATUS'
+    glob: Final = True
