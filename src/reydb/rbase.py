@@ -39,16 +39,6 @@ ConnectionT = TypeVar('ConnectionT', Connection, AsyncConnection)
 TransactionT = TypeVar('TransactionT', Transaction, AsyncTransaction)
 SessionT = TypeVar('SessionT', Session, AsyncSession)
 SessionTransactionT = TypeVar('SessionTransactionT', SessionTransaction, AsyncSessionTransaction)
-DatabaseT = TypeVar('DatabaseT')
-DatabaseConnectionT = TypeVar('DatabaseConnectionT')
-DatabaseExecuteT = TypeVar('DatabaseExecuteT')
-DatabaseSchemaT = TypeVar('DatabaseSchemaT')
-DatabaseORMT = TypeVar('DatabaseORMT')
-DatabaseORMSessionT = TypeVar('DatabaseSessionT')
-DatabaseORMStatementSelectT = TypeVar('DatabaseORMStatementSelectT')
-DatabaseORMStatementInsertT = TypeVar('DatabaseORMStatementInsertT')
-DatabaseORMStatementUpdateT = TypeVar('DatabaseORMStatementUpdateT')
-DatabaseORMStatementDeleteT = TypeVar('DatabaseORMStatementDeleteT')
 
 
 URLParameters = TypedDict(

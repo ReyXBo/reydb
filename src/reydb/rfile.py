@@ -56,7 +56,7 @@ class DatabaseFile(DatabaseBase):
 
     def build_db(self) -> None:
         """
-        Check and build all standard databases and tables, by `self.db_names`.
+        Check and build database tables, by `self.db_names`.
         """
 
         # Set parameter.
@@ -327,7 +327,7 @@ class DatabaseFile(DatabaseBase):
 
         # Exist.
         exist = conn.execute.exist(
-            (self.db_names['file'], self.db_names['file.data']),
+            self.db_names['file.data'],
             '`md5` = :file_md5',
             file_md5=file_md5
         )
@@ -342,7 +342,7 @@ class DatabaseFile(DatabaseBase):
                 'bytes': file_bytes
             }
             conn.execute.insert(
-                (self.db_names['file'], self.db_names['file.data']),
+                self.db_names['file.data'],
                 data,
                 'ignore'
             )
@@ -354,7 +354,7 @@ class DatabaseFile(DatabaseBase):
             'note': note
         }
         conn.execute.insert(
-            (self.db_names['file'], self.db_names['file.information']),
+            self.db_names['file.information'],
             data
         )
 

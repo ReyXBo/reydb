@@ -24,7 +24,7 @@ from reykit.rtime import TimeMark, time_to
 from reykit.rwrap import wrap_runtime
 
 from . import rconn
-from .rbase import DatabaseBase, handle_sql, handle_data
+from .rbase import DatabaseBase, handle_sql, handle_data, extract_path
 
 
 __all__ = (
@@ -40,7 +40,7 @@ Result = Result_
 monkey_sqlalchemy_row_index_field()
 
 
-DatabaseConnectionT = TypeVar('DatabaseConnectionT')
+DatabaseConnectionT = TypeVar('DatabaseConnectionT', 'rconn.DatabaseConnection', 'rconn.DatabaseConnectionAsync')
 
 
 class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
@@ -59,7 +59,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         """
 
         # Build.
-        self.dbconn = dbconn
+        self.conn = dbconn
 
 
     def handle_execute(
@@ -87,7 +87,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         """
 
         # Handle parameter.
-        report = get_first_notnone(report, self.dbconn.db.report)
+        report = get_first_notnone(report, self.conn.db.report)
         sql = handle_sql(sql)
         if data is None:
             if kwdata == {}:
@@ -119,7 +119,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         fields : Select clause content.
             - `None`: Is `SELECT *`.
             - `str`: Join as `SELECT str`.
@@ -138,6 +138,11 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         -------
         Parameter `sql`.
         """
+
+        # Handle parameter.
+        database = self.conn.db.database
+        if '.' in table:
+            database, table, _ = extract_path(table)
 
         # Generate SQL.
         sql_list = []
@@ -161,7 +166,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         sql_list.append(sql_select)
 
         ## Part 'FROM' syntax.
-        sql_from = f'FROM `{self.dbconn.db.database}`.`{table}`'
+        sql_from = f'FROM `{database}`.`{table}`'
         sql_list.append(sql_from)
 
         ## Part 'WHERE' syntax.
@@ -213,7 +218,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         data : Insert data.
         duplicate : Handle method when constraint error.
             - `None`: Not handled.
@@ -230,6 +235,9 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         """
 
         # Handle parameter.
+        database = self.conn.db.database
+        if '.' in table:
+            database, table, _ = extract_path(table)
 
         ## Data.
         data_table = Table(data)
@@ -296,14 +304,14 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
             ### Not handle.
             case None:
                 sql = (
-                    f'INSERT INTO `{self.dbconn.db.database}`.`{table}`({sql_fields})\n'
+                    f'INSERT INTO `{database}`.`{table}`({sql_fields})\n'
                     f'VALUES({sql_values})'
                 )
 
             ### Ignore.
             case 'ignore':
                 sql = (
-                    f'INSERT IGNORE INTO `{self.dbconn.db.database}`.`{table}`({sql_fields})\n'
+                    f'INSERT IGNORE INTO `{database}`.`{table}`({sql_fields})\n'
                     f'VALUES({sql_values})'
                 )
 
@@ -323,7 +331,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
                     ]
                 )
                 sql = (
-                    f'INSERT INTO `{self.dbconn.db.database}`.`{table}`({sql_fields})\n'
+                    f'INSERT INTO `{database}`.`{table}`({sql_fields})\n'
                     f'VALUES({sql_values})\n'
                     'ON DUPLICATE KEY UPDATE\n'
                     f'    {update_content}'
@@ -344,7 +352,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         data : Update data, clause `SET` and `WHERE` and `ORDER BY` and `LIMIT` content.
             - `Key`: Table field.
                 `literal['order']`: Clause `ORDER BY` content, join as `ORDER BY str`.
@@ -367,6 +375,9 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         """
 
         # Handle parameter.
+        database = self.conn.db.database
+        if '.' in table:
+            database, table, _ = extract_path(table)
 
         ## Data.
         data_table = Table(data)
@@ -408,7 +419,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
             if type(where_fields) == str:
                 where_fields = [where_fields]
         sqls_list = []
-        sql_update = f'UPDATE `{self.dbconn.db.database}`.`{table}`'
+        sql_update = f'UPDATE `{database}`.`{table}`'
         for index, row in enumerate(data):
             sql_parts = [sql_update]
             for key, value in row.items():
@@ -484,7 +495,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         where : Clause `WHERE` content, join as `WHERE str`.
         order : Clause `ORDER BY` content, join as `ORDER BY str`.
         limit : Clause `LIMIT` content, join as `LIMIT int/str`.
@@ -494,11 +505,16 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         Parameter `sql`.
         """
 
+        # Handle parameter.
+        database = self.conn.db.database
+        if '.' in table:
+            database, table, _ = extract_path(table)
+
         # Generate SQL.
         sqls = []
 
         ## Part 'DELETE' syntax.
-        sql_delete = f'DELETE FROM `{self.dbconn.db.database}`.`{table}`'
+        sql_delete = f'DELETE FROM `{database}`.`{table}`'
         sqls.append(sql_delete)
 
         ## Part 'WHERE' syntax.
@@ -534,7 +550,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         where : Clause `WHERE` content, join as `WHERE str`.
         limit : Clause `LIMIT` content.
             - `int | str`: Join as `LIMIT int/str`.
@@ -551,7 +567,10 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         """
 
         # Handle parameter.
-        table_info: list[dict] = self.dbconn.db.info(self.dbconn.db.database)(table)()
+        database = self.conn.db.database
+        if '.' in table:
+            database, table, _ = extract_path(table)
+        table_info: list[dict] = self.conn.db.info(database)(table)()
         field_key = 'COLUMN_NAME'
         fields = [
             row[field_key]
@@ -586,7 +605,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
                 )
             )
             sql_fields = ', '.join(sql_fields_filter)
-        sql_insert = f'INSERT INTO `{self.dbconn.db.database}`.`{table}`({sql_fields})'
+        sql_insert = f'INSERT INTO `{database}`.`{table}`({sql_fields})'
         sqls.append(sql_insert)
 
         ## Part 'SELECT' syntax.
@@ -617,7 +636,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
             sql_values = ', '.join(sql_values_filter)
         sql_select = (
             f'SELECT {sql_values}\n'
-            f'FROM `{self.dbconn.db.database}`.`{table}`'
+            f'FROM `{database}`.`{table}`'
         )
         sqls.append(sql_select)
 
@@ -677,13 +696,13 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         sql, data, report = self.handle_execute(sql, data, report, **kwdata)
 
         # Transaction.
-        self.dbconn.get_begin()
+        self.conn.get_begin()
 
         # Execute.
 
         ## Report.
         if report:
-            execute = wrap_runtime(self.dbconn.execute, to_return=True)
+            execute = wrap_runtime(self.conn.connection.execute, to_return=True, to_print=False)
             result, report_runtime, *_ = execute(sql, data)
             report_info = (
                 f'{report_runtime}\n'
@@ -701,12 +720,12 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         ## Not report.
         else:
-            result = self.dbconn.conn.execute(sql, data)
+            result = self.conn.connection.execute(sql, data)
 
         # Automatic commit.
-        if self.dbconn.autocommit:
-            self.dbconn.commit()
-            self.dbconn.close()
+        if self.conn.autocommit:
+            self.conn.commit()
+            self.conn.close()
 
         return result
 
@@ -731,7 +750,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         fields : Select clause content.
             - `None`: Is `SELECT *`.
             - `str`: Join as `SELECT str`.
@@ -790,7 +809,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         data : Insert data.
         duplicate : Handle method when constraint error.
             - `None`: Not handled.
@@ -842,7 +861,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         data : Update data, clause `SET` and `WHERE` and `ORDER BY` and `LIMIT` content.
             - `Key`: Table field.
                 `literal['order']`: Clause `ORDER BY` content, join as `ORDER BY str`.
@@ -901,7 +920,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         where : Clause `WHERE` content, join as `WHERE str`.
         order : Clause `ORDER BY` content, join as `ORDER BY str`.
         limit : Clause `LIMIT` content, join as `LIMIT int/str`.
@@ -945,7 +964,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         where : Clause `WHERE` content, join as `WHERE str`.
         limit : Clause `LIMIT` content.
             - `int | str`: Join as `LIMIT int/str`.
@@ -993,7 +1012,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         where : Match condition, `WHERE` clause content, join as `WHERE str`.
             - `None`: Match all.
             - `str`: Match condition.
@@ -1034,7 +1053,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         where : Match condition, `WHERE` clause content, join as `WHERE str`.
             - `None`: Match all.
             - `str`: Match condition.
@@ -1198,7 +1217,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         sql, data, report = self.handle_execute(sql, data, report, **kwdata)
 
         # Transaction.
-        await self.dbconn.get_begin()
+        await self.conn.get_begin()
 
         # Execute.
 
@@ -1206,7 +1225,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         if report:
             tm = TimeMark()
             tm()
-            result = await self.dbconn.conn.execute(sql, data)
+            result = await self.conn.connection.execute(sql, data)
             tm()
 
             ### Generate report.
@@ -1238,13 +1257,13 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         ## Not report.
         else:
-            result = await self.dbconn.conn.execute(sql, data)
+            result = await self.conn.connection.execute(sql, data)
 
         # Automatic commit.
-        if self.dbconn.autocommit:
-            await self.dbconn.commit()
-            await self.dbconn.close()
-            await self.dbconn.db.dispose()
+        if self.conn.autocommit:
+            await self.conn.commit()
+            await self.conn.close()
+            await self.conn.db.dispose()
 
         return result
 
@@ -1269,7 +1288,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         fields : Select clause content.
             - `None`: Is `SELECT *`.
             - `str`: Join as `SELECT str`.
@@ -1328,7 +1347,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         data : Insert data.
         duplicate : Handle method when constraint error.
             - `None`: Not handled.
@@ -1380,7 +1399,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         data : Update data, clause `SET` and `WHERE` and `ORDER BY` and `LIMIT` content.
             - `Key`: Table field.
                 `literal['order']`: Clause `ORDER BY` content, join as `ORDER BY str`.
@@ -1439,7 +1458,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         where : Clause `WHERE` content, join as `WHERE str`.
         order : Clause `ORDER BY` content, join as `ORDER BY str`.
         limit : Clause `LIMIT` content, join as `LIMIT int/str`.
@@ -1483,7 +1502,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         where : Clause `WHERE` content, join as `WHERE str`.
         limit : Clause `LIMIT` content.
             - `int | str`: Join as `LIMIT int/str`.
@@ -1531,7 +1550,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         where : Match condition, `WHERE` clause content, join as `WHERE str`.
             - `None`: Match all.
             - `str`: Match condition.
@@ -1572,7 +1591,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Parameters
         ----------
-        table : Table name.
+        table : Table name, can include database name.
         where : Match condition, `WHERE` clause content, join as `WHERE str`.
             - `None`: Match all.
             - `str`: Match condition.

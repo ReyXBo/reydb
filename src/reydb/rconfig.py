@@ -49,109 +49,54 @@ class DatabaseConfig(DatabaseBase):
     """
 
 
-    def __init__(self, db: 'rdb.Database') -> None:
+    def __init__(
+        self,
+        db: 'rdb.Database',
+        db_names: dict[str, str] | None = None
+    ) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
         db: Database instance.
+        db_names: Update build database table names.
         """
 
         # Build.
         self.db = db
-
-        ## Database path name.
         self.db_names = {
-            'base': 'base',
-            'base.config': 'config',
-            'base.stats_config': 'stats_config'
+            'config': 'config',
+            'stats_config': 'stats_config'
         }
+        if db_names is not None:
+            self.db_names.update(db_names)
 
 
     def build_db(self) -> None:
         """
-        Check and build all standard databases and tables, by `self.db_names`.
+        Check and build database tables, by `self.db_names`.
         """
 
-        # Set parameter.
-
-        ## Database.
-        databases = [
-            {
-                'name': self.db_names['base']
-            }
-        ]
+        # Handle parameter.
 
         ## Table.
-        tables = [
+        class Config(self.db.orm.Model, table=True):
+            __name__ = self.db_names['config']
+            __commment__ = 'Config data table.'
+            create_time: datetime = self.db.orm.Field(not_null=True, field_default='CURRENT_TIMESTAMP', index_n=True, comment='Config create time.')
+            update_time: datetime = self.db.orm.Field(field_default='CURRENT_TIMESTAMP', index_n=True, comment='Config update time.')
+            key = self.db.orm.Field(type=self.db.orm.types.VARCHAR(50), key=True, not_null=True, comment='Config key.')
+            value = self.db.orm.Field(type=self.db.orm.types.TEXT, not_null=True, comment='Config value.')
+            type = self.db.orm.Field(type=self.db.orm.types.VARCHAR(50), not_null=True, comment='Config value type.')
+            note = self.db.orm.Field(type=self.db.orm.types.VARCHAR(500), comment='Config note.')
 
-            ### 'config'.
-            {
-                'path': (self.db_names['base'], self.db_names['base.config']),
-                'fields': [
-                    {
-                        'name': 'create_time',
-                        'type': 'datetime',
-                        'constraint': 'NOT NULL DEFAULT CURRENT_TIMESTAMP',
-                        'comment': 'Config create time.'
-                    },
-                    {
-                        'name': 'update_time',
-                        'type': 'datetime',
-                        'constraint': 'DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP',
-                        'comment': 'Config update time.'
-                    },
-                    {
-                        'name': 'key',
-                        'type': 'varchar(50)',
-                        'constraint': 'NOT NULL',
-                        'comment': 'Config key.'
-                    },
-                    {
-                        'name': 'value',
-                        'type': 'text',
-                        'constraint': 'NOT NULL',
-                        'comment': 'Config value.'
-                    },
-                    {
-                        'name': 'type',
-                        'type': 'varchar(50)',
-                        'constraint': 'NOT NULL',
-                        'comment': 'Config value type.'
-                    },
-                    {
-                        'name': 'note',
-                        'type': 'varchar(500)',
-                        'comment': 'Config note.'
-                    }
-                ],
-                'primary': 'key',
-                'indexes': [
-                    {
-                        'name': 'n_create_time',
-                        'fields': 'create_time',
-                        'type': 'noraml',
-                        'comment': 'Config create time normal index.'
-                    },
-                    {
-                        'name': 'n_update_time',
-                        'fields': 'update_time',
-                        'type': 'noraml',
-                        'comment': 'Config update time normal index.'
-                    }
-                ],
-                'comment': 'Config data table.'
-            }
-
-        ]
+        tables = [Config]
 
         ## View stats.
         views_stats = [
-
-            ### 'stats_config'.
             {
-                'path': (self.db_names['base'], self.db_names['base.stats_config']),
+                'path': self.db_names['stats_config'],
                 'items': [
                     {
                         'name': 'count',
@@ -178,13 +123,12 @@ class DatabaseConfig(DatabaseBase):
                         'comment': 'Config last record update time.'
                     }
                 ]
-
             }
 
         ]
 
         # Build.
-        self.db.build.build(databases, tables, views_stats=views_stats)
+        self.db.build.build(tables=tables, views_stats=views_stats)
 
 
     @property
@@ -199,7 +143,7 @@ class DatabaseConfig(DatabaseBase):
 
         # Get.
         result = self.db.execute.select(
-            (self.db_names['base'], self.db_names['base.config']),
+            self.db_names['config'],
             ['key', 'value', 'type', 'note'],
             order='IFNULL(`update_time`, `create_time`) DESC'
         )
@@ -235,7 +179,7 @@ class DatabaseConfig(DatabaseBase):
         # Get.
         where = '`key` = :key'
         result = self.db.execute.select(
-            (self.db_names['base'], self.db_names['base.config']),
+            self.db_names['config'],
             '`value`',
             where,
             limit=1,
@@ -281,7 +225,7 @@ class DatabaseConfig(DatabaseBase):
             'note': default_note
         }
         result = self.db.execute.insert(
-            (self.db_names['base'], self.db_names['base.config']),
+            self.db_names['config'],
             data,
             'ignore'
         )
@@ -322,7 +266,7 @@ class DatabaseConfig(DatabaseBase):
 
         # Update.
         self.db.execute.insert(
-            (self.db_names['base'], self.db_names['base.config']),
+            self.db_names['config'],
             data,
             'update'
         )
@@ -345,7 +289,7 @@ class DatabaseConfig(DatabaseBase):
             where = '`key` in :key'
             limit = None
         result = self.db.execute.delete(
-            (self.db_names['base'], self.db_names['base.config']),
+            self.db_names['base.config'],
             where,
             limit=limit,
             key=key
@@ -367,7 +311,7 @@ class DatabaseConfig(DatabaseBase):
 
         # Get.
         result = self.db.execute.select(
-            (self.db_names['base'], self.db_names['base.config']),
+            self.db_names['config'],
             ['key', 'value']
         )
 
@@ -393,7 +337,7 @@ class DatabaseConfig(DatabaseBase):
 
         # Get.
         result = self.db.execute.select(
-            (self.db_names['base'], self.db_names['base.config']),
+            self.db_names['config'],
             '`key`'
         )
 
@@ -418,7 +362,7 @@ class DatabaseConfig(DatabaseBase):
 
         # Get.
         result = self.db.execute.select(
-            (self.db_names['base'], self.db_names['base.config']),
+            self.db_names['config'],
             '`value`'
         )
 
@@ -480,7 +424,7 @@ class DatabaseConfig(DatabaseBase):
             'note': note
         }
         self.db.execute.insert(
-            (self.db_names['base'], self.db_names['base.config']),
+            self.db_names['config'],
             data,
             'update'
         )

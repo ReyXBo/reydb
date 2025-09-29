@@ -9,13 +9,14 @@
 """
 
 
-from typing import TypedDict, NotRequired, Literal
+from typing import TypedDict, NotRequired, Literal, Type, TypeVar, Generic
 from copy import deepcopy
-from reykit.rbase import throw
+from reykit.rbase import throw, is_instance
 from reykit.rstdout import ask
 
 from . import rdb
 from .rbase import DatabaseBase, extract_path
+from .rorm import DatabaseORMModel
 
 
 __all__ = (
@@ -43,15 +44,16 @@ IndexSet = TypedDict(
         'comment': NotRequired[str | None]
     }
 )
+DatabaseT = TypeVar('DatabaseT', 'rdb.Database', 'rdb.DatabaseAsync')
 
 
-class DatabaseBuild(DatabaseBase):
+class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
     """
-    Database build type.
+    Database build super type.
     """
 
 
-    def __init__(self, db: 'rdb.Database') -> None:
+    def __init__(self, db: DatabaseT) -> None:
         """
         Build instance attributes.
 
@@ -65,15 +67,14 @@ class DatabaseBuild(DatabaseBase):
         self._schema: dict[str, dict[str, list[str]]] | None = None
 
 
-    def create_database(
+    def get_sql_create_database(
         self,
         name: str,
-        character: str = 'utf8mb3',
-        collate: str = 'utf8mb3_general_ci',
-        execute: bool = True
+        character: str = 'utf8mb4',
+        collate: str = 'utf8mb4_0900_ai_ci'
     ) -> str:
         """
-        Create database.
+        Get SQL of create database.
 
         Parameters
         ----------
@@ -84,15 +85,11 @@ class DatabaseBuild(DatabaseBase):
 
         Returns
         -------
-        Execute SQL.
+        SQL.
         """
 
         # Generate.
         sql = f'CREATE DATABASE `{name}` CHARACTER SET {character} COLLATE {collate}'
-
-        # Execute.
-        if execute:
-            self.db.execute(sql)
 
         return sql
 
@@ -216,7 +213,7 @@ class DatabaseBuild(DatabaseBase):
         return sql
 
 
-    def create_table(
+    def get_sql_create_table(
         self,
         path: str | tuple[str, str],
         fields: FieldSet | list[FieldSet],
@@ -224,13 +221,12 @@ class DatabaseBuild(DatabaseBase):
         indexes: IndexSet | list[IndexSet] | None = None,
         engine: str = 'InnoDB',
         increment: int = 1,
-        charset: str = 'utf8mb3',
-        collate: str = 'utf8mb3_general_ci',
-        comment: str | None = None,
-        execute: bool = True
+        charset: str = 'utf8mb4',
+        collate: str = 'utf8mb4_0900_ai_ci',
+        comment: str | None = None
     ) -> str:
         """
-        Create table.
+        Get SQL of create table.
 
         Parameters
         ----------
@@ -275,7 +271,7 @@ class DatabaseBuild(DatabaseBase):
 
         Returns
         -------
-        Execute SQL.
+        SQL.
         """
 
         # Handle parameter.
@@ -340,21 +336,16 @@ class DatabaseBuild(DatabaseBase):
             f') ENGINE={engine} AUTO_INCREMENT={increment} CHARSET={charset} COLLATE={collate}{sql_comment}'
         )
 
-        # Execute.
-        if execute:
-            self.db.execute(sql)
-
         return sql
 
 
-    def create_view(
+    def get_sql_create_view(
         self,
         path: str | tuple[str, str],
-        select: str,
-        execute: bool = True
+        select: str
     ) -> str:
         """
-        Create view.
+        Get SQL of create view.
 
         Parameters
         ----------
@@ -366,7 +357,7 @@ class DatabaseBuild(DatabaseBase):
 
         Returns
         -------
-        Execute SQL.
+        SQL.
         """
 
         # Handle parameter.
@@ -376,21 +367,16 @@ class DatabaseBuild(DatabaseBase):
         select = select.replace('\n', '\n    ')
         sql = 'CREATE VIEW `%s`.`%s` AS (\n    %s\n)' % (database, view, select)
 
-        # Execute.
-        if execute:
-            self.db.execute(sql)
-
         return sql
 
 
-    def create_view_stats(
+    def get_sql_create_view_stats(
         self,
         path: str | tuple[str, str],
-        items: list[dict],
-        execute: bool = True
+        items: list[dict]
     ) -> str:
         """
-        Create stats view.
+        Get SQL of create stats view.
 
         Parameters
         ----------
@@ -405,7 +391,7 @@ class DatabaseBuild(DatabaseBase):
 
         Returns
         -------
-        Execute SQL.
+        SQL.
         """
 
         # Check.
@@ -439,22 +425,17 @@ class DatabaseBuild(DatabaseBase):
         select = '\nUNION\n'.join(selects)
 
         # Create.
-        sql = self.create_view(
-            path,
-            select,
-            execute
-        )
+        sql = self.get_sql_create_view(path, select)
 
         return sql
 
 
-    def drop_database(
+    def get_sql_drop_database(
         self,
-        database: str,
-        execute: bool = True
+        database: str
     ) -> str:
         """
-        Drop database.
+        Get SQL of drop database.
 
         Parameters
         ----------
@@ -463,26 +444,21 @@ class DatabaseBuild(DatabaseBase):
 
         Returns
         -------
-        Execute SQL.
+        SQL.
         """
 
         # Generate.
         sql = f'DROP DATABASE `{database}`'
 
-        # Execute.
-        if execute:
-            self.db.execute(sql)
-
         return sql
 
 
-    def drop_table(
+    def get_sql_drop_table(
         self,
-        path: str | tuple[str, str],
-        execute: bool = True
+        path: str | tuple[str, str]
     ) -> str:
         """
-        Drop table.
+        Get SQL of drop table.
 
         Parameters
         ----------
@@ -493,7 +469,7 @@ class DatabaseBuild(DatabaseBase):
 
         Returns
         -------
-        Execute SQL.
+        SQL.
         """
 
         # Handle parameter.
@@ -502,20 +478,15 @@ class DatabaseBuild(DatabaseBase):
         # Generate.
         sql = f'DROP TABLE `{database}`.`{table}`'
 
-        # Execute.
-        if execute:
-            self.db.execute(sql)
-
         return sql
 
 
-    def drop_view(
+    def get_sql_drop_view(
         self,
-        path: str | tuple[str, str],
-        execute: bool = True
+        path: str | tuple[str, str]
     ) -> str:
         """
-        Drop view.
+        Get SQL of drop view.
 
         Parameters
         ----------
@@ -526,7 +497,7 @@ class DatabaseBuild(DatabaseBase):
 
         Returns
         -------
-        Execute SQL.
+        SQL.
         """
 
         # Handle parameter.
@@ -535,22 +506,17 @@ class DatabaseBuild(DatabaseBase):
         # Generate SQL.
         sql = 'DROP VIEW `%s`.`%s`' % (database, view)
 
-        # Execute.
-        if execute:
-            self.db.execute(sql)
-
         return sql
 
 
-    def alter_database(
+    def get_sql_alter_database(
         self,
         database: str,
         character: str | None = None,
-        collate: str | None = None,
-        execute: bool = True
+        collate: str | None = None
     ) -> str:
         """
-        Alter database.
+        Get SQL of alter database.
 
         Parameters
         ----------
@@ -565,7 +531,7 @@ class DatabaseBuild(DatabaseBase):
 
         Returns
         -------
-        Execute SQL.
+        SQL.
         """
 
         # Generate.
@@ -585,23 +551,18 @@ class DatabaseBuild(DatabaseBase):
         ## Join.
         sql = f'ALTER DATABASE `{database}`{sql_character}{sql_collate}'
 
-        # Execute.
-        if execute:
-            self.db.execute(sql)
-
         return sql
 
 
-    def alter_table_add(
+    def get_sql_alter_table_add(
         self,
         path: str | tuple[str, str],
         fields: FieldSet | list[FieldSet] | None = None,
         primary: str | list[str] | None = None,
-        indexes: IndexSet | list[IndexSet] | None = None,
-        execute: bool = True
+        indexes: IndexSet | list[IndexSet] | None = None
     ) -> str:
         """
-        Alter table add filed.
+        Get SQL of alter table add filed.
 
         Parameters
         ----------
@@ -640,7 +601,7 @@ class DatabaseBuild(DatabaseBase):
 
         Returns
         -------
-        Execute SQL.
+        SQL.
         """
 
         # Handle parameter.
@@ -700,23 +661,18 @@ class DatabaseBuild(DatabaseBase):
             f'    ADD {sql_content}'
         )
 
-        # Execute.
-        if execute:
-            self.db.execute(sql)
-
         return sql
 
 
-    def alter_table_drop(
+    def get_sql_alter_table_drop(
         self,
         path: str | tuple[str, str],
         fields: str | list[str] | None = None,
         primary: bool = False,
-        indexes: str | list[str] | None = None,
-        execute: bool = True
+        indexes: str | list[str] | None = None
     ) -> str:
         """
-        Alter table drop field.
+        Get SQL of alter table drop field.
 
         Parameters
         ----------
@@ -730,7 +686,7 @@ class DatabaseBuild(DatabaseBase):
 
         Returns
         -------
-        Execute SQL.
+        SQL.
         """
 
         # Handle parameter.
@@ -771,14 +727,10 @@ class DatabaseBuild(DatabaseBase):
             f'    DROP {sql_content}'
         )
 
-        # Execute.
-        if execute:
-            self.db.execute(sql)
-
         return sql
 
 
-    def alter_table_change(
+    def get_sql_alter_table_change(
         self,
         path: str | tuple[str, str],
         fields: FieldSet | list[FieldSet] | None = None,
@@ -786,11 +738,10 @@ class DatabaseBuild(DatabaseBase):
         engine: str | None = None,
         increment: int | None = None,
         charset: str | None = None,
-        collate: str | None = None,
-        execute: bool = True
+        collate: str | None = None
     ) -> str:
         """
-        Alter database.
+        Get SQL of alter database.
 
         Parameters
         ----------
@@ -820,7 +771,7 @@ class DatabaseBuild(DatabaseBase):
 
         Returns
         -------
-        Execute SQL.
+        SQL.
         """
 
         # Handle parameter.
@@ -890,21 +841,16 @@ class DatabaseBuild(DatabaseBase):
             f'    {sql_content}'
         )
 
-        # Execute.
-        if execute:
-            self.db.execute(sql)
-
         return sql
 
 
-    def alter_view(
+    def get_sql_alter_view(
         self,
         path: str | tuple[str, str],
-        select: str,
-        execute: bool = True
+        select: str
     ) -> str:
         """
-        Alter view.
+        Get SQL of alter view.
 
         Parameters
         ----------
@@ -916,7 +862,7 @@ class DatabaseBuild(DatabaseBase):
 
         Returns
         -------
-        Execute SQL.
+        SQL.
         """
 
         # Handle parameter.
@@ -925,20 +871,15 @@ class DatabaseBuild(DatabaseBase):
         # Generate SQL.
         sql = 'ALTER VIEW `%s`.`%s` AS\n%s' % (database, view, select)
 
-        # Execute.
-        if execute:
-            self.db.execute(sql)
-
         return sql
 
 
-    def truncate_table(
+    def get_sql_truncate_table(
         self,
-        path: str | tuple[str, str],
-        execute: bool = True
+        path: str | tuple[str, str]
     ) -> str:
         """
-        Truncate table.
+        Get SQL of truncate table.
 
         Parameters
         ----------
@@ -949,7 +890,7 @@ class DatabaseBuild(DatabaseBase):
 
         Returns
         -------
-        Execute SQL.
+        SQL.
         """
 
         # Handle parameter.
@@ -958,11 +899,285 @@ class DatabaseBuild(DatabaseBase):
         # Generate.
         sql = f'TRUNCATE TABLE `{database}`.`{table}`'
 
-        # Execute.
-        if execute:
+        return sql
+
+
+    def input_confirm_build(
+        self,
+        sql: str
+    ) -> None:
+        """
+        Print tip text, and confirm execute SQL. If reject, throw exception.
+
+        Parameters
+        ----------
+        sql : SQL.
+        """
+
+        # Confirm.
+        text = 'Do you want to execute SQL to build the database? Otherwise stop program. (y/n) '
+        command = ask(
+            sql,
+            text,
+            title='SQL',
+            frame='top'
+        )
+
+        # Check.
+        while True:
+            command = command.lower()
+            match command:
+
+                ## Confirm.
+                case 'y':
+                    break
+
+                ## Stop.
+                case 'n':
+                    raise AssertionError('program stop')
+
+                ## Reenter.
+                case _:
+                    text = 'Incorrect input, reenter. (y/n) '
+                    command = input(text)
+
+
+    def get_orm_table_text(self, model: DatabaseORMModel) -> str:
+        """
+        Get table text from ORM model.
+
+        Parameters
+        ----------
+        model : ORM model instances.
+
+        Returns
+        -------
+        Table text.
+        """
+
+        # Get.
+        table = model.table()
+        text = f'TABLE `{self.db.database}`.`{table}`'
+        if 'mysql_charset' in table.kwargs:
+            text += f" | CHARSET '{table.kwargs['mysql_charset']}'"
+        if table.comment:
+            text += f" | COMMENT '{table.comment}'"
+
+        ## Field.
+        text += '\n' + '\n'.join(
+            [
+                f'    FIELD `{column.name}` : {column.type}' + (
+                    ' | NOT NULL'
+                    if (
+                        not column.nullable
+                        or column.primary_key
+                    )
+                    else ' | NULL'
+                ) + (
+                    ''
+                    if not column.primary_key
+                    else ' | KEY AUTO'
+                    if column.autoincrement
+                    else ' | KEY'
+                ) + (
+                    f" | DEFAULT '{column.server_default.arg}'"
+                    if column.server_default
+                    else ''
+                ) + (
+                    f" | COMMMENT '{column.comment}'"
+                    if column.comment
+                    else ''
+                )
+                for column in table.columns
+            ]
+        )
+
+        ## Index.
+        if (table.indexes):
+            text += '\n' + '\n'.join(
+                [
+                    (
+                        '    UNIQUE'
+                        if index.unique
+                        else '    NORMAL'
+                    ) + f' INDEX `{index.name}` : ' + ', '.join(
+                        [
+                            f'`{column.name}`'
+                            for column in index.expressions
+                        ]
+                    )
+                    for index in table.indexes
+                ]
+            )
+
+        return text
+
+
+    def build(
+        self,
+        databases: list[dict] | None = None,
+        tables: list[dict] | None = None,
+        tables_orm: list[Type[DatabaseORMModel]] | None = None,
+        views: list[dict] | None = None,
+        views_stats: list[dict] | None = None,
+        ask: bool = True,
+        skip: bool = False
+    ) -> None:
+        """
+        Build databases or tables.
+
+        Parameters
+        ----------
+        databases : Database build parameters, equivalent to the parameters of method `self.create_database`.
+        tables : Tables build parameters, equivalent to the parameters of method `self.create_table`.
+        tables_orm : Tables buile model, equivalent to the parameters of method `self.create_table_orm`.
+        views : Views build parameters, equivalent to the parameters of method `self.create_view`.
+        views_stats : Views stats build parameters, equivalent to the parameters of method `self.create_view_stats`.
+        ask : Whether ask confirm execute.
+        skip : Whether skip existing table.
+        """
+
+        # Handle parameter.
+        databases = databases or []
+        tables = tables or []
+        tables_orm = tables_orm or []
+        views = views or []
+        views_stats = views_stats or []
+
+        # Database.
+        for params in databases:
+            database = params['name']
+
+            ## Exist.
+            if (
+                skip
+                and self.exist(database)
+            ):
+                continue
+
+            ## Create.
+            sql = self.get_sql_create_database(**params)
+
+            ## Confirm.
+            if ask:
+                self.input_confirm_build(sql)
+
+            ## Execute.
             self.db.execute(sql)
 
-        return sql
+            ## Report.
+            text = f"Database '{database}' build completed."
+            print(text)
+
+        # Table.
+        for params in tables:
+            path = params['path']
+            database, table, _ = extract_path(path)
+
+            ## Exist.
+            if (
+                skip
+                and self.exist((database, table))
+            ):
+                continue
+
+            ## Create.
+            sql = self.create_table(**params)
+
+            ## Confirm.
+            if ask:
+                self.input_confirm_build(sql)
+
+            ## Execute.
+            self.db.execute(sql)
+
+            ## Report.
+            text = f"Table '{table}' of database '{database}' build completed."
+            print(text)
+
+        # Table ORM.
+        for model in tables_orm:
+            table = model.table()
+
+            ## Exist.
+            if (
+                skip
+                and self.exist((self.db.database, table.name))
+            ):
+                continue
+
+            ## Confirm.
+            if ask:
+                text = self.get_orm_table_text(model)
+                self.input_confirm_build(text)
+
+            ## Execute.
+            self.create_orm_table(model)
+
+            ## Report.
+            text = f"Table '{table.name}' of database '{self.db.database}' build completed."
+            print(text)
+
+        # View.
+        for params in views:
+            path = params['path']
+            database, view, _ = extract_path(path)
+
+            ## Exist.
+            if (
+                skip
+                and self.exist((database, view))
+            ):
+                continue
+
+            ## Create.
+            sql = self.create_view(**params)
+
+            ## Confirm.
+            if ask:
+                self.input_confirm_build(sql)
+
+            ## Execute.
+            self.db.execute(sql)
+
+            ## Report.
+            text = f"View '{view}' of database '{database}' build completed."
+            print(text)
+
+        # View stats.
+        for params in views_stats:
+            path = params['path']
+            database, view, _ = extract_path(path)
+
+            ## Exist.
+            if (
+                skip
+                and self.exist((database, view))
+            ):
+                continue
+
+            ## Create.
+            sql = self.create_view_stats(**params)
+
+            ## Confirm.
+            if ask:
+                self.input_confirm_build(sql)
+
+            ## Execute.
+            self.db.execute(sql)
+
+            ## Report.
+            text = f"View '{view}' of database '{database}' build completed."
+            print(text)
+
+
+    __call__ = build
+
+
+class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
+    """
+    Database build type.
+    """
 
 
     def exist(
@@ -1007,52 +1222,50 @@ class DatabaseBuild(DatabaseBase):
         return judge
 
 
-    def input_confirm_build(
+    def create_orm_table(
         self,
-        sql: str
+        *models: Type[DatabaseORMModel] | DatabaseORMModel,
+        skip: bool = False
     ) -> None:
         """
-        Print tip text, and confirm execute SQL. If reject, throw exception.
+        Create tables by ORM model.
 
         Parameters
         ----------
-        sql : SQL.
+        models : ORM model instances.
+        skip : Whether skip existing table.
         """
 
-        # Confirm.
-        text = 'Do you want to execute SQL to build the database? Otherwise stop program. (y/n) '
-        command = ask(
-            sql,
-            text,
-            title='SQL',
-            frame='top'
-        )
+        # Create.
+        self.db.orm.create(*models, skip=skip)
 
-        # Check.
-        while True:
-            command = command.lower()
-            match command:
 
-                ## Confirm.
-                case 'y':
-                    break
+    def drop_orm_table(
+        self,
+        *models: Type[DatabaseORMModel] | DatabaseORMModel,
+        skip: bool = False
+    ) -> None:
+        """
+        Delete tables by model.
 
-                ## Stop.
-                case 'n':
-                    raise AssertionError('program stop')
+        Parameters
+        ----------
+        models : ORM model instances.
+        skip : Skip not exist table.
+        """
 
-                ## Reenter.
-                case _:
-                    text = 'Incorrect input, reenter. (y/n) '
-                    command = input(text)
+        # Drop.
+        self.db.orm.drop(*models, skip=skip)
 
 
     def build(
         self,
         databases: list[dict] | None = None,
-        tables: list[dict] | None = None,
+        tables: list[dict | Type[DatabaseORMModel] | DatabaseORMModel] | None = None,
         views: list[dict] | None = None,
-        views_stats: list[dict] | None = None
+        views_stats: list[dict] | None = None,
+        ask: bool = True,
+        skip: bool = False
     ) -> None:
         """
         Build databases or tables.
@@ -1060,14 +1273,17 @@ class DatabaseBuild(DatabaseBase):
         Parameters
         ----------
         databases : Database build parameters, equivalent to the parameters of method `self.create_database`.
-        tables : Tables build parameters, equivalent to the parameters of method `self.create_table`.
+        tables : Tables build parameters or model, equivalent to the parameters of method `self.create_table` or `self.create_orm_table`.
         views : Views build parameters, equivalent to the parameters of method `self.create_view`.
         views_stats : Views stats build parameters, equivalent to the parameters of method `self.create_view_stats`.
+        ask : Whether ask confirm execute.
+        skip : Whether skip existing table.
         """
 
         # Handle parameter.
         databases = databases or []
         tables = tables or []
+        tables_orm = tables_orm or []
         views = views or []
         views_stats = views_stats or []
 
@@ -1076,15 +1292,18 @@ class DatabaseBuild(DatabaseBase):
             database = params['name']
 
             ## Exist.
-            exist = self.db.build.exist((database, None, None))
-            if exist:
+            if (
+                skip
+                and self.exist(database)
+            ):
                 continue
 
-            ## Create.
-            sql = self.create_database(**params, execute=False)
+            ## SQL.
+            sql = self.get_sql_create_database(**params)
 
             ## Confirm.
-            self.input_confirm_build(sql)
+            if ask:
+                self.input_confirm_build(sql)
 
             ## Execute.
             self.db.execute(sql)
@@ -1095,22 +1314,50 @@ class DatabaseBuild(DatabaseBase):
 
         # Table.
         for params in tables:
-            path = params['path']
-            database, table, _ = extract_path(path)
 
-            ## Exist.
-            exist = self.db.build.exist((database, table, None))
-            if exist:
-                continue
+            ## ORM.
+            if (
+                issubclass(params, DatabaseORMModel)
+                or isinstance(params, DatabaseORMModel)
+            ):
+                table = params.table().name
 
-            ## Create.
-            sql = self.create_table(**params, execute=False)
+                ## Exist.
+                if (
+                    skip
+                    and self.exist((self.db.database, table))
+                ):
+                    continue
 
-            ## Confirm.
-            self.input_confirm_build(sql)
+                ## Confirm.
+                if ask:
+                    text = self.get_orm_table_text(params)
+                    self.input_confirm_build(text)
 
-            ## Execute.
-            self.db.execute(sql)
+                ## Execute.
+                self.create_orm_table(params)
+
+            ## Parameter.
+            else:
+                path = params['path']
+                database, table, _ = extract_path(path)
+
+                ### Exist.
+                if (
+                    skip
+                    and self.exist((database, table))
+                ):
+                    continue
+
+                ### SQL.
+                sql = self.get_sql_create_table(**params)
+
+                ### Confirm.
+                if ask:
+                    self.input_confirm_build(sql)
+
+                ### Execute.
+                self.db.execute(sql)
 
             ## Report.
             text = f"Table '{table}' of database '{database}' build completed."
@@ -1122,15 +1369,18 @@ class DatabaseBuild(DatabaseBase):
             database, view, _ = extract_path(path)
 
             ## Exist.
-            exist = self.db.build.exist((database, view, None))
-            if exist:
+            if (
+                skip
+                and self.exist((database, view))
+            ):
                 continue
 
-            ## Create.
-            sql = self.create_view(**params, execute=False)
+            ## SQL.
+            sql = self.get_sql_create_view(**params)
 
             ## Confirm.
-            self.input_confirm_build(sql)
+            if ask:
+                self.input_confirm_build(sql)
 
             ## Execute.
             self.db.execute(sql)
@@ -1145,18 +1395,268 @@ class DatabaseBuild(DatabaseBase):
             database, view, _ = extract_path(path)
 
             ## Exist.
-            exist = self.db.build.exist((database, view, None))
-            if exist:
+            if (
+                skip
+                and self.exist((database, view))
+            ):
                 continue
 
-            ## Create.
-            sql = self.create_view_stats(**params, execute=False)
+            ## SQL.
+            sql = self.get_sql_create_view_stats(**params)
 
             ## Confirm.
-            self.input_confirm_build(sql)
+            if ask:
+                self.input_confirm_build(sql)
 
             ## Execute.
             self.db.execute(sql)
+
+            ## Report.
+            text = f"View '{view}' of database '{database}' build completed."
+            print(text)
+
+
+    __call__ = build
+
+
+class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
+    """
+    Asynchronous database build type.
+    """
+
+
+    async def exist(
+        self,
+        path: str | tuple[str] | tuple[str, str] | tuple[str, str, str]
+    ) -> bool:
+        """
+        Asynchronous judge database or table or column exists.
+
+        Parameters
+        ----------
+        path : Database name and table name and column name.
+            - `str`: Automatic extract.
+            - `tuple`: Format is `(database[, table, column]).`
+
+        Returns
+        -------
+        Judge result.
+        """
+
+        # Handle parameter.
+        database, table, column = extract_path(path)
+        if self._schema is None:
+            self._schema = await self.db.schema(False)
+
+        # Judge.
+        judge = (
+            database in self._schema
+            and (
+                table is None
+                or (
+                    (database_info := self._schema.get(database)) is not None
+                    and (table_info := database_info.get(table)) is not None
+                )
+            )
+            and (
+                column is None
+                or column in table_info
+            )
+        )
+
+        return judge
+
+
+    async def create_orm_table(
+        self,
+        *models: Type[DatabaseORMModel] | DatabaseORMModel,
+        skip: bool = False
+    ) -> None:
+        """
+        Asynchronous create tables by ORM model.
+
+        Parameters
+        ----------
+        models : ORM model instances.
+        skip : Whether skip existing table.
+        """
+
+        # Create.
+        await self.db.orm.create(*models, skip=skip)
+
+
+    async def drop_orm_table(
+        self,
+        *models: Type[DatabaseORMModel] | DatabaseORMModel,
+        skip: bool = False
+    ) -> None:
+        """
+        Asynchronous delete tables by model.
+
+        Parameters
+        ----------
+        models : ORM model instances.
+        skip : Skip not exist table.
+        """
+
+        # Drop.
+        await self.db.orm.drop(*models, skip=skip)
+
+
+    async def build(
+        self,
+        databases: list[dict] | None = None,
+        tables: list[dict] | None = None,
+        tables_orm: list[Type[DatabaseORMModel]] | None = None,
+        views: list[dict] | None = None,
+        views_stats: list[dict] | None = None,
+        ask: bool = True,
+        skip: bool = False
+    ) -> None:
+        """
+        Asynchronous build databases or tables.
+
+        Parameters
+        ----------
+        databases : Database build parameters, equivalent to the parameters of method `self.create_database`.
+        tables : Tables build parameters, equivalent to the parameters of method `self.create_table`.
+        tables_orm : Tables buile model, equivalent to the parameters of method `self.create_table_orm`.
+        views : Views build parameters, equivalent to the parameters of method `self.create_view`.
+        views_stats : Views stats build parameters, equivalent to the parameters of method `self.create_view_stats`.
+        ask : Whether ask confirm execute.
+        skip : Whether skip existing table.
+        """
+
+        # Handle parameter.
+        databases = databases or []
+        tables = tables or []
+        tables_orm = tables_orm or []
+        views = views or []
+        views_stats = views_stats or []
+
+        # Database.
+        for params in databases:
+            database = params['name']
+
+            ## Exist.
+            if (
+                skip
+                and await self.exist(database)
+            ):
+                continue
+
+            ## SQL.
+            sql = self.get_sql_create_database(**params)
+
+            ## Confirm.
+            if ask:
+                self.input_confirm_build(sql)
+
+            ## Execute.
+            await self.db.execute(sql)
+
+            ## Report.
+            text = f"Database '{database}' build completed."
+            print(text)
+
+        # Table.
+        for params in tables:
+            if is_instance(params):
+                params_type = type(params)
+
+            ## ORM.
+            if issubclass(params_type, DatabaseORMModel):
+                database = self.db.database
+                table = params.table().name
+
+                ## Exist.
+                if (
+                    skip
+                    and await self.exist((self.db.database, table))
+                ):
+                    continue
+
+                ## Confirm.
+                if ask:
+                    text = self.get_orm_table_text(params)
+                    self.input_confirm_build(text)
+
+                ## Execute.
+                await self.create_orm_table(params)
+
+            ## Parameter.
+            else:
+                path = params['path']
+                database, table, _ = extract_path(path)
+
+                ### Exist.
+                if (
+                    skip
+                    and await self.exist((database, table))
+                ):
+                    continue
+
+                ### SQL.
+                sql = self.get_sql_create_table(**params)
+
+                ### Confirm.
+                if ask:
+                    self.input_confirm_build(sql)
+
+                ### Execute.
+                await self.db.execute(sql)
+
+            ## Report.
+            text = f"Table '{table}' of database '{database}' build completed."
+            print(text)
+
+        # View.
+        for params in views:
+            path = params['path']
+            database, view, _ = extract_path(path)
+
+            ## Exist.
+            if (
+                skip
+                and await self.exist((database, view))
+            ):
+                continue
+
+            ## SQL.
+            sql = self.get_sql_create_view(**params)
+
+            ## Confirm.
+            if ask:
+                self.input_confirm_build(sql)
+
+            ## Execute.
+            await self.db.execute(sql)
+
+            ## Report.
+            text = f"View '{view}' of database '{database}' build completed."
+            print(text)
+
+        # View stats.
+        for params in views_stats:
+            path = params['path']
+            database, view, _ = extract_path(path)
+
+            ## Exist.
+            if (
+                skip
+                and await self.exist((database, view))
+            ):
+                continue
+
+            ## SQL.
+            sql = self.get_sql_create_view_stats(**params)
+
+            ## Confirm.
+            if ask:
+                self.input_confirm_build(sql)
+
+            ## Execute.
+            await self.db.execute(sql)
 
             ## Report.
             text = f"View '{view}' of database '{database}' build completed."

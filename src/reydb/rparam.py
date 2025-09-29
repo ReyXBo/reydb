@@ -9,10 +9,10 @@
 """
 
 
-from typing import Generic, overload
+from typing import TypeVar, Generic, overload
 
 from . import rdb
-from .rbase import DatabaseT, DatabaseBase
+from .rbase import DatabaseBase
 from .rexec import Result
 
 
@@ -22,6 +22,9 @@ __all__ = (
     'DatabaseParametersStatus',
     'DatabaseParametersVariable'
 )
+
+
+DatabaseT = TypeVar('DatabaseT', 'rdb.Database', 'rdb.DatabaseAsync')
 
 
 class DatabaseSchemaSuper(DatabaseBase, Generic[DatabaseT]):

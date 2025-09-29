@@ -53,7 +53,7 @@ class DatabaseError(DatabaseBase):
 
     def build_db(self) -> None:
         """
-        Check and build all standard databases and tables, by `self.db_names`.
+        Check and build database tables, by `self.db_names`.
         """
 
         # Set parameter.
@@ -223,7 +223,7 @@ class DatabaseError(DatabaseBase):
 
         # Insert.
         self.db.execute.insert(
-            (self.db_names['base'], self.db_names['base.error']),
+            self.db_names['base.error'],
             data=data
         )
 

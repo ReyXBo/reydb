@@ -26,14 +26,22 @@ __all__ = (
 )
 
 
+DatabaseConnectionT = TypeVar('DatabaseConnectionT', 'rconn.DatabaseConnection', 'rconn.DatabaseConnectionAsync')
+DatabaseExecuteT = TypeVar('DatabaseExecuteT', 'rexec.DatabaseExecute', 'rexec.DatabaseExecuteAsync')
+DatabaseSchemaT = TypeVar('DatabaseSchemaT', 'rparam.DatabaseSchema', 'rparam.DatabaseSchemaAsync')
+DatabaseORMT = TypeVar('DatabaseORMT', 'rorm.DatabaseORM', 'rorm.DatabaseORMAsync')
+DatabaseBuildT = TypeVar('DatabaseBuildT')
+
+
 class DatabaseSuper(
     rbase.DatabaseBase,
     Generic[
         rbase.EngineT,
-        rbase.DatabaseConnectionT,
-        rbase.DatabaseExecuteT,
-        rbase.DatabaseSchemaT,
-        rbase.DatabaseORMT
+        DatabaseConnectionT,
+        DatabaseExecuteT,
+        DatabaseSchemaT,
+        DatabaseORMT,
+        DatabaseBuildT
     ]
 ):
     """
@@ -71,7 +79,7 @@ class DatabaseSuper(
         pool_recycle : Number of seconds `recycle` connection.
             - `None | Literal[-1]`: No recycle.
             - `int`: Use this value.
-        report : Whether report SQL execute information.
+        report : Whether report SQL execute information, not include ORM execute.
         query : Remote server database parameters.
         """
 
@@ -238,7 +246,7 @@ class DatabaseSuper(
         return keep_n, overflow_n
 
 
-    def connect(self, autocommit: bool = False) -> rbase.DatabaseConnectionT:
+    def connect(self, autocommit: bool = False) -> DatabaseConnectionT:
         """
         Build database connection instance.
 
@@ -262,7 +270,7 @@ class DatabaseSuper(
 
 
     @property
-    def execute(self) -> rbase.DatabaseExecuteT:
+    def execute(self) -> DatabaseExecuteT:
         """
         Build database execute instance.
 
@@ -279,7 +287,7 @@ class DatabaseSuper(
 
 
     @property
-    def orm(self) -> 'rbase.DatabaseORMT':
+    def orm(self) -> DatabaseORMT:
         """
         Build database ORM instance.
 
@@ -299,7 +307,7 @@ class DatabaseSuper(
 
 
     @property
-    def build(self):
+    def build(self) -> DatabaseBuildT:
         """
         Build database build instance.
 
@@ -309,9 +317,13 @@ class DatabaseSuper(
         """
 
         # Build.
-        dbbuild = rbuild.DatabaseBuild(self)
+        match self:
+            case Database():
+                build = rbuild.DatabaseBuild(self)
+            case DatabaseAsync():
+                build = rbuild.DatabaseBuildAsync(self)
 
-        return dbbuild
+        return build
 
 
     @property
@@ -399,7 +411,7 @@ class DatabaseSuper(
 
 
     @property
-    def schema(self) -> rbase.DatabaseSchemaT:
+    def schema(self) -> DatabaseSchemaT:
         """
         Build database schema instance.
 
@@ -490,7 +502,8 @@ class Database(
         'rconn.DatabaseConnection',
         'rexec.DatabaseExecute',
         'rparam.DatabaseSchema',
-        'rorm.DatabaseORM'
+        'rorm.DatabaseORM',
+        'rbuild.DatabaseBuild'
     ]
 ):
     """
@@ -504,7 +517,8 @@ class DatabaseAsync(
         'rconn.DatabaseConnectionAsync',
         'rexec.DatabaseExecuteAsync',
         'rparam.DatabaseSchemaAsync',
-        'rorm.DatabaseORMAsync'
+        'rorm.DatabaseORMAsync',
+        'rbuild.DatabaseBuildAsync'
     ]
 ):
     """

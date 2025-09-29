@@ -29,12 +29,6 @@ from . import rdb
 from .rbase import (
     SessionT,
     SessionTransactionT,
-    DatabaseT,
-    DatabaseORMT,
-    DatabaseORMStatementSelectT,
-    DatabaseORMStatementInsertT,
-    DatabaseORMStatementUpdateT,
-    DatabaseORMStatementDeleteT,
     DatabaseBase
 )
 
@@ -64,9 +58,15 @@ __all__ = (
 )
 
 
+DatabaseT = TypeVar('DatabaseT', 'rdb.Database', 'rdb.DatabaseAsync')
 DatabaseORMModelT = TypeVar('DatabaseORMModelT', bound='DatabaseORMModel')
+DatabaseORMT = TypeVar('DatabaseORMT', 'DatabaseORM', 'DatabaseORMAsync')
 DatabaseORMSessionT = TypeVar('DatabaseORMSessionT', 'DatabaseORMSession', 'DatabaseORMSessionAsync')
 DatabaseORMStatementReturn = TypeVar('DatabaseORMStatementReturn')
+DatabaseORMStatementSelectT = TypeVar('DatabaseORMStatementSelectT', 'DatabaseORMStatementSelect', 'DatabaseORMStatementSelectAsync')
+DatabaseORMStatementInsertT = TypeVar('DatabaseORMStatementInsertT', 'DatabaseORMStatementInsert', 'DatabaseORMStatementInsertAsync')
+DatabaseORMStatementUpdateT = TypeVar('DatabaseORMStatementUpdateT', 'DatabaseORMStatementUpdate', 'DatabaseORMStatementUpdateAsync')
+DatabaseORMStatementDeleteT = TypeVar('DatabaseORMStatementDeleteT', 'DatabaseORMStatementDelete', 'DatabaseORMStatementDeleteAsync')
 
 
 class DatabaseORMBase(DatabaseBase):
@@ -103,6 +103,16 @@ class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
         if attrs['__module__'] == '__main__':
             table_args = attrs.setdefault('__table_args__', {})
             table_args['quote'] = True
+
+            ## Charset.
+            attrs.setdefault('__charset__', 'utf8mb4')
+            table_args['mysql_charset'] = attrs.pop('__charset__')
+
+            ## Name.
+            if '__name__' in attrs:
+                table_args['name'] = attrs.pop('__name__')
+
+            ## Comment.
             if '__comment__' in attrs:
                 table_args['comment'] = attrs.pop('__comment__')
 
@@ -244,7 +254,7 @@ class DatabaseORMModelField(DatabaseBase, FieldInfo):
         field_type: TypeEngine | None = None,
         key: bool = False,
         key_auto: bool = False,
-        non_null: bool = False,
+        not_null: bool = False,
         index_n: bool = False,
         index_u: bool = False,
         comment: str | None = None,
@@ -282,7 +292,7 @@ class DatabaseORMModelField(DatabaseBase, FieldInfo):
             - `None`: Based type annotation automatic judgment.
         key : Whether the field is primary key.
         key_auto : Whether the field is automatic increment primary key.
-        non_null : Whether the field is non null constraint.
+        not_null : Whether the field is not null constraint.
         index_n : Whether the field add normal index.
         index_u : Whether the field add unique index.
         comment : Field commment.
@@ -363,8 +373,8 @@ class DatabaseORMModelField(DatabaseBase, FieldInfo):
             kwargs['sa_column_kwargs']['autoincrement'] = False
 
         ## Non null.
-        if 'non_null' in kwargs:
-            kwargs['nullable'] = not kwargs.pop('non_null')
+        if 'not_null' in kwargs:
+            kwargs['nullable'] = not kwargs.pop('not_null')
         else:
             kwargs['nullable'] = True
 
@@ -395,7 +405,7 @@ class DatabaseORMSuper(DatabaseORMBase, Generic[DatabaseT, DatabaseORMSessionT])
     Model = DatabaseORMModel
     Field = DatabaseORMModelField
     Config = ConfigDict
-    tyeps = sqltypes
+    types = sqltypes
     wrap_validate_model = pydantic_model_validator
     wrap_validate_filed = pydantic_field_validator
 
@@ -792,12 +802,12 @@ class DatabaseORMSession(
         skip: bool = False
     ) -> None:
         """
-        Create table.
+        Create tables.
 
         Parameters
         ----------
         models : ORM model instances.
-        skip : Skip existing table.
+        skip : Whether skip existing table.
         """
 
         # Handle parameter.
@@ -821,7 +831,7 @@ class DatabaseORMSession(
         skip: bool = False
     ) -> None:
         """
-        Delete table.
+        Delete tables.
 
         Parameters
         ----------
@@ -839,7 +849,7 @@ class DatabaseORMSession(
         if None in tables:
             throw(ValueError, tables)
 
-        # Create.
+        # Drop.
         self.orm.metaData.drop_all(self.orm.db.engine, tables, skip)
 
 
@@ -1158,12 +1168,12 @@ class DatabaseORMSessionAsync(
         skip: bool = False
     ) -> None:
         """
-        Asynchronous create table.
+        Asynchronous create tables.
 
         Parameters
         ----------
         models : ORM model instances.
-        skip : Skip existing table.
+        skip : Whether skip existing table.
         """
 
         # Handle parameter.
@@ -1188,7 +1198,7 @@ class DatabaseORMSessionAsync(
         skip: bool = False
     ) -> None:
         """
-        Asynchronous delete table.
+        Asynchronous delete tables.
 
         Parameters
         ----------
@@ -1206,7 +1216,7 @@ class DatabaseORMSessionAsync(
         if None in tables:
             throw(ValueError, tables)
 
-        # Create.
+        # Drop.
         conn = await self.sess.connection()
         await conn.run_sync(self.orm.metaData.drop_all, tables, skip)
 

@@ -9,12 +9,12 @@
 """
 
 
-from typing import Self, Generic
+from typing import Self, TypeVar, Generic
 from sqlalchemy import Connection, Transaction
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncTransaction
 
 from . import rdb, rexec
-from .rbase import DatabaseT, DatabaseExecuteT, ConnectionT, TransactionT, DatabaseBase
+from .rbase import ConnectionT, TransactionT, DatabaseBase
 
 
 __all__ = (
@@ -22,6 +22,10 @@ __all__ = (
     'DatabaseConnection',
     'DatabaseConnectionAsync'
 )
+
+
+DatabaseT = TypeVar('DatabaseT', 'rdb.Database', 'rdb.DatabaseAsync')
+DatabaseExecuteT = TypeVar('DatabaseExecuteT', 'rexec.DatabaseExecute', 'rexec.DatabaseExecuteAsync')
 
 
 class DatabaseConnectionSuper(DatabaseBase, Generic[DatabaseT, DatabaseExecuteT, ConnectionT, TransactionT]):
@@ -53,8 +57,8 @@ class DatabaseConnectionSuper(DatabaseBase, Generic[DatabaseT, DatabaseExecuteT,
             case rdb.DatabaseAsync():
                 exec = rexec.DatabaseExecuteAsync(self)
         self.execute: DatabaseExecuteT = exec
-        self.conn: ConnectionT | None = None
-        self.begin: TransactionT | None = None
+        self.connection: ConnectionT | None = None
+        self.transaction: TransactionT | None = None
 
 
 class DatabaseConnection(DatabaseConnectionSuper['rdb.Database', 'rexec.DatabaseExecute', Connection, Transaction]):
@@ -106,10 +110,10 @@ class DatabaseConnection(DatabaseConnectionSuper['rdb.Database', 'rexec.Database
         """
 
         # Create.
-        if self.conn is None:
-            self.conn = self.db.engine.connect()
+        if self.connection is None:
+            self.connection = self.db.engine.connect()
 
-        return self.conn
+        return self.connection
 
 
     def get_begin(self) -> Transaction:
@@ -122,11 +126,11 @@ class DatabaseConnection(DatabaseConnectionSuper['rdb.Database', 'rexec.Database
         """
 
         # Create.
-        if self.begin is None:
+        if self.transaction is None:
             conn = self.get_conn()
-            self.begin = conn.begin()
+            self.transaction = conn.begin()
 
-        return self.begin
+        return self.transaction
 
 
     def commit(self) -> None:
@@ -135,9 +139,9 @@ class DatabaseConnection(DatabaseConnectionSuper['rdb.Database', 'rexec.Database
         """
 
         # Commit.
-        if self.begin is not None:
-            self.begin.commit()
-            self.begin = None
+        if self.transaction is not None:
+            self.transaction.commit()
+            self.transaction = None
 
 
     def rollback(self) -> None:
@@ -146,9 +150,9 @@ class DatabaseConnection(DatabaseConnectionSuper['rdb.Database', 'rexec.Database
         """
 
         # Rollback.
-        if self.begin is not None:
-            self.begin.rollback()
-            self.begin = None
+        if self.transaction is not None:
+            self.transaction.rollback()
+            self.transaction = None
 
 
     def close(self) -> None:
@@ -157,12 +161,12 @@ class DatabaseConnection(DatabaseConnectionSuper['rdb.Database', 'rexec.Database
         """
 
         # Close.
-        if self.begin is not None:
-            self.begin.close()
-            self.begin = None
-        if self.conn is not None:
-            self.conn.close()
-            self.conn = None
+        if self.transaction is not None:
+            self.transaction.close()
+            self.transaction = None
+        if self.connection is not None:
+            self.connection.close()
+            self.connection = None
 
 
     def insert_id(self) -> int:
@@ -232,10 +236,10 @@ class DatabaseConnectionAsync(DatabaseConnectionSuper['rdb.DatabaseAsync', 'rexe
         """
 
         # Create.
-        if self.conn is None:
-            self.conn = await self.db.engine.connect()
+        if self.connection is None:
+            self.connection = await self.db.engine.connect()
 
-        return self.conn
+        return self.connection
 
 
     async def get_begin(self) -> AsyncTransaction:
@@ -248,11 +252,11 @@ class DatabaseConnectionAsync(DatabaseConnectionSuper['rdb.DatabaseAsync', 'rexe
         """
 
         # Create.
-        if self.begin is None:
+        if self.transaction is None:
             conn = await self.get_conn()
-            self.begin = await conn.begin()
+            self.transaction = await conn.begin()
 
-        return self.begin
+        return self.transaction
 
 
     async def commit(self) -> None:
@@ -261,9 +265,9 @@ class DatabaseConnectionAsync(DatabaseConnectionSuper['rdb.DatabaseAsync', 'rexe
         """
 
         # Commit.
-        if self.begin is not None:
-            await self.begin.commit()
-            self.begin = None
+        if self.transaction is not None:
+            await self.transaction.commit()
+            self.transaction = None
 
 
     async def rollback(self) -> None:
@@ -272,9 +276,9 @@ class DatabaseConnectionAsync(DatabaseConnectionSuper['rdb.DatabaseAsync', 'rexe
         """
 
         # Rollback.
-        if self.begin is not None:
-            await self.begin.rollback()
-            self.begin = None
+        if self.transaction is not None:
+            await self.transaction.rollback()
+            self.transaction = None
 
 
     async def close(self) -> None:
@@ -283,12 +287,12 @@ class DatabaseConnectionAsync(DatabaseConnectionSuper['rdb.DatabaseAsync', 'rexe
         """
 
         # Close.
-        if self.begin is not None:
-            await self.begin.close()
-            self.begin = None
-        if self.conn is not None:
-            await self.conn.close()
-            self.conn = None
+        if self.transaction is not None:
+            await self.transaction.close()
+            self.transaction = None
+        if self.connection is not None:
+            await self.connection.close()
+            self.connection = None
 
 
     async def insert_id(self) -> int:
