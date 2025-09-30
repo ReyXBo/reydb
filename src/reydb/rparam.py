@@ -55,10 +55,9 @@ class DatabaseSchemaSuper(DatabaseBase, Generic[DatabaseT]):
         # Set parameter.
         self.db = db
 
-
-    def _call__before(self, filter_default: bool = True) -> tuple[str, tuple[str, ...]]:
+    def handle_before__call__(self, filter_default: bool = True) -> tuple[str, tuple[str, ...]]:
         """
-        Before handle of call method.
+        Before handle method of call method.
 
         Parameters
         ----------
@@ -98,9 +97,9 @@ class DatabaseSchemaSuper(DatabaseBase, Generic[DatabaseT]):
         return sql, filter_db
 
 
-    def _call__after(self, result: Result) -> dict[str, dict[str, list[str]]]:
+    def handle_after__call__(self, result: Result) -> dict[str, dict[str, list[str]]]:
         """
-        After handle of call method.
+        After handle method of call method.
 
         Parameters
         ----------
@@ -141,13 +140,80 @@ class DatabaseSchemaSuper(DatabaseBase, Generic[DatabaseT]):
         return schema_dict
 
 
+    @overload
+    def handle_exist(
+        self,
+        schema: dict[str, dict[str, list[str]]],
+        database: str
+    ) -> bool: ...
+
+    @overload
+    def handle_exist(
+        self,
+        schema: dict[str, dict[str, list[str]]],
+        database: str,
+        table: str
+    ) -> bool: ...
+
+    @overload
+    def handle_exist(
+        self,
+        schema: dict[str, dict[str, list[str]]],
+        database: str,
+        table: str,
+        column: str
+    ) -> bool: ...
+
+    def handle_exist(
+        self,
+        schema: dict[str, dict[str, list[str]]],
+        database: str,
+        table: str | None = None,
+        column: str | None = None
+    ) -> bool:
+        """
+        Handle method of judge database or table or column whether it exists.
+
+        Parameters
+        ----------
+        schema : Schemata of databases and tables and columns.
+        database : Database name.
+        table : Table name.
+        column : Column name.
+
+        Returns
+        -------
+        Judge result.
+        """
+
+        # Handle parameter.
+
+        # Judge.
+        judge = (
+            database in schema
+            and (
+                table is None
+                or (
+                    (database_info := schema.get(database)) is not None
+                    and (table_info := database_info.get(table)) is not None
+                )
+            )
+            and (
+                column is None
+                or column in table_info
+            )
+        )
+
+        return judge
+
+
 class DatabaseSchema(DatabaseSchemaSuper['rdb.Database']):
     """
     Database schema type.
     """
 
 
-    def __call__(self, filter_default: bool = True) -> dict[str, dict[str, list[str]]]:
+    def schema(self, filter_default: bool = True) -> dict[str, dict[str, list[str]]]:
         """
         Get schemata of databases and tables and columns.
 
@@ -161,11 +227,83 @@ class DatabaseSchema(DatabaseSchemaSuper['rdb.Database']):
         """
 
         # Get.
-        sql, filter_db = self._call__before(filter_default)
+        sql, filter_db = self.handle_before__call__(filter_default)
         result = self.db.execute(sql, filter_db=filter_db)
-        schema_dict = self._call__after(result)
+        schema = self.handle_after__call__(result)
 
-        return schema_dict
+        # Cache.
+        if self.db._schema is None:
+            self.db._schema = schema
+        else:
+            self.db._schema.update(schema)
+
+        return schema
+
+
+    __call__ = schema
+
+
+    @overload
+    def exist(
+        self,
+        database: str,
+        *,
+        refresh: bool = True
+    ) -> bool: ...
+
+    @overload
+    def exist(
+        self,
+        database: str,
+        *,
+        table: str,
+        refresh: bool = True
+    ) -> bool: ...
+
+    @overload
+    def exist(
+        self,
+        database: str,
+        table: str,
+        column: str,
+        refresh: bool = True
+    ) -> bool: ...
+
+    def exist(
+        self,
+        database: str,
+        table: str | None = None,
+        column: str | None = None,
+        refresh: bool = True
+    ) -> bool:
+        """
+        Judge database or table or column whether it exists.
+
+        Parameters
+        ----------
+        database : Database name.
+        table : Table name.
+        column : Column name.
+        refresh : Whether refresh cache data. Cache can improve efficiency.
+
+        Returns
+        -------
+        Judge result.
+        """
+
+        # Handle parameter.
+        if (
+            refresh
+            or self.db._schema is None
+        ):
+            schema = self.schema()
+        else:
+            schema = self.db._schema
+
+        # Judge.
+        result = self.handle_exist(schema, database, table, column)
+
+        return result
 
 
 class DatabaseSchemaAsync(DatabaseSchemaSuper['rdb.DatabaseAsync']):
@@ -174,7 +312,7 @@ class DatabaseSchemaAsync(DatabaseSchemaSuper['rdb.DatabaseAsync']):
     """
 
 
-    async def __call__(self, filter_default: bool = True) -> dict[str, dict[str, list[str]]]:
+    async def schema(self, filter_default: bool = True) -> dict[str, dict[str, list[str]]]:
         """
         Asynchronous get schemata of databases and tables and columns.
 
@@ -188,11 +326,81 @@ class DatabaseSchemaAsync(DatabaseSchemaSuper['rdb.DatabaseAsync']):
         """
 
         # Get.
-        sql, filter_db = self._call__before(filter_default)
+        sql, filter_db = self.handle_before__call__(filter_default)
         result = await self.db.execute(sql, filter_db=filter_db)
-        schema_dict = self._call__after(result)
+        schema = self.handle_after__call__(result)
 
-        return schema_dict
+        # Cache.
+        if self.db._schema is not None:
+            self.db._schema.update(schema)
+
+        return schema
+
+
+    __call__ = schema
+
+
+    @overload
+    async def exist(
+        self,
+        database: str,
+        *,
+        refresh: bool = True
+    ) -> bool: ...
+
+    @overload
+    async def exist(
+        self,
+        database: str,
+        *,
+        table: str,
+        refresh: bool = True
+    ) -> bool: ...
+
+    @overload
+    async def exist(
+        self,
+        database: str,
+        table: str,
+        column: str,
+        refresh: bool = True
+    ) -> bool: ...
+
+    async def exist(
+        self,
+        database: str,
+        table: str | None = None,
+        column: str | None = None,
+        refresh: bool = True
+    ) -> bool:
+        """
+        Asynchronous judge database or table or column whether it exists.
+
+        Parameters
+        ----------
+        database : Database name.
+        table : Table name.
+        column : Column name.
+        refresh : Whether refresh cache data. Cache can improve efficiency.
+
+        Returns
+        -------
+        Judge result.
+        """
+
+        # Handle parameter.
+        if (
+            refresh
+            or self.db._schema is None
+        ):
+            schema = await self.schema()
+        else:
+            schema = self.db._schema
+
+        # Judge.
+        result = self.handle_exist(schema, database, table, column)
+
+        return result
 
 
 class DatabaseParametersSuper(DatabaseBase, Generic[DatabaseT]):

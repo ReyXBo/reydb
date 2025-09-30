@@ -16,6 +16,5 @@ from .rconn import *
 from .rdb import *
 from .rerror import *
 from .rexec import *
-from .rfile import *
 from .rorm import *
 from .rparam import *

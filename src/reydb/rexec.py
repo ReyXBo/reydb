@@ -24,7 +24,7 @@ from reykit.rtime import TimeMark, time_to
 from reykit.rwrap import wrap_runtime
 
 from . import rconn
-from .rbase import DatabaseBase, handle_sql, handle_data, extract_path
+from .rbase import DatabaseBase, handle_sql, handle_data
 
 
 __all__ = (
@@ -71,7 +71,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         **kwdata: Any
     ) -> tuple[TextClause, list[dict], bool]:
         """
-        Handle parameters before execute SQL.
+        Handle method of execute SQL.
 
         Parameters
         ----------
@@ -107,7 +107,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
     def handle_select(
         self,
-        table: str,
+        path: str | tuple[str, str],
         fields: str | Iterable[str] | None = None,
         where: str | None = None,
         group: str | None = None,
@@ -116,11 +116,13 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         limit: int | str | tuple[int, int] | None = None
     ) -> str:
         """
-        Handle parameters before execute select SQL.
+        Handle method of execute select SQL.
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         fields : Select clause content.
             - `None`: Is `SELECT *`.
             - `str`: Join as `SELECT str`.
@@ -141,9 +143,10 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         """
 
         # Handle parameter.
-        database = self.conn.db.database
-        if '.' in table:
-            database, table, _ = extract_path(table)
+        if type(path) == str:
+            database, table = self.conn.db.database, path
+        else:
+            database, table = path
 
         # Generate SQL.
         sql_list = []
@@ -209,17 +212,19 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
     def handle_insert(
         self,
-        table: str,
+        path: str | tuple[str, str],
         data: TableData,
         duplicate: Literal['ignore', 'update'] | Container[str] | None = None,
         **kwdata: Any
     ) -> Result:
         """
-        Handle parameters before execute insert SQL.
+        Handle method of execute insert SQL.
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         data : Insert data.
         duplicate : Handle method when constraint error.
             - `None`: Not handled.
@@ -236,9 +241,10 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         """
 
         # Handle parameter.
-        database = self.conn.db.database
-        if '.' in table:
-            database, table, _ = extract_path(table)
+        if type(path) == str:
+            database, table = self.conn.db.database, path
+        else:
+            database, table = path
 
         ## Data.
         data_table = Table(data)
@@ -343,7 +349,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
     def handle_update(
         self,
-        table: str,
+        path: str | tuple[str, str],
         data: TableData,
         where_fields: str | Iterable[str] | None = None,
         **kwdata: Any
@@ -353,7 +359,9 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         data : Update data, clause `SET` and `WHERE` and `ORDER BY` and `LIMIT` content.
             - `Key`: Table field.
                 `literal['order']`: Clause `ORDER BY` content, join as `ORDER BY str`.
@@ -376,9 +384,10 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         """
 
         # Handle parameter.
-        database = self.conn.db.database
-        if '.' in table:
-            database, table, _ = extract_path(table)
+        if type(path) == str:
+            database, table = self.conn.db.database, path
+        else:
+            database, table = path
 
         ## Data.
         data_table = Table(data)
@@ -486,7 +495,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
     def handle_delete(
         self,
-        table: str,
+        path: str | tuple[str, str],
         where: str | None = None,
         order: str | None = None,
         limit: int | str | None = None
@@ -496,7 +505,9 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         where : Clause `WHERE` content, join as `WHERE str`.
         order : Clause `ORDER BY` content, join as `ORDER BY str`.
         limit : Clause `LIMIT` content, join as `LIMIT int/str`.
@@ -507,9 +518,10 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         """
 
         # Handle parameter.
-        database = self.conn.db.database
-        if '.' in table:
-            database, table, _ = extract_path(table)
+        if type(path) == str:
+            database, table = self.conn.db.database, path
+        else:
+            database, table = path
 
         # Generate SQL.
         sqls = []
@@ -541,7 +553,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
     def handle_copy(
         self,
-        table: str,
+        path: str | tuple[str, str],
         fields: str | Iterable[str] | None = None,
         where: str | None = None,
         limit: int | str | tuple[int, int] | None = None
@@ -551,7 +563,9 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         fields : Select clause content.
             - `None`: Is `SELECT *`.
             - `str`: Join as `SELECT str`.
@@ -567,9 +581,10 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         """
 
         # Handle parameter.
-        database = self.conn.db.database
-        if '.' in table:
-            database, table, _ = extract_path(table)
+        if type(path) == str:
+            database, table = self.conn.db.database, path
+        else:
+            database, table = path
         if fields is None:
             fields = '*'
         elif type(fields) != str:
@@ -686,7 +701,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
     def select(
         self,
-        table: str,
+        path: str | tuple[str, str],
         fields: str | Iterable[str] | None = None,
         where: str | None = None,
         group: str | None = None,
@@ -701,7 +716,9 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         fields : Select clause content.
             - `None`: Is `SELECT *`.
             - `str`: Join as `SELECT str`.
@@ -739,7 +756,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         """
 
         # Handle parameter.
-        sql = self.handle_select(table, fields, where, group, having, order, limit)
+        sql = self.handle_select(path, fields, where, group, having, order, limit)
 
         # Execute SQL.
         result = self.execute(sql, report=report, **kwdata)
@@ -749,7 +766,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
     def insert(
         self,
-        table: str,
+        path: str | tuple[str, str],
         data: TableData,
         duplicate: Literal['ignore', 'update'] | Container[str] | None = None,
         report: bool | None = None,
@@ -760,7 +777,9 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         data : Insert data.
         duplicate : Handle method when constraint error.
             - `None`: Not handled.
@@ -779,7 +798,6 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Examples
         --------
-        Parameter `data` and `kwdata`.
         >>> data = [{'key': 'a'}, {'key': 'b'}]
         >>> kwdata = {'value1': 1, 'value2': ':(SELECT 2)'}
         >>> result = Database.execute.insert('table', data, **kwdata)
@@ -791,7 +809,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         """
 
         # Handle parameter.
-        sql, kwdata = self.handle_insert(table, data, duplicate, **kwdata)
+        sql, kwdata = self.handle_insert(path, data, duplicate, **kwdata)
 
         # Execute SQL.
         result = self.execute(sql, data, report, **kwdata)
@@ -801,7 +819,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
     def update(
         self,
-        table: str,
+        path: str | tuple[str, str],
         data: TableData,
         where_fields: str | Iterable[str] | None = None,
         report: bool | None = None,
@@ -812,7 +830,9 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         data : Update data, clause `SET` and `WHERE` and `ORDER BY` and `LIMIT` content.
             - `Key`: Table field.
                 `literal['order']`: Clause `ORDER BY` content, join as `ORDER BY str`.
@@ -837,7 +857,6 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Examples
         --------
-        Parameter `data` and `kwdata`.
         >>> data = [{'key': 'a'}, {'key': 'b'}]
         >>> kwdata = {'value': 1, 'name': ':`key`'}
         >>> result = Database.execute.update('table', data, **kwdata)
@@ -849,7 +868,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         """
 
         # Handle parameter.
-        sql, data = self.handle_update(table, data, where_fields, **kwdata)
+        sql, data = self.handle_update(path, data, where_fields, **kwdata)
 
         # Execute SQL.
         result = self.execute(sql, data, report)
@@ -859,7 +878,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
     def delete(
         self,
-        table: str,
+        path: str | tuple[str, str],
         where: str | None = None,
         order: str | None = None,
         limit: int | str | None = None,
@@ -871,7 +890,9 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         where : Clause `WHERE` content, join as `WHERE str`.
         order : Clause `ORDER BY` content, join as `ORDER BY str`.
         limit : Clause `LIMIT` content, join as `LIMIT int/str`.
@@ -885,7 +906,6 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Examples
         --------
-        Parameter `where` and `kwdata`.
         >>> where = '`id` IN :ids'
         >>> ids = (1, 2)
         >>> result = Database.execute.delete('table', where, ids=ids)
@@ -894,7 +914,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         """
 
         # Handle parameter.
-        sql = self.handle_delete(table, where, order, limit)
+        sql = self.handle_delete(path, where, order, limit)
 
         # Execute SQL.
         result = self.execute(sql, report=report, **kwdata)
@@ -904,7 +924,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
     def copy(
         self,
-        table: str,
+        path: str | tuple[str, str],
         fields: str | Iterable[str] | None = None,
         where: str | None = None,
         limit: int | str | tuple[int, int] | None = None,
@@ -916,7 +936,9 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         fields : Select clause content.
             - `None`: Is `SELECT *`.
             - `str`: Join as `SELECT str`.
@@ -933,7 +955,6 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Examples
         --------
-        Parameter `where` and `kwdata`.
         >>> where = '`id` IN :ids'
         >>> ids = (1, 2, 3)
         >>> result = Database.execute.copy('table', where, 2, ids=ids, id=None, time=':NOW()')
@@ -942,7 +963,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         """
 
         # Handle parameter.
-        sql = self.handle_copy(table, fields, where, limit)
+        sql = self.handle_copy(path, fields, where, limit)
 
         # Execute SQL.
         result = self.execute(sql, report=report, **kwdata)
@@ -952,7 +973,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
     def count(
         self,
-        table: str,
+        path: str | tuple[str, str],
         where: str | None = None,
         report: bool | None = None,
         **kwdata: Any
@@ -962,7 +983,9 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         where : Match condition, `WHERE` clause content, join as `WHERE str`.
             - `None`: Match all.
             - `str`: Match condition.
@@ -976,7 +999,6 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Examples
         --------
-        Parameter `where` and `kwdata`.
         >>> where = '`id` IN :ids'
         >>> ids = (1, 2)
         >>> result = Database.execute.count('table', where, ids=ids)
@@ -985,7 +1007,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         """
 
         # Execute.
-        result = self.select(table, '1', where=where, report=report, **kwdata)
+        result = self.select(path, '1', where=where, report=report, **kwdata)
         count = len(tuple(result))
 
         return count
@@ -993,7 +1015,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
     def exist(
         self,
-        table: str,
+        path: str | tuple[str, str],
         where: str | None = None,
         report: bool | None = None,
         **kwdata: Any
@@ -1003,7 +1025,9 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         where : Match condition, `WHERE` clause content, join as `WHERE str`.
             - `None`: Match all.
             - `str`: Match condition.
@@ -1017,7 +1041,6 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         Examples
         --------
-        Parameter `where` and `kwdata`.
         >>> data = [{'id': 1}]
         >>> Database.execute.insert('table', data)
         >>> where = '`id` = :id_'
@@ -1028,7 +1051,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         """
 
         # Execute.
-        result = self.count(table, where, report, **kwdata)
+        result = self.count(path, where, report, **kwdata)
 
         # Judge.
         judge = result != 0
@@ -1223,7 +1246,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
     async def select(
         self,
-        table: str,
+        path: str | tuple[str, str],
         fields: str | Iterable[str] | None = None,
         where: str | None = None,
         group: str | None = None,
@@ -1238,7 +1261,9 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         fields : Select clause content.
             - `None`: Is `SELECT *`.
             - `str`: Join as `SELECT str`.
@@ -1264,19 +1289,19 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         --------
         Parameter `fields`.
         >>> fields = ['id', ':`id` + 1 AS `id_`']
-        >>> result = Database.execute.select('table', fields)
+        >>> result = await Database.execute.select('table', fields)
         >>> print(result.to_table())
         [{'id': 1, 'id_': 2}, ...]
 
         Parameter `kwdata`.
         >>> fields = '`id`, `id` + :value AS `id_`'
-        >>> result = Database.execute.select('table', fields, value=1)
+        >>> result = await Database.execute.select('table', fields, value=1)
         >>> print(result.to_table())
         [{'id': 1, 'id_': 2}, ...]
         """
 
         # Handle parameter.
-        sql = self.handle_select(table, fields, where, group, having, order, limit)
+        sql = self.handle_select(path, fields, where, group, having, order, limit)
 
         # Execute SQL.
         result = await self.execute(sql, report=report, **kwdata)
@@ -1286,7 +1311,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
     async def insert(
         self,
-        table: str,
+        path: str | tuple[str, str],
         data: TableData,
         duplicate: Literal['ignore', 'update'] | Container[str] | None = None,
         report: bool | None = None,
@@ -1297,7 +1322,9 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         data : Insert data.
         duplicate : Handle method when constraint error.
             - `None`: Not handled.
@@ -1316,19 +1343,18 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Examples
         --------
-        Parameter `data` and `kwdata`.
         >>> data = [{'key': 'a'}, {'key': 'b'}]
         >>> kwdata = {'value1': 1, 'value2': ':(SELECT 2)'}
-        >>> result = Database.execute.insert('table', data, **kwdata)
+        >>> result = await Database.execute.insert('table', data, **kwdata)
         >>> print(result.rowcount)
         2
-        >>> result = Database.execute.select('table')
+        >>> result = await Database.execute.select('table')
         >>> print(result.to_table())
         [{'key': 'a', 'value1': 1, 'value2': 2}, {'key': 'b', 'value1': 1, 'value2': 2}]
         """
 
         # Handle parameter.
-        sql, kwdata = self.handle_insert(table, data, duplicate, **kwdata)
+        sql, kwdata = self.handle_insert(path, data, duplicate, **kwdata)
 
         # Execute SQL.
         result = await self.execute(sql, data, report, **kwdata)
@@ -1338,7 +1364,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
     async def update(
         self,
-        table: str,
+        path: str | tuple[str, str],
         data: TableData,
         where_fields: str | Iterable[str] | None = None,
         report: bool | None = None,
@@ -1349,7 +1375,9 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         data : Update data, clause `SET` and `WHERE` and `ORDER BY` and `LIMIT` content.
             - `Key`: Table field.
                 `literal['order']`: Clause `ORDER BY` content, join as `ORDER BY str`.
@@ -1374,19 +1402,18 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Examples
         --------
-        Parameter `data` and `kwdata`.
         >>> data = [{'key': 'a'}, {'key': 'b'}]
         >>> kwdata = {'value': 1, 'name': ':`key`'}
-        >>> result = Database.execute.update('table', data, **kwdata)
+        >>> result = await Database.execute.update('table', data, **kwdata)
         >>> print(result.rowcount)
         2
-        >>> result = Database.execute.select('table')
+        >>> result = await Database.execute.select('table')
         >>> print(result.to_table())
         [{'key': 'a', 'value': 1, 'name': 'a'}, {'key': 'b', 'value': 1, 'name': 'b'}]
         """
 
         # Handle parameter.
-        sql, data = self.handle_update(table, data, where_fields, **kwdata)
+        sql, data = self.handle_update(path, data, where_fields, **kwdata)
 
         # Execute SQL.
         result = await self.execute(sql, data, report)
@@ -1396,7 +1423,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
     async def delete(
         self,
-        table: str,
+        path: str | tuple[str, str],
         where: str | None = None,
         order: str | None = None,
         limit: int | str | None = None,
@@ -1408,7 +1435,9 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         where : Clause `WHERE` content, join as `WHERE str`.
         order : Clause `ORDER BY` content, join as `ORDER BY str`.
         limit : Clause `LIMIT` content, join as `LIMIT int/str`.
@@ -1422,16 +1451,15 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Examples
         --------
-        Parameter `where` and `kwdata`.
         >>> where = '`id` IN :ids'
         >>> ids = (1, 2)
-        >>> result = Database.execute.delete('table', where, ids=ids)
+        >>> result = await Database.execute.delete('table', where, ids=ids)
         >>> print(result.rowcount)
         2
         """
 
         # Handle parameter.
-        sql = self.handle_delete(table, where, order, limit)
+        sql = self.handle_delete(path, where, order, limit)
 
         # Execute SQL.
         result = await self.execute(sql, report=report, **kwdata)
@@ -1441,7 +1469,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
     async def copy(
         self,
-        table: str,
+        path: str | tuple[str, str],
         fields: str | Iterable[str] | None = None,
         where: str | None = None,
         limit: int | str | tuple[int, int] | None = None,
@@ -1453,7 +1481,9 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         fields : Select clause content.
             - `None`: Is `SELECT *`.
             - `str`: Join as `SELECT str`.
@@ -1470,16 +1500,15 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Examples
         --------
-        Parameter `where` and `kwdata`.
         >>> where = '`id` IN :ids'
         >>> ids = (1, 2, 3)
-        >>> result = Database.execute.copy('table', where, 2, ids=ids, id=None, time=':NOW()')
+        >>> result = await Database.execute.copy('table', ['name', 'value'], where, 2, ids=ids)
         >>> print(result.rowcount)
         2
         """
 
         # Handle parameter.
-        sql = self.handle_copy(table, fields, where, limit)
+        sql = self.handle_copy(path, fields, where, limit)
 
         # Execute SQL.
         result = await self.execute(sql, report=report, **kwdata)
@@ -1489,7 +1518,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
     async def count(
         self,
-        table: str,
+        path: str | tuple[str, str],
         where: str | None = None,
         report: bool | None = None,
         **kwdata: Any
@@ -1499,7 +1528,9 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         where : Match condition, `WHERE` clause content, join as `WHERE str`.
             - `None`: Match all.
             - `str`: Match condition.
@@ -1513,16 +1544,15 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Examples
         --------
-        Parameter `where` and `kwdata`.
         >>> where = '`id` IN :ids'
         >>> ids = (1, 2)
-        >>> result = Database.execute.count('table', where, ids=ids)
+        >>> result = await Database.execute.count('table', where, ids=ids)
         >>> print(result)
         2
         """
 
         # Execute.
-        result = await self.select(table, '1', where=where, report=report, **kwdata)
+        result = await self.select(path, '1', where=where, report=report, **kwdata)
         count = len(tuple(result))
 
         return count
@@ -1530,7 +1560,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
     async def exist(
         self,
-        table: str,
+        path: str | tuple[str, str],
         where: str | None = None,
         report: bool | None = None,
         **kwdata: Any
@@ -1540,7 +1570,9 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Parameters
         ----------
-        table : Table name, can include database name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         where : Match condition, `WHERE` clause content, join as `WHERE str`.
             - `None`: Match all.
             - `str`: Match condition.
@@ -1554,18 +1586,17 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         Examples
         --------
-        Parameter `where` and `kwdata`.
         >>> data = [{'id': 1}]
         >>> Database.execute.insert('table', data)
         >>> where = '`id` = :id_'
         >>> id_ = 1
-        >>> result = Database.execute.exist('table', where, id_=id_)
+        >>> result = await Database.execute.exist('table', where, id_=id_)
         >>> print(result)
         True
         """
 
         # Execute.
-        result = await self.count(table, where, report, **kwdata)
+        result = await self.count(path, where, report, **kwdata)
 
         # Judge.
         judge = result != 0

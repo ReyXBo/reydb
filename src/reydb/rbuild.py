@@ -15,7 +15,7 @@ from reykit.rbase import throw, is_instance
 from reykit.rstdout import ask
 
 from . import rdb
-from .rbase import DatabaseBase, extract_path
+from .rbase import DatabaseBase
 from .rorm import DatabaseORMModel
 
 
@@ -66,7 +66,6 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         # Set attribute.
         self.db = db
-        self._schema: dict[str, dict[str, list[str]]] | None = None
 
 
     def get_sql_create_database(
@@ -232,8 +231,8 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         Parameters
         ----------
-        path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str`: Automatic extract database name and table name.
+        path : Path.
+            - `str`: Table name.
             - `tuple[str, str]`: Database name and table name.
         fields : Fields set table.
             - `Key 'name'`: Field name, required.
@@ -278,7 +277,9 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         # Handle parameter.
         if type(path) == str:
-            database, table, _ = extract_path(path)
+            database, table = self.db.database, path
+        else:
+            database, table = path
         if fields.__class__ == dict:
             fields = [fields]
         if primary.__class__ == str:
@@ -351,9 +352,9 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         Parameters
         ----------
-        path : View name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str`: Automatic extract database name and view name.
-            - `tuple[str, str]`: Database name and view name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         select : View select SQL.
         execute : Whether directly execute.
 
@@ -363,11 +364,14 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         """
 
         # Handle parameter.
-        database, view, _ = extract_path(path)
+        if type(path) == str:
+            database, table = self.db.database, path
+        else:
+            database, table = path
 
         # Generate SQL.
         select = select.replace('\n', '\n    ')
-        sql = 'CREATE VIEW `%s`.`%s` AS (\n    %s\n)' % (database, view, select)
+        sql = f'CREATE VIEW `{database}`.`{table}` AS (\n    {select}\n)'
 
         return sql
 
@@ -382,9 +386,9 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         Parameters
         ----------
-        path : View name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str`: Automatic extract database name and view name.
-            - `tuple[str, str]`: Database name and view name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         items : Items set table.
             - `Key 'name'`: Item name, required.
             - `Key 'select'`: Item select SQL, must only return one value, required.
@@ -464,8 +468,8 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         Parameters
         ----------
-        path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str`: Automatic extract database name and table name.
+        path : Path.
+            - `str`: Table name.
             - `tuple[str, str]`: Database name and table name.
         execute : Whether directly execute.
 
@@ -475,7 +479,10 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         """
 
         # Handle parameter.
-        database, table, _ = extract_path(path)
+        if type(path) == str:
+            database, table = self.db.database, path
+        else:
+            database, table = path
 
         # Generate.
         sql = f'DROP TABLE `{database}`.`{table}`'
@@ -492,9 +499,9 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         Parameters
         ----------
-        path : View name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str`: Automatic extract database name and view name.
-            - `tuple[str, str]`: Database name and view name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         execute : Whether directly execute.
 
         Returns
@@ -503,10 +510,13 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         """
 
         # Handle parameter.
-        database, view, _ = extract_path(path)
+        if type(path) == str:
+            database, table = self.db.database, path
+        else:
+            database, table = path
 
         # Generate SQL.
-        sql = 'DROP VIEW `%s`.`%s`' % (database, view)
+        sql = 'DROP VIEW `%s`.`%s`' % (database, table)
 
         return sql
 
@@ -568,8 +578,8 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         Parameters
         ----------
-        path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str`: Automatic extract database name and table name.
+        path : Path.
+            - `str`: Table name.
             - `tuple[str, str]`: Database name and table name.
         fields : Fields set table.
             - `Key 'name'`: Field name, required.
@@ -607,7 +617,10 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         """
 
         # Handle parameter.
-        database, table, _ = extract_path(path)
+        if type(path) == str:
+            database, table = self.db.database, path
+        else:
+            database, table = path
         if fields.__class__ == dict:
             fields = [fields]
         if primary.__class__ == str:
@@ -678,8 +691,8 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         Parameters
         ----------
-        path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str`: Automatic extract database name and table name.
+        path : Path.
+            - `str`: Table name.
             - `tuple[str, str]`: Database name and table name.
         fields : Delete fields name.
         primary : Whether delete primary key.
@@ -692,7 +705,10 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         """
 
         # Handle parameter.
-        database, table, _ = extract_path(path)
+        if type(path) == str:
+            database, table = self.db.database, path
+        else:
+            database, table = path
         if fields.__class__ == str:
             fields = [fields]
         if indexes.__class__ == str:
@@ -747,8 +763,8 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         Parameters
         ----------
-        path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str`: Automatic extract database name and table name.
+        path : Path.
+            - `str`: Table name.
             - `tuple[str, str]`: Database name and table name.
         fields : Fields set table.
             - `Key 'name'`: Field name, required.
@@ -777,7 +793,10 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         """
 
         # Handle parameter.
-        database, table, _ = extract_path(path)
+        if type(path) == str:
+            database, table = self.db.database, path
+        else:
+            database, table = path
         if fields.__class__ == dict:
             fields = [fields]
 
@@ -856,9 +875,9 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         Parameters
         ----------
-        path : View name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str`: Automatic extract database name and view name.
-            - `tuple[str, str]`: Database name and view name.
+        path : Path.
+            - `str`: Table name.
+            - `tuple[str, str]`: Database name and table name.
         select : View select SQL.
         execute : Whether directly execute.
 
@@ -868,10 +887,13 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         """
 
         # Handle parameter.
-        database, view, _ = extract_path(path)
+        if type(path) == str:
+            database, table = self.db.database, path
+        else:
+            database, table = path
 
         # Generate SQL.
-        sql = 'ALTER VIEW `%s`.`%s` AS\n%s' % (database, view, select)
+        sql = 'ALTER VIEW `%s`.`%s` AS\n%s' % (database, table, select)
 
         return sql
 
@@ -885,8 +907,8 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         Parameters
         ----------
-        path : Table name, can contain database name, otherwise use `self.rdatabase.database`.
-            - `str`: Automatic extract database name and table name.
+        path : Path.
+            - `str`: Table name.
             - `tuple[str, str]`: Database name and table name.
         execute : Whether directly execute.
 
@@ -896,7 +918,10 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         """
 
         # Handle parameter.
-        database, table, _ = extract_path(path)
+        if type(path) == str:
+            database, table = self.db.database, path
+        else:
+            database, table = path
 
         # Generate.
         sql = f'TRUNCATE TABLE `{database}`.`{table}`'
@@ -958,7 +983,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         """
 
         # Get.
-        table = model.table()
+        table = model._table()
         text = f'TABLE `{self.db.database}`.`{table}`'
         if 'mysql_charset' in table.kwargs:
             text += f" | CHARSET '{table.kwargs['mysql_charset']}'"
@@ -1015,213 +1040,10 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         return text
 
 
-    def build(
-        self,
-        databases: list[dict] | None = None,
-        tables: list[dict] | None = None,
-        tables_orm: list[Type[DatabaseORMModel]] | None = None,
-        views: list[dict] | None = None,
-        views_stats: list[dict] | None = None,
-        ask: bool = True,
-        skip: bool = False
-    ) -> None:
-        """
-        Build databases or tables.
-
-        Parameters
-        ----------
-        databases : Database build parameters, equivalent to the parameters of method `self.create_database`.
-        tables : Tables build parameters, equivalent to the parameters of method `self.create_table`.
-        tables_orm : Tables buile model, equivalent to the parameters of method `self.create_table_orm`.
-        views : Views build parameters, equivalent to the parameters of method `self.create_view`.
-        views_stats : Views stats build parameters, equivalent to the parameters of method `self.create_view_stats`.
-        ask : Whether ask confirm execute.
-        skip : Whether skip existing table.
-        """
-
-        # Handle parameter.
-        databases = databases or []
-        tables = tables or []
-        tables_orm = tables_orm or []
-        views = views or []
-        views_stats = views_stats or []
-
-        # Database.
-        for params in databases:
-            database = params['name']
-
-            ## Exist.
-            if (
-                skip
-                and self.exist(database)
-            ):
-                continue
-
-            ## Create.
-            sql = self.get_sql_create_database(**params)
-
-            ## Confirm.
-            if ask:
-                self.input_confirm_build(sql)
-
-            ## Execute.
-            self.db.execute(sql)
-
-            ## Report.
-            text = f"Database '{database}' build completed."
-            print(text)
-
-        # Table.
-        for params in tables:
-            path = params['path']
-            database, table, _ = extract_path(path)
-
-            ## Exist.
-            if (
-                skip
-                and self.exist((database, table))
-            ):
-                continue
-
-            ## Create.
-            sql = self.create_table(**params)
-
-            ## Confirm.
-            if ask:
-                self.input_confirm_build(sql)
-
-            ## Execute.
-            self.db.execute(sql)
-
-            ## Report.
-            text = f"Table '{table}' of database '{database}' build completed."
-            print(text)
-
-        # Table ORM.
-        for model in tables_orm:
-            table = model.table()
-
-            ## Exist.
-            if (
-                skip
-                and self.exist((self.db.database, table.name))
-            ):
-                continue
-
-            ## Confirm.
-            if ask:
-                text = self.get_orm_table_text(model)
-                self.input_confirm_build(text)
-
-            ## Execute.
-            self.create_orm_table(model)
-
-            ## Report.
-            text = f"Table '{table.name}' of database '{self.db.database}' build completed."
-            print(text)
-
-        # View.
-        for params in views:
-            path = params['path']
-            database, view, _ = extract_path(path)
-
-            ## Exist.
-            if (
-                skip
-                and self.exist((database, view))
-            ):
-                continue
-
-            ## Create.
-            sql = self.create_view(**params)
-
-            ## Confirm.
-            if ask:
-                self.input_confirm_build(sql)
-
-            ## Execute.
-            self.db.execute(sql)
-
-            ## Report.
-            text = f"View '{view}' of database '{database}' build completed."
-            print(text)
-
-        # View stats.
-        for params in views_stats:
-            path = params['path']
-            database, view, _ = extract_path(path)
-
-            ## Exist.
-            if (
-                skip
-                and self.exist((database, view))
-            ):
-                continue
-
-            ## Create.
-            sql = self.create_view_stats(**params)
-
-            ## Confirm.
-            if ask:
-                self.input_confirm_build(sql)
-
-            ## Execute.
-            self.db.execute(sql)
-
-            ## Report.
-            text = f"View '{view}' of database '{database}' build completed."
-            print(text)
-
-
-    __call__ = build
-
-
 class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
     """
     Database build type.
     """
-
-
-    def exist(
-        self,
-        path: str | tuple[str] | tuple[str, str] | tuple[str, str, str]
-    ) -> bool:
-        """
-        Judge database or table or column exists.
-
-        Parameters
-        ----------
-        path : Database name and table name and column name.
-            - `str`: Automatic extract.
-            - `tuple`: Format is `(database[, table, column]).`
-
-        Returns
-        -------
-        Judge result.
-        """
-
-        # Handle parameter.
-        database, table, column = extract_path(path)
-        if self._schema is None:
-            self._schema = self.db.schema(False)
-
-        # Judge.
-        judge = (
-            database in self._schema
-            and (
-                table is None
-                or (
-                    (database_info := self._schema.get(database)) is not None
-                    and (table_info := database_info.get(table)) is not None
-                )
-            )
-            and (
-                column is None
-                or column in table_info
-            )
-        )
-
-        return judge
 
 
     def create_orm_table(
@@ -1287,6 +1109,7 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
         tables = tables or []
         views = views or []
         views_stats = views_stats or []
+        refresh_schema = False
 
         # Database.
         for params in databases:
@@ -1295,7 +1118,7 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
             ## Exist.
             if (
                 skip
-                and self.exist(database)
+                and self.db.schema.exist(database)
             ):
                 continue
 
@@ -1318,16 +1141,17 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
 
             ## ORM.
             if (
-                issubclass(params, DatabaseORMModel)
-                or isinstance(params, DatabaseORMModel)
+                is_instance(params)
+                and isinstance(params, DatabaseORMModel)
+                or issubclass(params, DatabaseORMModel)
             ):
                 database = self.db.database
-                table = params.table().name
+                table = params._table().name
 
                 ## Exist.
                 if (
                     skip
-                    and self.exist((self.db.database, table))
+                    and self.db.schema.exist(self.db.database, table)
                 ):
                     continue
 
@@ -1341,13 +1165,16 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
 
             ## Parameter.
             else:
-                path = params['path']
-                database, table, _ = extract_path(path)
+                path: str | tuple[str, str] = params['path']
+                if type(path) == str:
+                    database, table = self.db.database, path
+                else:
+                    database, table = path
 
                 ### Exist.
                 if (
                     skip
-                    and self.exist((database, table))
+                    and self.db.schema.exist(database, table)
                 ):
                     continue
 
@@ -1360,20 +1187,28 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
 
                 ### Execute.
                 self.db.execute(sql)
+                refresh_schema = True
 
             ## Report.
             text = f"Table '{table}' of database '{database}' build completed."
             print(text)
 
+        # Refresh schema.
+        if refresh_schema:
+            self.db.schema()
+
         # View.
         for params in views:
             path = params['path']
-            database, view, _ = extract_path(path)
+            if type(path) == str:
+                database, table = self.db.database, path
+            else:
+                database, table = path
 
             ## Exist.
             if (
                 skip
-                and self.exist((database, view))
+                and self.db.schema.exist(database, table)
             ):
                 continue
 
@@ -1388,18 +1223,21 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
             self.db.execute(sql)
 
             ## Report.
-            text = f"View '{view}' of database '{database}' build completed."
+            text = f"View '{table}' of database '{database}' build completed."
             print(text)
 
         # View stats.
         for params in views_stats:
             path = params['path']
-            database, view, _ = extract_path(path)
+            if type(path) == str:
+                database, table = self.db.database, path
+            else:
+                database, table = path
 
             ## Exist.
             if (
                 skip
-                and self.exist((database, view))
+                and self.db.schema.exist(database, table)
             ):
                 continue
 
@@ -1414,7 +1252,7 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
             self.db.execute(sql)
 
             ## Report.
-            text = f"View '{view}' of database '{database}' build completed."
+            text = f"View '{table}' of database '{database}' build completed."
             print(text)
 
 
@@ -1425,48 +1263,6 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
     """
     Asynchronous database build type.
     """
-
-
-    async def exist(
-        self,
-        path: str | tuple[str] | tuple[str, str] | tuple[str, str, str]
-    ) -> bool:
-        """
-        Asynchronous judge database or table or column exists.
-
-        Parameters
-        ----------
-        path : Database name and table name and column name.
-            - `str`: Automatic extract.
-            - `tuple`: Format is `(database[, table, column]).`
-
-        Returns
-        -------
-        Judge result.
-        """
-
-        # Handle parameter.
-        database, table, column = extract_path(path)
-        if self._schema is None:
-            self._schema = await self.db.schema(False)
-
-        # Judge.
-        judge = (
-            database in self._schema
-            and (
-                table is None
-                or (
-                    (database_info := self._schema.get(database)) is not None
-                    and (table_info := database_info.get(table)) is not None
-                )
-            )
-            and (
-                column is None
-                or column in table_info
-            )
-        )
-
-        return judge
 
 
     async def create_orm_table(
@@ -1522,7 +1318,6 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
         ----------
         databases : Database build parameters, equivalent to the parameters of method `self.create_database`.
         tables : Tables build parameters, equivalent to the parameters of method `self.create_table`.
-        tables_orm : Tables buile model, equivalent to the parameters of method `self.create_table_orm`.
         views : Views build parameters, equivalent to the parameters of method `self.create_view`.
         views_stats : Views stats build parameters, equivalent to the parameters of method `self.create_view_stats`.
         ask : Whether ask confirm execute.
@@ -1535,6 +1330,7 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
         tables_orm = tables_orm or []
         views = views or []
         views_stats = views_stats or []
+        refresh_schema = False
 
         # Database.
         for params in databases:
@@ -1543,7 +1339,7 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
             ## Exist.
             if (
                 skip
-                and await self.exist(database)
+                and await self.db.schema.exist(database)
             ):
                 continue
 
@@ -1563,8 +1359,6 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
 
         # Table.
         for params in tables:
-            if is_instance(params):
-                params_type = type(params)
 
             ## ORM.
             if (
@@ -1573,12 +1367,12 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
                 or issubclass(params, DatabaseORMModel)
             ):
                 database = self.db.database
-                table = params.table().name
+                table = params._table().name
 
                 ## Exist.
                 if (
                     skip
-                    and await self.exist((self.db.database, table))
+                    and await self.db.schema.exist(self.db.database, table)
                 ):
                     continue
 
@@ -1592,13 +1386,16 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
 
             ## Parameter.
             else:
-                path = params['path']
-                database, table, _ = extract_path(path)
+                path: str | tuple[str, str] = params['path']
+                if type(path) == str:
+                    database, table = self.db.database, path
+                else:
+                    database, table = path
 
                 ### Exist.
                 if (
                     skip
-                    and await self.exist((database, table))
+                    and await self.db.schema.exist(database, table)
                 ):
                     continue
 
@@ -1611,20 +1408,28 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
 
                 ### Execute.
                 await self.db.execute(sql)
+                refresh_schema = True
 
             ## Report.
             text = f"Table '{table}' of database '{database}' build completed."
             print(text)
 
+        # Refresh schema.
+        if refresh_schema:
+            self.db.schema()
+
         # View.
         for params in views:
             path = params['path']
-            database, view, _ = extract_path(path)
+            if type(path) == str:
+                database, table = self.db.database, path
+            else:
+                database, table = path
 
             ## Exist.
             if (
                 skip
-                and await self.exist((database, view))
+                and await self.db.schema.exist(database, table)
             ):
                 continue
 
@@ -1639,18 +1444,21 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
             await self.db.execute(sql)
 
             ## Report.
-            text = f"View '{view}' of database '{database}' build completed."
+            text = f"View '{table}' of database '{database}' build completed."
             print(text)
 
         # View stats.
         for params in views_stats:
             path = params['path']
-            database, view, _ = extract_path(path)
+            if type(path) == str:
+                database, table = self.db.database, path
+            else:
+                database, table = path
 
             ## Exist.
             if (
                 skip
-                and await self.exist((database, view))
+                and await self.db.schema.exist(database, table)
             ):
                 continue
 
@@ -1665,7 +1473,7 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
             await self.db.execute(sql)
 
             ## Report.
-            text = f"View '{view}' of database '{database}' build completed."
+            text = f"View '{table}' of database '{database}' build completed."
             print(text)
 
 

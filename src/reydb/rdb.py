@@ -16,7 +16,7 @@ from sqlalchemy import Engine, create_engine as sqlalchemy_create_engine
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine as sqlalchemy_create_async_engine
 from reykit.rtext import join_data_text
 
-from . import rbase, rbuild, rconfig, rconn, rerror, rexec, rfile, rorm, rparam
+from . import rbase, rbuild, rconfig, rconn, rerror, rexec, rorm, rparam
 
 
 __all__ = (
@@ -112,6 +112,9 @@ class DatabaseSuper(
             self.pool_recycle = pool_recycle
         self.report = report
         self.query = query
+
+        ## Schema.
+        self._schema: dict[str, dict[str, list[str]]] | None = None
 
         ## Create engine.
         self.engine = self.__create_engine()
@@ -337,22 +340,6 @@ class DatabaseSuper(
 
 
     @property
-    def file(self):
-        """
-        Build database file instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Build.
-        dbfile = rfile.DatabaseFile(self)
-
-        return dbfile
-
-
-    @property
     def error(self):
         """
         Build database error instance.
@@ -363,9 +350,13 @@ class DatabaseSuper(
         """
 
         # Build.
-        dbfile = rerror.DatabaseError(self)
+        match self:
+            case Database():
+                error = rerror.DatabaseError(self)
+            case DatabaseAsync():
+                error = rerror.DatabaseErrorAsync(self)
 
-        return dbfile
+        return error
 
 
     @property

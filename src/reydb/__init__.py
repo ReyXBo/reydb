@@ -17,7 +17,6 @@ rconn : Database connection methods.
 rdb : Database methods.
 rerror : Database error methods.
 rexec : Database execute methods.
-rfile : Database file methods.
 rorm : Database ORM methods.
 rparam : Database parameter methods.
 """

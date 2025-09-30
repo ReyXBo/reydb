@@ -17,7 +17,8 @@ from pydantic import ConfigDict, field_validator as pydantic_field_validator, mo
 from sqlalchemy import text as sqlalchemy_text
 from sqlalchemy.orm import SessionTransaction
 from sqlalchemy.ext.asyncio import AsyncSessionTransaction
-from sqlalchemy.sql import sqltypes
+from sqlalchemy import types
+from sqlalchemy.dialects.mysql import types as types_mysql
 from sqlalchemy.sql.sqltypes import TypeEngine
 from sqlalchemy.sql.dml import Insert, Update, Delete
 from sqlmodel import SQLModel, Session, Table
@@ -37,8 +38,9 @@ from .rbase import (
 __all__ = (
     'DatabaseORMBase',
     'DatabaseORMModelMeta',
-    'DatabaseORMModel',
     'DatabaseORMModelField',
+    'DatabaseORMModel',
+    'DatabaseORMModelMethod',
     'DatabaseORMSuper',
     'DatabaseORM',
     'DatabaseORMAsync',
@@ -111,7 +113,7 @@ class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
 
             ## Name.
             if '__name__' in attrs:
-                name = attrs.pop('__name__')
+                attrs['__tablename__'] = attrs.pop('__name__')
 
             ## Comment.
             if '__comment__' in attrs:
@@ -129,108 +131,6 @@ class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
         new_cls = super().__new__(cls, name, bases, attrs, **kwargs)
 
         return new_cls
-
-
-model_metaclass: SQLModelMetaclass = DatabaseORMModelMeta
-
-
-class DatabaseORMModel(DatabaseORMBase, SQLModel, metaclass=model_metaclass):
-    """
-    Database ORM model type.
-
-    Examples
-    --------
-    >>> class Foo(DatabaseORMModel, table=True):
-    ...     __comment__ = 'Table comment.'
-    ...     ...
-    """
-
-
-    def update(self, data: 'DatabaseORMModel | dict[dict, Any]') -> None:
-        """
-        Update attributes.
-
-        Parameters
-        ----------
-        data : `DatabaseORMModel` or `dict`.
-        """
-
-        # Update.
-        self.sqlmodel_update(data)
-
-
-    def validate(self) -> Self:
-        """
-        Validate all attributes, and copy self instance to new instance.
-        """
-
-        # Validate.
-        model = self.model_validate(self)
-
-        return model
-
-
-    def copy(self) -> Self:
-        """
-        Copy self instance to new instance.
-
-        Returns
-        -------
-        New instance.
-        """
-
-        # Copy.
-        data = self.data
-        instance = self.__class__(**data)
-
-        return instance
-
-
-    @property
-    def data(self) -> dict[str, Any]:
-        """
-        All attributes data.
-
-        Returns
-        -------
-        data.
-        """
-
-        # Get.
-        data = self.model_dump()
-
-        return data
-
-
-    @classmethod
-    def table(cls_or_self) -> Table | None:
-        """
-        Mapping `Table` instance.
-
-        Returns
-        -------
-        Instance or null.
-        """
-
-        # Get.
-        table: Table | None = getattr(cls_or_self, '__table__', None)
-
-        return table
-
-
-    @classmethod
-    def comment(cls_or_self, comment: str) -> None:
-        """
-        Set table comment.
-
-        Parameters
-        ----------
-        comment : Comment.
-        """
-
-        # Set.
-        table = cls_or_self.table()
-        table.comment = comment
 
 
 class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
@@ -289,7 +189,7 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
         field_default : Database field defualt value.
             - `Literal['current_timestamp']`: Set SQL syntax 'current_timestamp', case insensitive.
             - `Literal['on update current_timestamp']`: Set SQL syntax 'on update current_timestamp', case insensitive.
-        filed_name : Database field name.
+        field_name : Database field name.
             - `None`: Same as attribute name.
         field_type : Database field type.
             - `None`: Based type annotation automatic judgment.
@@ -366,12 +266,12 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
             kwargs['sa_column_kwargs']['server_default'] = field_default
 
         ## Field name.
-        if 'filed_name' in kwargs:
-            kwargs['sa_column_kwargs']['name'] = kwargs.pop('filed_name')
+        if 'field_name' in kwargs:
+            kwargs['sa_column_kwargs']['name'] = kwargs.pop('field_name')
 
         ## Field type.
-        if 'filed_name' in kwargs:
-            kwargs['sa_column_kwargs']['type_'] = kwargs.pop('filed_type')
+        if 'field_type' in kwargs:
+            kwargs['sa_type'] = kwargs.pop('field_type')
 
         ## Key auto.
         if 'key_auto' in kwargs:
@@ -393,6 +293,129 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
         super().__init__(**kwargs)
 
 
+model_metaclass: SQLModelMetaclass = DatabaseORMModelMeta
+
+
+class DatabaseORMModel(DatabaseORMBase, SQLModel, metaclass=model_metaclass):
+    """
+    Database ORM model type.
+
+    Examples
+    --------
+    >>> class Foo(DatabaseORMModel, table=True):
+    ...     __name__ = 'Table name, default is class name.'
+    ...     __comment__ = 'Table comment.'
+    ...     ...
+    """
+
+
+    @classmethod
+    def _table(cls_or_self) -> Table:
+        """
+        Return mapping database table instance.
+
+        Returns
+        -------
+        Table instance.
+        """
+
+        # Get.
+        table: Table = cls_or_self.__table__
+
+        return table
+
+
+    @property
+    def _m(self):
+        """
+        Build database ORM model method instance.
+
+        Returns
+        -------
+        Instance.
+        """
+
+        # Build.
+        method = DatabaseORMModelMethod(self)
+
+        return method
+
+
+class DatabaseORMModelMethod(DatabaseORMBase):
+    """
+    Database ORM model method type.
+    """
+
+
+    def __init__(self, model: DatabaseORMModel) -> None:
+        """
+        Build instance attributes.
+
+        Parameters
+        ----------
+        model : Database ORM model instance.
+        """
+
+        # Build.
+        self.model = model
+
+
+    @property
+    def data(self) -> dict[str, Any]:
+        """
+        All attributes data.
+
+        Returns
+        -------
+        data.
+        """
+
+        # Get.
+        data = self.model.model_dump()
+
+        return data
+
+
+    def update(self, data: 'DatabaseORMModel | dict[dict, Any]') -> None:
+        """
+        Update attributes.
+
+        Parameters
+        ----------
+        data : `DatabaseORMModel` or `dict`.
+        """
+
+        # Update.
+        self.model.sqlmodel_update(data)
+
+
+    def validate(self) -> Self:
+        """
+        Validate all attributes, and copy self instance to new instance.
+        """
+
+        # Validate.
+        model = self.model.model_validate(self.model)
+
+        return model
+
+
+    def copy(self) -> Self:
+        """
+        Copy self instance to new instance.
+
+        Returns
+        -------
+        New instance.
+        """
+
+        # Copy.
+        data = self.data
+        instance = self.model.__class__(**data)
+
+        return instance
+
+
 class DatabaseORMSuper(DatabaseORMBase, Generic[DatabaseT, DatabaseORMSessionT]):
     """
     Database ORM super type.
@@ -412,7 +435,8 @@ class DatabaseORMSuper(DatabaseORMBase, Generic[DatabaseT, DatabaseORMSessionT])
     Model = DatabaseORMModel
     Field = DatabaseORMModelField
     Config = ConfigDict
-    types = sqltypes
+    types = types
+    types_mysql = types_mysql
     wrap_validate_model = pydantic_model_validator
     wrap_validate_filed = pydantic_field_validator
 
@@ -819,7 +843,7 @@ class DatabaseORMSession(
 
         # Handle parameter.
         tables = [
-            model.table()
+            model._table()
             for model in models
         ]
 
@@ -848,7 +872,7 @@ class DatabaseORMSession(
 
         # Handle parameter.
         tables = [
-            model.table()
+            model._table()
             for model in models
         ]
 
@@ -1185,7 +1209,7 @@ class DatabaseORMSessionAsync(
 
         # Handle parameter.
         tables = [
-            model.table()
+            model._table()
             for model in models
         ]
 
@@ -1215,7 +1239,7 @@ class DatabaseORMSessionAsync(
 
         # Handle parameter.
         tables = [
-            model.table()
+            model._table()
             for model in models
         ]
 

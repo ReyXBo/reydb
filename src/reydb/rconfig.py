@@ -20,6 +20,7 @@ from reykit.rbase import Null, throw
 
 from . import rdb
 from .rbase import DatabaseBase
+from .rorm import DatabaseORM as orm
 
 
 __all__ = (
@@ -40,29 +41,16 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
     """
     Database config super type.
     Can create database used `self.build_db` method.
-
-    Examples
-    --------
-    >>> config = DatabaseConfig()
-    >>> config['key1'] = 1
-    >>> config['key2', 'note'] = 2
-    >>> config['key1'], config['key2']
-    (1, 2)
     """
 
 
-    def __init__(
-        self,
-        db: DatabaseT,
-        db_names: dict[str, str] | None = None
-    ) -> None:
+    def __init__(self, db: DatabaseT) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
         db: Database instance.
-        db_names: Update build database table names.
         """
 
         # Build.
@@ -71,8 +59,62 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
             'config': 'config',
             'stats_config': 'stats_config'
         }
-        if db_names is not None:
-            self.db_names.update(db_names)
+
+
+    def handle_build_db(self) -> None:
+        """
+        Handle method of check and build database tables, by `self.db_names`.
+        """
+
+        # Handle parameter.
+
+        ## Table.
+        class Config(orm.Model, table=True):
+            __name__ = self.db_names['config']
+            __comment__ = 'Config data table.'
+            create_time: Datetime = orm.Field(field_default='CURRENT_TIMESTAMP', not_null=True, index_n=True, comment='Config create time.')
+            update_time: Datetime = orm.Field(field_default='CURRENT_TIMESTAMP', index_n=True, comment='Config update time.')
+            key: str = orm.Field(field_type=orm.types.VARCHAR(50), key=True, not_null=True, comment='Config key.')
+            value: str = orm.Field(field_type=orm.types.TEXT, not_null=True, comment='Config value.')
+            type: str = orm.Field(field_type=orm.types.VARCHAR(50), not_null=True, comment='Config value type.')
+            note: str = orm.Field(field_type=orm.types.VARCHAR(500), comment='Config note.')
+
+        tables = [Config]
+
+        ## View stats.
+        views_stats = [
+            {
+                'path': self.db_names['stats_config'],
+                'items': [
+                    {
+                        'name': 'count',
+                        'select': (
+                            'SELECT COUNT(1)\n'
+                            f'FROM `{self.db.database}`.`{self.db_names['config']}`'
+                        ),
+                        'comment': 'Config count.'
+                    },
+                    {
+                        'name': 'last_create_time',
+                        'select': (
+                            'SELECT MAX(`create_time`)\n'
+                            f'FROM `{self.db.database}`.`{self.db_names['config']}`'
+                        ),
+                        'comment': 'Config last record create time.'
+                    },
+                    {
+                        'name': 'last_update_time',
+                        'select': (
+                            'SELECT MAX(`update_time`)\n'
+                            f'FROM `{self.db.database}`.`{self.db_names['config']}`'
+                        ),
+                        'comment': 'Config last record update time.'
+                    }
+                ]
+            }
+        ]
+
+        return tables, views_stats
 
 
 class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
@@ -96,53 +138,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         """
 
         # Handle parameter.
-
-        ## Table.
-        class Config(self.db.orm.Model, table=True):
-            __name__ = self.db_names['config']
-            __comment__ = 'Config data table.'
-            create_time: Datetime = self.db.orm.Field(not_null=True, field_default='CURRENT_TIMESTAMP', index_n=True, comment='Config create time.')
-            update_time: Datetime = self.db.orm.Field(field_default='CURRENT_TIMESTAMP', index_n=True, comment='Config update time.')
-            key: str = self.db.orm.Field(type=self.db.orm.types.VARCHAR(50), key=True, not_null=True, comment='Config key.')
-            value: str = self.db.orm.Field(type=self.db.orm.types.TEXT, not_null=True, comment='Config value.')
-            type: str = self.db.orm.Field(type=self.db.orm.types.VARCHAR(50), not_null=True, comment='Config value type.')
-            note: str = self.db.orm.Field(type=self.db.orm.types.VARCHAR(500), comment='Config note.')
-
-        tables = [Config]
-
-        ## View stats.
-        views_stats = [
-            {
-                'path': (self.db.database, self.db_names['stats_config']),
-                'items': [
-                    {
-                        'name': 'count',
-                        'select': (
-                            'SELECT COUNT(1)\n'
-                            f'FROM `{self.db_names['config']}`'
-                        ),
-                        'comment': 'Config count.'
-                    },
-                    {
-                        'name': 'last_create_time',
-                        'select': (
-                            'SELECT MAX(`create_time`)\n'
-                            f'FROM `{self.db_names['config']}`'
-                        ),
-                        'comment': 'Config last record create time.'
-                    },
-                    {
-                        'name': 'last_update_time',
-                        'select': (
-                            'SELECT MAX(`update_time`)\n'
-                            f'FROM `{self.db_names['config']}`'
-                        ),
-                        'comment': 'Config last record update time.'
-                    }
-                ]
-            }
-
-        ]
+        tables, views_stats = self.handle_build_db()
 
         # Build.
         self.db.build.build(tables=tables, views_stats=views_stats, skip=True)
@@ -454,9 +450,9 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
     Examples
     --------
     >>> config = DatabaseConfig()
-    >>> config['key1'] = 1
-    >>> config['key2', 'note'] = 2
-    >>> config['key1'], config['key2']
+    >>> await config['key1'] = 1
+    >>> await config['key2', 'note'] = 2
+    >>> await config['key1'], config['key2']
     (1, 2)
     """
 
@@ -467,53 +463,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
         """
 
         # Handle parameter.
-
-        ## Table.
-        class Config(self.db.orm.Model, table=True):
-            __name__ = self.db_names['config']
-            __comment__ = 'Config data table.'
-            create_time: Datetime = self.db.orm.Field(not_null=True, field_default='CURRENT_TIMESTAMP', index_n=True, comment='Config create time.')
-            update_time: Datetime = self.db.orm.Field(field_default='CURRENT_TIMESTAMP', index_n=True, comment='Config update time.')
-            key: str = self.db.orm.Field(type=self.db.orm.types.VARCHAR(50), key=True, not_null=True, comment='Config key.')
-            value: str = self.db.orm.Field(type=self.db.orm.types.TEXT, not_null=True, comment='Config value.')
-            type: str = self.db.orm.Field(type=self.db.orm.types.VARCHAR(50), not_null=True, comment='Config value type.')
-            note: str = self.db.orm.Field(type=self.db.orm.types.VARCHAR(500), comment='Config note.')
-
-        tables = [Config]
-
-        ## View stats.
-        views_stats = [
-            {
-                'path': (self.db.database, self.db_names['stats_config']),
-                'items': [
-                    {
-                        'name': 'count',
-                        'select': (
-                            'SELECT COUNT(1)\n'
-                            f'FROM `{self.db_names['config']}`'
-                        ),
-                        'comment': 'Config count.'
-                    },
-                    {
-                        'name': 'last_create_time',
-                        'select': (
-                            'SELECT MAX(`create_time`)\n'
-                            f'FROM `{self.db_names['config']}`'
-                        ),
-                        'comment': 'Config last record create time.'
-                    },
-                    {
-                        'name': 'last_update_time',
-                        'select': (
-                            'SELECT MAX(`update_time`)\n'
-                            f'FROM `{self.db_names['config']}`'
-                        ),
-                        'comment': 'Config last record update time.'
-                    }
-                ]
-            }
-
-        ]
+        tables, views_stats = self.handle_build_db()
 
         # Build.
         await self.db.build.build(tables=tables, views_stats=views_stats, skip=True)
