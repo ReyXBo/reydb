@@ -16,7 +16,7 @@ from sqlalchemy import Engine, create_engine as sqlalchemy_create_engine
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine as sqlalchemy_create_async_engine
 from reykit.rtext import join_data_text
 
-from . import rbase, rbuild, rconfig, rconn, rerror, rexec, rorm, rparam
+from . import rbase, rbuild, rconfig, rconn, rerror, rexec, rinfo, rorm
 
 
 __all__ = (
@@ -31,11 +31,31 @@ DatabaseExecuteT = TypeVar('DatabaseExecuteT', 'rexec.DatabaseExecute', 'rexec.D
 DatabaseORMT = TypeVar('DatabaseORMT', 'rorm.DatabaseORM', 'rorm.DatabaseORMAsync')
 DatabaseBuildT = TypeVar('DatabaseBuildT', 'rbuild.DatabaseBuild', 'rbuild.DatabaseBuildAsync')
 DatabaseConfigT = TypeVar('DatabaseConfigT', 'rconfig.DatabaseConfig', 'rconfig.DatabaseConfigAsync')
-DatabaseSchemaT = TypeVar('DatabaseSchemaT', 'rparam.DatabaseSchema', 'rparam.DatabaseSchemaAsync')
-DatabaseParametersVariablesT = TypeVar('DatabaseParametersVariablesT', 'rparam.DatabaseParametersVariables', 'rparam.DatabaseParametersVariablesAsync')
-DatabaseParametersStatusT = TypeVar('DatabaseParametersStatusT', 'rparam.DatabaseParametersStatus', 'rparam.DatabaseParametersStatusAsync')
-DatabaseParametersVariablesGlobalT = TypeVar('DatabaseParametersVariablesGlobalT', 'rparam.DatabaseParametersVariablesGlobal', 'rparam.DatabaseParametersVariablesGlobalAsync')
-DatabaseParametersStatusGlobalT = TypeVar('DatabaseParametersStatusGlobalT', 'rparam.DatabaseParametersStatusGlobal', 'rparam.DatabaseParametersStatusGlobalAsync')
+DatabaseInformationSchemaT = TypeVar(
+    'DatabaseInformationSchemaT',
+    'rinfo.DatabaseInformationSchema',
+    'rinfo.DatabaseInformationSchemaAsync'
+)
+DatabaseInformationParameterVariablesT = TypeVar(
+    'DatabaseInformationParameterVariablesT',
+    'rinfo.DatabaseInformationParameterVariables',
+    'rinfo.DatabaseInformationParameterVariablesAsync'
+)
+DatabaseInformationParameterStatusT = TypeVar(
+    'DatabaseInformationParameterStatusT',
+    'rinfo.DatabaseInformationParameterStatus',
+    'rinfo.DatabaseInformationParameterStatusAsync'
+)
+DatabaseInformationParameterVariablesGlobalT = TypeVar(
+    'DatabaseInformationParameterVariablesGlobalT',
+    'rinfo.DatabaseInformationParameterVariablesGlobal',
+    'rinfo.DatabaseInformationParameterVariablesGlobalAsync'
+)
+DatabaseInformationParameterStatusGlobalT = TypeVar(
+    'DatabaseInformationParameterStatusGlobalT',
+    'rinfo.DatabaseInformationParameterStatusGlobal',
+    'rinfo.DatabaseInformationParameterStatusGlobalAsync'
+)
 
 
 class DatabaseSuper(
@@ -47,11 +67,11 @@ class DatabaseSuper(
         DatabaseORMT,
         DatabaseBuildT,
         DatabaseConfigT,
-        DatabaseSchemaT,
-        DatabaseParametersVariablesT,
-        DatabaseParametersStatusT,
-        DatabaseParametersVariablesGlobalT,
-        DatabaseParametersStatusGlobalT
+        DatabaseInformationSchemaT,
+        DatabaseInformationParameterVariablesT,
+        DatabaseInformationParameterStatusT,
+        DatabaseInformationParameterVariablesGlobalT,
+        DatabaseInformationParameterStatusGlobalT
     ]
 ):
     """
@@ -70,7 +90,7 @@ class DatabaseSuper(
         max_overflow: int = 10,
         pool_timeout: float = 30.0,
         pool_recycle: int | None = 3600,
-        report: bool = False,
+        echo: bool = False,
         **query: str
     ) -> None:
         """
@@ -89,7 +109,7 @@ class DatabaseSuper(
         pool_recycle : Number of seconds `recycle` connection.
             - `None | Literal[-1]`: No recycle.
             - `int`: Use this value.
-        report : Whether report SQL execute information, not include ORM execute.
+        echo : Whether report SQL execute information, not include ORM execute.
         query : Remote server database parameters.
         """
 
@@ -110,7 +130,7 @@ class DatabaseSuper(
             self.pool_recycle = -1
         else:
             self.pool_recycle = pool_recycle
-        self.report = report
+        self.echo = echo
         self.query = query
 
         ## Schema.
@@ -380,7 +400,7 @@ class DatabaseSuper(
 
 
     @property
-    def schema(self) -> DatabaseSchemaT:
+    def schema(self) -> DatabaseInformationSchemaT:
         """
         Build database schema instance.
 
@@ -392,15 +412,15 @@ class DatabaseSuper(
         # Build.
         match self:
             case Database():
-                schema = rparam.DatabaseSchema(self)
+                schema = rinfo.DatabaseInformationSchema(self)
             case DatabaseAsync():
-                schema = rparam.DatabaseSchemaAsync(self)
+                schema = rinfo.DatabaseInformationSchemaAsync(self)
 
         return schema
 
 
     @property
-    def var(self) -> DatabaseParametersVariablesT:
+    def var(self) -> DatabaseInformationParameterVariablesT:
         """
         Build database parameters variable instance.
 
@@ -412,15 +432,15 @@ class DatabaseSuper(
         # Build.
         match self:
             case Database():
-                var = rparam.DatabaseParametersVariables(self)
+                var = rinfo.DatabaseInformationParameterVariables(self)
             case DatabaseAsync():
-                var = rparam.DatabaseParametersVariablesAsync(self)
+                var = rinfo.DatabaseInformationParameterVariablesAsync(self)
 
         return var
 
 
     @property
-    def stat(self) -> DatabaseParametersVariablesT:
+    def stat(self) -> DatabaseInformationParameterVariablesT:
         """
         Build database parameters status instance.
 
@@ -432,15 +452,15 @@ class DatabaseSuper(
         # Build.
         match self:
             case Database():
-                stat = rparam.DatabaseParametersStatus(self)
+                stat = rinfo.DatabaseInformationParameterStatus(self)
             case DatabaseAsync():
-                stat = rparam.DatabaseParametersStatusAsync(self)
+                stat = rinfo.DatabaseInformationParameterStatusAsync(self)
 
         return stat
 
 
     @property
-    def glob_var(self) -> DatabaseParametersVariablesGlobalT:
+    def glob_var(self) -> DatabaseInformationParameterVariablesGlobalT:
         """
         Build global database parameters variable instance.
 
@@ -452,15 +472,15 @@ class DatabaseSuper(
         # Build.
         match self:
             case Database():
-                var = rparam.DatabaseParametersVariablesGlobal(self)
+                var = rinfo.DatabaseInformationParameterVariablesGlobal(self)
             case DatabaseAsync():
-                var = rparam.DatabaseParametersVariablesGlobalAsync(self)
+                var = rinfo.DatabaseInformationParameterVariablesGlobalAsync(self)
 
         return var
 
 
     @property
-    def glob_stat(self) -> DatabaseParametersStatusGlobalT:
+    def glob_stat(self) -> DatabaseInformationParameterStatusGlobalT:
         """
         Build global database parameters status instance.
 
@@ -472,9 +492,9 @@ class DatabaseSuper(
         # Build.
         match self:
             case Database():
-                stat = rparam.DatabaseParametersStatusGlobal(self)
+                stat = rinfo.DatabaseInformationParameterStatusGlobal(self)
             case DatabaseAsync():
-                stat = rparam.DatabaseParametersStatusGlobalAsync(self)
+                stat = rinfo.DatabaseInformationParameterStatusGlobalAsync(self)
 
         return stat
 
@@ -487,11 +507,11 @@ class Database(
         'rorm.DatabaseORM',
         'rbuild.DatabaseBuild',
         'rconfig.DatabaseConfig',
-        'rparam.DatabaseSchema',
-        'rparam.DatabaseParametersVariables',
-        'rparam.DatabaseParametersStatus',
-        'rparam.DatabaseParametersVariablesGlobal',
-        'rparam.DatabaseParametersStatusGlobal'
+        'rinfo.DatabaseInformationSchema',
+        'rinfo.DatabaseInformationParameterVariables',
+        'rinfo.DatabaseInformationParameterStatus',
+        'rinfo.DatabaseInformationParameterVariablesGlobal',
+        'rinfo.DatabaseInformationParameterStatusGlobal'
     ]
 ):
     """
@@ -507,11 +527,11 @@ class DatabaseAsync(
         'rorm.DatabaseORMAsync',
         'rbuild.DatabaseBuildAsync',
         'rconfig.DatabaseConfigAsync',
-        'rparam.DatabaseSchemaAsync',
-        'rparam.DatabaseParametersVariablesAsync',
-        'rparam.DatabaseParametersStatusAsync',
-        'rparam.DatabaseParametersVariablesGlobalAsync',
-        'rparam.DatabaseParametersStatusGlobalAsync'
+        'rinfo.DatabaseInformationSchemaAsync',
+        'rinfo.DatabaseInformationParameterVariablesAsync',
+        'rinfo.DatabaseInformationParameterStatusAsync',
+        'rinfo.DatabaseInformationParameterVariablesGlobalAsync',
+        'rinfo.DatabaseInformationParameterStatusGlobalAsync'
     ]
 ):
     """

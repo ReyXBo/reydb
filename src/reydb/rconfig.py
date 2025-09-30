@@ -41,7 +41,16 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
     """
     Database config super type.
     Can create database used `self.build_db` method.
+
+    Attributes
+    ----------
+    db_names : Database table name mapping dictionary.
     """
+
+    db_names = {
+        'config': 'config',
+        'stats_config': 'stats_config'
+    }
 
 
     def __init__(self, db: DatabaseT) -> None:
@@ -55,10 +64,6 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
 
         # Build.
         self.db = db
-        self.db_names = {
-            'config': 'config',
-            'stats_config': 'stats_config'
-        }
 
 
     def handle_build_db(self) -> None:

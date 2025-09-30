@@ -36,7 +36,16 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
     """
     Database error super type.
     Can create database used `self.build_db` method.
+
+    Attributes
+    ----------
+    db_names : Database table name mapping dictionary.
     """
+
+    db_names = {
+        'error': 'error',
+        'stats_error': 'stats_error'
+    }
 
 
     def __init__(self, db: DatabaseT) -> None:
@@ -50,10 +59,6 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
 
         # Build.
         self.db = db
-        self.db_names = {
-            'error': 'error',
-            'stats_error': 'stats_error'
-        }
 
 
     def handle_build_db(self) -> None:

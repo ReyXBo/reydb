@@ -17,4 +17,4 @@ from .rdb import *
 from .rerror import *
 from .rexec import *
 from .rorm import *
-from .rparam import *
+from .rinfo import *

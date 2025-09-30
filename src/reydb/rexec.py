@@ -18,7 +18,7 @@ from reykit.rdata import FunctionGenerator
 from reykit.rmonkey import monkey_sqlalchemy_result_more_fetch, monkey_sqlalchemy_row_index_field
 from reykit.rrand import randn
 from reykit.rre import findall
-from reykit.rstdout import echo
+from reykit.rstdout import echo as recho
 from reykit.rtable import TableData, Table
 from reykit.rtime import TimeMark, time_to
 from reykit.rwrap import wrap_runtime
@@ -67,7 +67,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         self,
         sql: str | TextClause,
         data: TableData | None = None,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> tuple[TextClause, list[dict], bool]:
         """
@@ -77,8 +77,8 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         ----------
         sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
         data : Data set for filling.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `Database.report`.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
             - `bool`: Use this value.
         kwdata : Keyword parameters for filling.
 
@@ -88,7 +88,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         """
 
         # Handle parameter.
-        report = get_first_notnone(report, self.conn.db.report)
+        echo = get_first_notnone(echo, self.conn.db.echo)
         sql = handle_sql(sql)
         if data is None:
             if kwdata == {}:
@@ -102,7 +102,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
                 row.update(kwdata)
         data = handle_data(data, sql)
 
-        return sql, data, report
+        return sql, data, echo
 
 
     def handle_select(
@@ -638,7 +638,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         self,
         sql: str | TextClause,
         data: TableData | None = None,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> Result:
         """
@@ -648,8 +648,8 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         ----------
         sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
         data : Data set for filling.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `Database.report`.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
             - `bool`: Use this value.
         kwdata : Keyword parameters for filling.
 
@@ -659,7 +659,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         """
 
         # Handle parameter.
-        sql, data, report = self.handle_execute(sql, data, report, **kwdata)
+        sql, data, echo = self.handle_execute(sql, data, echo, **kwdata)
 
         # Transaction.
         self.conn.get_begin()
@@ -667,7 +667,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         # Execute.
 
         ## Report.
-        if report:
+        if echo:
             execute = wrap_runtime(self.conn.connection.execute, to_return=True, to_print=False)
             result, report_runtime, *_ = execute(sql, data)
             report_info = (
@@ -680,9 +680,9 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
                 if sql_part != ''
             ]
             if data == []:
-                echo(report_info, *sqls, title='SQL')
+                recho(report_info, *sqls, title='SQL')
             else:
-                echo(report_info, *sqls, data, title='SQL')
+                recho(report_info, *sqls, data, title='SQL')
 
         ## Not report.
         else:
@@ -708,7 +708,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         having: str | None = None,
         order: str | None = None,
         limit: int | str | tuple[int, int] | None = None,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> Result:
         """
@@ -732,8 +732,8 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         limit : Clause `LIMIT` content.
             - `int | str`: Join as `LIMIT int/str`.
             - `tuple[int, int]`: Join as `LIMIT int, int`.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `Database.report`.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -759,7 +759,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         sql = self.handle_select(path, fields, where, group, having, order, limit)
 
         # Execute SQL.
-        result = self.execute(sql, report=report, **kwdata)
+        result = self.execute(sql, echo=echo, **kwdata)
 
         return result
 
@@ -769,7 +769,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         path: str | tuple[str, str],
         data: TableData,
         duplicate: Literal['ignore', 'update'] | Container[str] | None = None,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> Result:
         """
@@ -786,8 +786,8 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
             - `ignore`: Use `UPDATE IGNORE INTO` clause.
             - `update`: Use `ON DUPLICATE KEY UPDATE` clause and update all fields.
             - `Container[str]`: Use `ON DUPLICATE KEY UPDATE` clause and update this fields.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `Database.report`.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
         kwdata : Keyword parameters for filling.
             - `str and first character is ':'`: Use this syntax.
             - `Any`: Use this value.
@@ -812,7 +812,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         sql, kwdata = self.handle_insert(path, data, duplicate, **kwdata)
 
         # Execute SQL.
-        result = self.execute(sql, data, report, **kwdata)
+        result = self.execute(sql, data, echo, **kwdata)
 
         return result
 
@@ -822,7 +822,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         path: str | tuple[str, str],
         data: TableData,
         where_fields: str | Iterable[str] | None = None,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> Result:
         """
@@ -845,8 +845,8 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
             - `None`: The first key value pair of each item is judged.
             - `str`: This key value pair of each item is judged.
             - `Iterable[str]`: Multiple judged, `and`: relationship.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `Database.report`.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
         kwdata : Keyword parameters for filling.
             - `str and first character is ':'`: Use this syntax.
             - `Any`: Use this value.
@@ -871,7 +871,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         sql, data = self.handle_update(path, data, where_fields, **kwdata)
 
         # Execute SQL.
-        result = self.execute(sql, data, report)
+        result = self.execute(sql, data, echo)
 
         return result
 
@@ -882,7 +882,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         where: str | None = None,
         order: str | None = None,
         limit: int | str | None = None,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> Result:
         """
@@ -896,8 +896,8 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         where : Clause `WHERE` content, join as `WHERE str`.
         order : Clause `ORDER BY` content, join as `ORDER BY str`.
         limit : Clause `LIMIT` content, join as `LIMIT int/str`.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `Database.report`.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -917,7 +917,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         sql = self.handle_delete(path, where, order, limit)
 
         # Execute SQL.
-        result = self.execute(sql, report=report, **kwdata)
+        result = self.execute(sql, echo=echo, **kwdata)
 
         return result
 
@@ -928,7 +928,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         fields: str | Iterable[str] | None = None,
         where: str | None = None,
         limit: int | str | tuple[int, int] | None = None,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> Result:
         """
@@ -947,6 +947,8 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         limit : Clause `LIMIT` content.
             - `int | str`: Join as `LIMIT int/str`.
             - `tuple[int, int]`: Join as `LIMIT int, int`.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -966,7 +968,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         sql = self.handle_copy(path, fields, where, limit)
 
         # Execute SQL.
-        result = self.execute(sql, report=report, **kwdata)
+        result = self.execute(sql, echo=echo, **kwdata)
 
         return result
 
@@ -975,7 +977,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         self,
         path: str | tuple[str, str],
         where: str | None = None,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> int:
         """
@@ -989,8 +991,8 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         where : Match condition, `WHERE` clause content, join as `WHERE str`.
             - `None`: Match all.
             - `str`: Match condition.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `Database.report`.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1007,7 +1009,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         """
 
         # Execute.
-        result = self.select(path, '1', where=where, report=report, **kwdata)
+        result = self.select(path, '1', where=where, echo=echo, **kwdata)
         count = len(tuple(result))
 
         return count
@@ -1017,7 +1019,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         self,
         path: str | tuple[str, str],
         where: str | None = None,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> bool:
         """
@@ -1031,8 +1033,8 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         where : Match condition, `WHERE` clause content, join as `WHERE str`.
             - `None`: Match all.
             - `str`: Match condition.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `Database.report`.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1051,7 +1053,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         """
 
         # Execute.
-        result = self.count(path, where, report, **kwdata)
+        result = self.count(path, where, echo, **kwdata)
 
         # Judge.
         judge = result != 0
@@ -1063,7 +1065,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         self,
         sql: str | TextClause,
         data: TableData,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> Generator[Result, Any, None]:
         """
@@ -1073,8 +1075,8 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         ----------
         sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
         data : Data set for filling.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `Database.report`.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
             - `bool`: Use this value.
         kwdata : Keyword parameters for filling.
 
@@ -1087,7 +1089,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         func_generator = FunctionGenerator(
             self.execute,
             sql=sql,
-            report=report,
+            echo=echo,
             **kwdata
         )
 
@@ -1102,24 +1104,24 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
 
     @overload
-    def sleep(self, report: bool | None = None) -> int: ...
+    def sleep(self, echo: bool | None = None) -> int: ...
 
     @overload
-    def sleep(self, second: int, report: bool | None = None) -> int: ...
+    def sleep(self, second: int, echo: bool | None = None) -> int: ...
 
     @overload
-    def sleep(self, low: int = 0, high: int = 10, report: bool | None = None) -> int: ...
+    def sleep(self, low: int = 0, high: int = 10, echo: bool | None = None) -> int: ...
 
     @overload
-    def sleep(self, *thresholds: float, report: bool | None = None) -> float: ...
+    def sleep(self, *thresholds: float, echo: bool | None = None) -> float: ...
 
     @overload
-    def sleep(self, *thresholds: float, precision: Literal[0], report: bool | None = None) -> int: ...
+    def sleep(self, *thresholds: float, precision: Literal[0], echo: bool | None = None) -> int: ...
 
     @overload
-    def sleep(self, *thresholds: float, precision: int, report: bool | None = None) -> float: ...
+    def sleep(self, *thresholds: float, precision: int, echo: bool | None = None) -> float: ...
 
-    def sleep(self, *thresholds: float, precision: int | None = None, report: bool | None = None) -> float:
+    def sleep(self, *thresholds: float, precision: int | None = None, echo: bool | None = None) -> float:
         """
         Let the database wait random seconds.
 
@@ -1132,8 +1134,8 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         precision : Precision of random range, that is maximum decimal digits of return value.
             - `None`: Set to Maximum decimal digits of element of parameter `thresholds`.
             - `int`: Set to this value.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `Database.report`.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
             - `bool`: Use this value.
 
         Returns
@@ -1151,7 +1153,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
 
         # Sleep.
         sql = f'SELECT SLEEP({second})'
-        self.execute(sql, report=report)
+        self.execute(sql, echo=echo)
 
         return second
 
@@ -1166,7 +1168,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         self,
         sql: str | TextClause,
         data: TableData | None = None,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> Result:
         """
@@ -1176,9 +1178,8 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         ----------
         sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
         data : Data set for filling.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `DatabaseAsync.report`.
-            - `bool`: Use this value.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1187,7 +1188,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         """
 
         # Handle parameter.
-        sql, data, report = self.handle_execute(sql, data, report, **kwdata)
+        sql, data, echo = self.handle_execute(sql, data, echo, **kwdata)
 
         # Transaction.
         await self.conn.get_begin()
@@ -1195,7 +1196,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         # Execute.
 
         ## Report.
-        if report:
+        if echo:
             tm = TimeMark()
             tm()
             result = await self.conn.connection.execute(sql, data)
@@ -1224,9 +1225,9 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
             ]
 
             if data == []:
-                echo(report_info, *sqls, title='SQL')
+                recho(report_info, *sqls, title='SQL')
             else:
-                echo(report_info, *sqls, data, title='SQL')
+                recho(report_info, *sqls, data, title='SQL')
 
         ## Not report.
         else:
@@ -1253,7 +1254,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         having: str | None = None,
         order: str | None = None,
         limit: int | str | tuple[int, int] | None = None,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> Result:
         """
@@ -1277,8 +1278,8 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         limit : Clause `LIMIT` content.
             - `int | str`: Join as `LIMIT int/str`.
             - `tuple[int, int]`: Join as `LIMIT int, int`.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `Database.report`.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1304,7 +1305,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         sql = self.handle_select(path, fields, where, group, having, order, limit)
 
         # Execute SQL.
-        result = await self.execute(sql, report=report, **kwdata)
+        result = await self.execute(sql, echo=echo, **kwdata)
 
         return result
 
@@ -1314,7 +1315,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         path: str | tuple[str, str],
         data: TableData,
         duplicate: Literal['ignore', 'update'] | Container[str] | None = None,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> Result:
         """
@@ -1331,8 +1332,8 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
             - `ignore`: Use `UPDATE IGNORE INTO` clause.
             - `update`: Use `ON DUPLICATE KEY UPDATE` clause and update all fields.
             - `Container[str]`: Use `ON DUPLICATE KEY UPDATE` clause and update this fields.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `Database.report`.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
         kwdata : Keyword parameters for filling.
             - `str and first character is ':'`: Use this syntax.
             - `Any`: Use this value.
@@ -1357,7 +1358,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         sql, kwdata = self.handle_insert(path, data, duplicate, **kwdata)
 
         # Execute SQL.
-        result = await self.execute(sql, data, report, **kwdata)
+        result = await self.execute(sql, data, echo, **kwdata)
 
         return result
 
@@ -1367,7 +1368,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         path: str | tuple[str, str],
         data: TableData,
         where_fields: str | Iterable[str] | None = None,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> Result:
         """
@@ -1390,8 +1391,8 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
             - `None`: The first key value pair of each item is judged.
             - `str`: This key value pair of each item is judged.
             - `Iterable[str]`: Multiple judged, `and`: relationship.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `Database.report`.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
         kwdata : Keyword parameters for filling.
             - `str and first character is ':'`: Use this syntax.
             - `Any`: Use this value.
@@ -1416,7 +1417,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         sql, data = self.handle_update(path, data, where_fields, **kwdata)
 
         # Execute SQL.
-        result = await self.execute(sql, data, report)
+        result = await self.execute(sql, data, echo)
 
         return result
 
@@ -1427,7 +1428,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         where: str | None = None,
         order: str | None = None,
         limit: int | str | None = None,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> Result:
         """
@@ -1441,8 +1442,8 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         where : Clause `WHERE` content, join as `WHERE str`.
         order : Clause `ORDER BY` content, join as `ORDER BY str`.
         limit : Clause `LIMIT` content, join as `LIMIT int/str`.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `Database.report`.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1462,7 +1463,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         sql = self.handle_delete(path, where, order, limit)
 
         # Execute SQL.
-        result = await self.execute(sql, report=report, **kwdata)
+        result = await self.execute(sql, echo=echo, **kwdata)
 
         return result
 
@@ -1473,7 +1474,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         fields: str | Iterable[str] | None = None,
         where: str | None = None,
         limit: int | str | tuple[int, int] | None = None,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> Result:
         """
@@ -1492,6 +1493,8 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         limit : Clause `LIMIT` content.
             - `int | str`: Join as `LIMIT int/str`.
             - `tuple[int, int]`: Join as `LIMIT int, int`.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1511,7 +1514,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         sql = self.handle_copy(path, fields, where, limit)
 
         # Execute SQL.
-        result = await self.execute(sql, report=report, **kwdata)
+        result = await self.execute(sql, echo=echo, **kwdata)
 
         return result
 
@@ -1520,7 +1523,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         self,
         path: str | tuple[str, str],
         where: str | None = None,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> int:
         """
@@ -1534,8 +1537,8 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         where : Match condition, `WHERE` clause content, join as `WHERE str`.
             - `None`: Match all.
             - `str`: Match condition.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `Database.report`.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1552,7 +1555,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         """
 
         # Execute.
-        result = await self.select(path, '1', where=where, report=report, **kwdata)
+        result = await self.select(path, '1', where=where, echo=echo, **kwdata)
         count = len(tuple(result))
 
         return count
@@ -1562,7 +1565,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         self,
         path: str | tuple[str, str],
         where: str | None = None,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> bool:
         """
@@ -1576,8 +1579,8 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         where : Match condition, `WHERE` clause content, join as `WHERE str`.
             - `None`: Match all.
             - `str`: Match condition.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `Database.report`.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1596,7 +1599,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         """
 
         # Execute.
-        result = await self.count(path, where, report, **kwdata)
+        result = await self.count(path, where, echo, **kwdata)
 
         # Judge.
         judge = result != 0
@@ -1608,7 +1611,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         self,
         sql: str | TextClause,
         data: TableData,
-        report: bool | None = None,
+        echo: bool | None = None,
         **kwdata: Any
     ) -> AsyncGenerator[Result, Any]:
         """
@@ -1618,9 +1621,8 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         ----------
         sql : SQL in method `sqlalchemy.text` format, or `TextClause` object.
         data : Data set for filling.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `DatabaseAsync.report`.
-            - `bool`: Use this value.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
         kwdata : Keyword parameters for filling.
 
         Returns
@@ -1632,7 +1634,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         func_generator = FunctionGenerator(
             self.execute,
             sql=sql,
-            report=report,
+            echo=echo,
             **kwdata
         )
 
@@ -1647,24 +1649,24 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
 
     @overload
-    async def sleep(self, report: bool | None = None) -> int: ...
+    async def sleep(self, echo: bool | None = None) -> int: ...
 
     @overload
-    async def sleep(self, second: int, report: bool | None = None) -> int: ...
+    async def sleep(self, second: int, echo: bool | None = None) -> int: ...
 
     @overload
-    async def sleep(self, low: int = 0, high: int = 10, report: bool | None = None) -> int: ...
+    async def sleep(self, low: int = 0, high: int = 10, echo: bool | None = None) -> int: ...
 
     @overload
-    async def sleep(self, *thresholds: float, report: bool | None = None) -> float: ...
+    async def sleep(self, *thresholds: float, echo: bool | None = None) -> float: ...
 
     @overload
-    async def sleep(self, *thresholds: float, precision: Literal[0], report: bool | None = None) -> int: ...
+    async def sleep(self, *thresholds: float, precision: Literal[0], echo: bool | None = None) -> int: ...
 
     @overload
-    async def sleep(self, *thresholds: float, precision: int, report: bool | None = None) -> float: ...
+    async def sleep(self, *thresholds: float, precision: int, echo: bool | None = None) -> float: ...
 
-    async def sleep(self, *thresholds: float, precision: int | None = None, report: bool | None = None) -> float:
+    async def sleep(self, *thresholds: float, precision: int | None = None, echo: bool | None = None) -> float:
         """
         Asynchronous let the database wait random seconds.
 
@@ -1677,9 +1679,8 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         precision : Precision of random range, that is maximum decimal digits of return value.
             - `None`: Set to Maximum decimal digits of element of parameter `thresholds`.
             - `int`: Set to this value.
-        report : Whether report SQL execute information.
-            - `None`: Use attribute `DatabaseAsync.report`.
-            - `bool`: Use this value.
+        echo : Whether report SQL execute information.
+            - `None`: Use attribute `Database.echo`.
 
         Returns
         -------
@@ -1696,6 +1697,6 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
 
         # Sleep.
         sql = f'SELECT SLEEP({second})'
-        await self.execute(sql, report=report)
+        await self.execute(sql, echo=echo)
 
         return second
