@@ -327,6 +327,28 @@ class DatabaseORMModel(DatabaseORMBase, SQLModel, metaclass=model_metaclass):
         return table
 
 
+    @classmethod
+    def _name(cls_or_self, name: str) -> None:
+        """
+        Set database table name.
+        """
+
+        # Get.
+        table = cls_or_self._table()
+        table.name = name
+
+
+    @classmethod
+    def _comment(cls_or_self, comment: str) -> None:
+        """
+        Set database table comment.
+        """
+
+        # Get.
+        table = cls_or_self._table()
+        table.comment = comment
+
+
     @property
     def _m(self):
         """

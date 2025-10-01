@@ -39,12 +39,23 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
     Attributes
     ----------
     db_names : Database table name mapping dictionary.
+    Error : Database `error` table model.
     """
 
     db_names = {
         'error': 'error',
         'stats_error': 'stats_error'
     }
+
+
+    class Error(rorm.Model, table=True):
+        __comment__ = 'Error log table.'
+        create_time: rorm.Datetime = rorm.Field(field_default='CURRENT_TIMESTAMP', not_null=True, index_n=True, comment='Record create time.')
+        id: int = rorm.Field(field_type=rorm.types_mysql.INTEGER(unsigned=True), key_auto=True, comment='ID.')
+        type: str = rorm.Field(field_type=rorm.types.VARCHAR(50), not_null=True, index_n=True, comment='Error type.')
+        data: str = rorm.Field(field_type=rorm.types.JSON, comment='Error data.')
+        stack: str = rorm.Field(field_type=rorm.types.JSON, comment='Error code traceback stack.')
+        note: str = rorm.Field(field_type=rorm.types.VARCHAR(500), comment='Error note.')
 
 
     def __init__(self, db: DatabaseT) -> None:
@@ -60,24 +71,20 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
         self.db = db
 
 
-    def handle_build_db(self) -> None:
+    def handle_build_db(self) -> tuple[list[type[Error]], list[dict[str, Any]]]:
         """
         Handle method of check and build database tables, by `self.db_names`.
+
+        Returns
+        -------
+        Build database parameter.
         """
 
         # Set parameter.
+        self.Error._name(self.db_names['error'])
 
         ## Table.
-        class error(rorm.Model, table=True):
-            __name__ = self.db_names['error']
-            __comment__ = 'Error log table.'
-            create_time: rorm.Datetime = rorm.Field(field_default='CURRENT_TIMESTAMP', not_null=True, index_n=True, comment='Record create time.')
-            id: int = rorm.Field(field_type=rorm.types_mysql.INTEGER(unsigned=True), key_auto=True, comment='ID.')
-            type: str = rorm.Field(field_type=rorm.types.VARCHAR(50), not_null=True, index_n=True, comment='Error type.')
-            data: str = rorm.Field(field_type=rorm.types.JSON, comment='Error data.')
-            stack: str = rorm.Field(field_type=rorm.types.JSON, comment='Error code traceback stack.')
-            note: str = rorm.Field(field_type=rorm.types.VARCHAR(500), comment='Error note.')
-        tables = [error]
+        tables = [self.Error]
 
         ## View stats.
         views_stats = [

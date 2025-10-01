@@ -255,7 +255,7 @@ class DatabaseInformationSchema(DatabaseInformationSchemaSuper['rdb.Database']):
         self,
         database: str,
         *,
-        refresh: bool = True
+        cache: bool = True
     ) -> bool: ...
 
     @overload
@@ -264,7 +264,7 @@ class DatabaseInformationSchema(DatabaseInformationSchemaSuper['rdb.Database']):
         database: str,
         *,
         table: str,
-        refresh: bool = True
+        cache: bool = True
     ) -> bool: ...
 
     @overload
@@ -273,7 +273,7 @@ class DatabaseInformationSchema(DatabaseInformationSchemaSuper['rdb.Database']):
         database: str,
         table: str,
         column: str,
-        refresh: bool = True
+        cache: bool = True
     ) -> bool: ...
 
     def exist(
@@ -281,7 +281,7 @@ class DatabaseInformationSchema(DatabaseInformationSchemaSuper['rdb.Database']):
         database: str,
         table: str | None = None,
         column: str | None = None,
-        refresh: bool = True
+        cache: bool = True
     ) -> bool:
         """
         Judge database or table or column whether it exists.
@@ -291,7 +291,7 @@ class DatabaseInformationSchema(DatabaseInformationSchemaSuper['rdb.Database']):
         database : Database name.
         table : Table name.
         column : Column name.
-        refresh : Whether refresh cache data. Cache can improve efficiency.
+        cache : Whether use cache data, can improve efficiency.
 
         Returns
         -------
@@ -300,12 +300,12 @@ class DatabaseInformationSchema(DatabaseInformationSchemaSuper['rdb.Database']):
 
         # Set parameter.
         if (
-            refresh
-            or self.db._schema is None
+            cache
+            and self.db._schema is not None
         ):
-            schema = self.schema()
-        else:
             schema = self.db._schema
+        else:
+            schema = self.schema()
 
         # Judge.
         result = self.handle_exist(schema, database, table, column)

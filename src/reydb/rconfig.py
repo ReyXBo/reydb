@@ -9,7 +9,7 @@
 """
 
 
-from typing import TypedDict, TypeVar, Generic
+from typing import Any, TypedDict, TypeVar, Generic
 from datetime import (
     datetime as Datetime,
     date as Date,
@@ -45,12 +45,23 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
     Attributes
     ----------
     db_names : Database table name mapping dictionary.
+    Config : Database `config` table model.
     """
 
     db_names = {
         'config': 'config',
         'stats_config': 'stats_config'
     }
+
+
+    class Config(rorm.Model, table=True):
+        __comment__ = 'Config data table.'
+        create_time: rorm.Datetime = rorm.Field(field_default='CURRENT_TIMESTAMP', not_null=True, index_n=True, comment='Config create time.')
+        update_time: rorm.Datetime = rorm.Field(field_default='CURRENT_TIMESTAMP', index_n=True, comment='Config update time.')
+        key: str = rorm.Field(field_type=rorm.types.VARCHAR(50), key=True, comment='Config key.')
+        value: str = rorm.Field(field_type=rorm.types.TEXT, not_null=True, comment='Config value.')
+        type: str = rorm.Field(field_type=rorm.types.VARCHAR(50), not_null=True, comment='Config value type.')
+        note: str = rorm.Field(field_type=rorm.types.VARCHAR(500), comment='Config note.')
 
 
     def __init__(self, db: DatabaseT) -> None:
@@ -66,24 +77,20 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
         self.db = db
 
 
-    def handle_build_db(self) -> None:
+    def handle_build_db(self) -> tuple[list[type[Config]], list[dict[str, Any]]] :
         """
         Handle method of check and build database tables, by `self.db_names`.
+
+        Returns
+        -------
+        Build database parameter.
         """
 
         # Set parameter.
+        self.Config._name(self.db_names['config'])
 
         ## Table.
-        class Config(rorm.Model, table=True):
-            __name__ = self.db_names['config']
-            __comment__ = 'Config data table.'
-            create_time: rorm.Datetime = rorm.Field(field_default='CURRENT_TIMESTAMP', not_null=True, index_n=True, comment='Config create time.')
-            update_time: rorm.Datetime = rorm.Field(field_default='CURRENT_TIMESTAMP', index_n=True, comment='Config update time.')
-            key: str = rorm.Field(field_type=rorm.types.VARCHAR(50), key=True, comment='Config key.')
-            value: str = rorm.Field(field_type=rorm.types.TEXT, not_null=True, comment='Config value.')
-            type: str = rorm.Field(field_type=rorm.types.VARCHAR(50), not_null=True, comment='Config value type.')
-            note: str = rorm.Field(field_type=rorm.types.VARCHAR(500), comment='Config note.')
-        tables = [Config]
+        tables = [self.Config]
 
         ## View stats.
         views_stats = [
