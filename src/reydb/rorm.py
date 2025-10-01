@@ -103,10 +103,11 @@ class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
         kwargs : Type other key arguments.
         """
 
-        # Handle parameter.
+        # Set parameter.
         if '__annotations__' in attrs:
             table_args = attrs.setdefault('__table_args__', {})
             table_args['quote'] = True
+            table_name = name.lower()
 
             ## Charset.
             attrs.setdefault('__charset__', 'utf8mb4')
@@ -114,7 +115,7 @@ class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
 
             ## Name.
             if '__name__' in attrs:
-                attrs['__tablename__'] = attrs.pop('__name__')
+                attrs['__tablename__'] = table_name = attrs.pop('__name__')
 
             ## Comment.
             if '__comment__' in attrs:
@@ -128,10 +129,41 @@ class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
                 sa_column_kwargs: dict = field.sa_column_kwargs
                 sa_column_kwargs.setdefault('name', __name__)
 
+            ## Unique.
+            table = default_registry.metadata.tables.get(table_name)
+            if table is not None:
+                default_registry.metadata.remove(table)
+
         # Super.
         new_cls = super().__new__(cls, name, bases, attrs, **kwargs)
 
         return new_cls
+
+
+    def __init__(
+        cls,
+        name: str,
+        bases: tuple[Type],
+        attrs: dict[str, Any],
+        **kwargs: Any
+    ) -> None:
+        """
+        Build type attributes.
+        """
+
+        # Super.
+        super().__init__(name, bases, attrs, **kwargs)
+
+        # Set parameter.
+        if '__annotations__' in attrs:
+            table: Table = cls.__table__
+            for index in table.indexes:
+                index_name_prefix = ['u_', 'n_'][index.unique]
+                index_name = index_name_prefix + '_'.join(
+                    column.key
+                    for column in index.expressions
+                )
+                index.name = index_name
 
 
 class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
@@ -214,7 +246,7 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
         **kwargs : Other key arguments.
         """
 
-        # Handle parameter.
+        # Set parameter.
         kwargs = {
             key: value
             for key, value in kwargs.items()
@@ -578,7 +610,7 @@ class DatabaseORMSessionSuper(
         Instance.
         """
 
-        # Handle parameter.
+        # Set parameter.
         if is_instance(model):
             model = type(model)
 
@@ -605,7 +637,7 @@ class DatabaseORMSessionSuper(
         Instance.
         """
         print(model)
-        # Handle parameter.
+        # Set parameter.
         if is_instance(model):
             model = type(model)
 
@@ -632,7 +664,7 @@ class DatabaseORMSessionSuper(
         Instance.
         """
 
-        # Handle parameter.
+        # Set parameter.
         if is_instance(model):
             model = type(model)
 
@@ -659,7 +691,7 @@ class DatabaseORMSessionSuper(
         Instance.
         """
 
-        # Handle parameter.
+        # Set parameter.
         if is_instance(model):
             model = type(model)
 
@@ -846,7 +878,7 @@ class DatabaseORMSession(
         skip : Whether skip existing table.
         """
 
-        # Handle parameter.
+        # Set parameter.
         tables = [
             model._get_table()
             for model in models
@@ -875,7 +907,7 @@ class DatabaseORMSession(
         skip : Skip not exist table.
         """
 
-        # Handle parameter.
+        # Set parameter.
         tables = [
             model._get_table()
             for model in models
@@ -906,7 +938,7 @@ class DatabaseORMSession(
         With records ORM model instance or null.
         """
 
-        # Handle parameter.
+        # Set parameter.
         if is_instance(model):
             model = type(model)
 
@@ -940,7 +972,7 @@ class DatabaseORMSession(
         With records ORM model instance list.
         """
 
-        # Handle parameter.
+        # Set parameter.
         if is_instance(model):
             model = type(model)
 
@@ -968,7 +1000,7 @@ class DatabaseORMSession(
         With records ORM model instance list.
         """
 
-        # Handle parameter.
+        # Set parameter.
         if is_instance(model):
             model = type(model)
 
@@ -1212,7 +1244,7 @@ class DatabaseORMSessionAsync(
         skip : Whether skip existing table.
         """
 
-        # Handle parameter.
+        # Set parameter.
         tables = [
             model._get_table()
             for model in models
@@ -1242,7 +1274,7 @@ class DatabaseORMSessionAsync(
         skip : Skip not exist table.
         """
 
-        # Handle parameter.
+        # Set parameter.
         tables = [
             model._get_table()
             for model in models
@@ -1274,7 +1306,7 @@ class DatabaseORMSessionAsync(
         With records ORM model instance or null.
         """
 
-        # Handle parameter.
+        # Set parameter.
         if is_instance(model):
             model = type(model)
 
@@ -1308,7 +1340,7 @@ class DatabaseORMSessionAsync(
         With records ORM model instance list.
         """
 
-        # Handle parameter.
+        # Set parameter.
         if is_instance(model):
             model = type(model)
 
@@ -1336,7 +1368,7 @@ class DatabaseORMSessionAsync(
         With records ORM model instance list.
         """
 
-        # Handle parameter.
+        # Set parameter.
         if is_instance(model):
             model = type(model)
 

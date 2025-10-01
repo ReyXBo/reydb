@@ -24,7 +24,7 @@ from .rbase import DatabaseBase
 
 
 __all__ = (
-    'TableConfig',
+    'DatabaseTableConfig',
     'DatabaseConfigSuper',
     'DatabaseConfig',
     'DatabaseConfigAsync'
@@ -38,7 +38,7 @@ ConfigValueT = TypeVar('T', bound=ConfigValue) # Any.
 DatabaseT = TypeVar('DatabaseT', 'rdb.Database', 'rdb.DatabaseAsync')
 
 
-class TableConfig(rorm.Model, table=True):
+class DatabaseTableConfig(rorm.Model, table=True):
     """
     Database `config` table model.
     """
@@ -81,7 +81,7 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
         self.db = db
 
 
-    def handle_build_db(self) -> tuple[list[type[TableConfig]], list[dict[str, Any]]] :
+    def handle_build_db(self) -> tuple[list[type[DatabaseTableConfig]], list[dict[str, Any]]] :
         """
         Handle method of check and build database tables, by `self.db_names`.
 
@@ -91,10 +91,10 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
         """
 
         # Set parameter.
-        TableConfig._set_name(self.db_names['config'])
 
         ## Table.
-        tables = [TableConfig]
+        DatabaseTableConfig._set_name(self.db_names['config'])
+        tables = [DatabaseTableConfig]
 
         ## View stats.
         views_stats = [

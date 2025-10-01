@@ -22,7 +22,7 @@ from .rbase import DatabaseBase
 
 
 __all__ = (
-    'TableError',
+    'DatabaseTableError',
     'DatabaseErrorSuper',
     'DatabaseError',
     'DatabaseErrorAsync'
@@ -32,7 +32,7 @@ __all__ = (
 DatabaseT = TypeVar('DatabaseT', 'rdb.Database', 'rdb.DatabaseAsync')
 
 
-class TableError(rorm.Model, table=True):
+class DatabaseTableError(rorm.Model, table=True):
     """
     Database `error` table model.
     """
@@ -75,7 +75,7 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
         self.db = db
 
 
-    def handle_build_db(self) -> tuple[list[type[TableError]], list[dict[str, Any]]]:
+    def handle_build_db(self) -> tuple[list[type[DatabaseTableError]], list[dict[str, Any]]]:
         """
         Handle method of check and build database tables, by `self.db_names`.
 
@@ -85,10 +85,10 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
         """
 
         # Set parameter.
-        TableError._set_name(self.db_names['error'])
 
         ## Table.
-        tables = [TableError]
+        DatabaseTableError._set_name(self.db_names['error'])
+        tables = [DatabaseTableError]
 
         ## View stats.
         views_stats = [
