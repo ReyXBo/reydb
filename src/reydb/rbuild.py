@@ -11,6 +11,7 @@
 
 from typing import TypedDict, NotRequired, Literal, Type, TypeVar, Generic
 from copy import deepcopy
+from sqlalchemy import UniqueConstraint
 from reykit.rbase import throw, is_instance
 from reykit.rstdout import ask
 
@@ -2487,7 +2488,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
                     if column.autoincrement
                     else ' | KEY'
                 ) + (
-                    f" | DEFAULT '{column.server_default.arg}'"
+                    f" | DEFAULT {column.server_default.arg}"
                     if column.server_default
                     else ''
                 ) + (
@@ -2500,20 +2501,34 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         )
 
         ## Index.
-        if (table.indexes):
+        if table.indexes:
             text += '\n' + '\n'.join(
                 [
-                    (
-                        '    UNIQUE'
-                        if index.unique
-                        else '    NORMAL'
-                    ) + f' INDEX `{index.name}` : ' + ', '.join(
+                    '    NORMAL INDEX: ' + ', '.join(
                         [
                             f'`{column.name}`'
                             for column in index.expressions
                         ]
                     )
                     for index in table.indexes
+                ]
+            )
+
+        ## Constraint.
+        if table.constraints:
+            text += '\n' + '\n'.join(
+                [
+                    (
+                        '    UNIQUE CONSTRAIN: '
+                        if type(constraint) == UniqueConstraint
+                        else '    PRIMARY KEY CONSTRAIN: '
+                    ) + ', '.join(
+                        [
+                            f'`{column.name}`'
+                            for column in constraint.columns
+                        ]
+                    )
+                    for constraint in table.constraints
                 ]
             )
 

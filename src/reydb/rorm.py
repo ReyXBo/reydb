@@ -166,8 +166,7 @@ class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
         ):
             table: Table = cls.__table__
             for index in table.indexes:
-                index_name_prefix = ['u_', 'n_'][index.unique]
-                index_name = index_name_prefix + '_'.join(
+                index_name = '_'.join(
                     column.key
                     for column in index.expressions
                 )
