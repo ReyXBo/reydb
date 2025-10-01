@@ -21,12 +21,13 @@ from sqlalchemy import types
 from sqlalchemy.dialects.mysql import types as types_mysql
 from sqlalchemy.sql.sqltypes import TypeEngine
 from sqlalchemy.sql.dml import Insert, Update, Delete
+from sqlalchemy.sql import func as sqlalchemy_func
 from sqlmodel import SQLModel, Session, Table
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.main import SQLModelMetaclass, FieldInfo, default_registry
 from sqlmodel.sql._expression_select_cls import SelectOfScalar as Select
 from datetime import datetime, date, time, timedelta
-from reykit.rbase import CallableT, Null, throw, is_instance
+from reykit.rbase import CallableT, throw, is_instance
 
 from . import rdb
 from .rbase import (
@@ -122,14 +123,18 @@ class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
                 table_args['comment'] = attrs.pop('__comment__')
 
             ## Field.
-            for __name__ in attrs['__annotations__']:
-                field = attrs.get(__name__)
-                if field is None:
-                    field = attrs[__name__] = DatabaseORMModelField()
+            for attr_name in attrs['__annotations__']:
+                attr_name: str
+                if attr_name in attrs:
+                    field = attrs[attr_name]
+                    if type(field) != DatabaseORMModelField:
+                        field = attrs[attr_name] = DatabaseORMModelField(field)
+                else:
+                    field = attrs[attr_name] = DatabaseORMModelField()
                 sa_column_kwargs: dict = field.sa_column_kwargs
-                sa_column_kwargs.setdefault('name', __name__)
+                sa_column_kwargs.setdefault('name', attr_name)
 
-            ## Unique.
+            ## Replace.
             table = default_registry.metadata.tables.get(table_name)
             if table is not None:
                 default_registry.metadata.remove(table)
@@ -155,7 +160,10 @@ class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
         super().__init__(name, bases, attrs, **kwargs)
 
         # Set parameter.
-        if '__annotations__' in attrs:
+        if (
+            '__annotations__' in attrs
+            and hasattr(cls, '__table__')
+        ):
             table: Table = cls.__table__
             for index in table.indexes:
                 index_name_prefix = ['u_', 'n_'][index.unique]
@@ -180,12 +188,12 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
     @overload
     def __init__(
         self,
-        arg_default: Any | Callable[[], Any] | Null = Null,
-        *,
-        arg_name: str | None = None,
-        field_default: str | Literal['CURRENT_TIMESTAMP'] | Literal['ON UPDATE CURRENT_TIMESTAMP'] | None = None,
-        filed_name: str | None = None,
         field_type: TypeEngine | None = None,
+        *,
+        field_default: str | Literal[':time'] | Literal[':create_time'] | Literal[':update_time'] = None,
+        arg_default: Any | Callable[[], Any] | None = None,
+        arg_update: Any | Callable[[], Any] = None,
+        name: str | None = None,
         key: bool = False,
         key_auto: bool = False,
         not_null: bool = False,
@@ -208,7 +216,7 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
 
     def __init__(
         self,
-        arg_default: Any | Callable[[], Any] | Null = Null,
+        field_type: TypeEngine | None = None,
         **kwargs: Any
     ) -> None:
         """
@@ -216,19 +224,22 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
 
         Parameters
         ----------
-        arg_default : Call argument default value.
-        arg_name : Call argument name.
-            - `None`: Same as attribute name.
-        field_default : Database field defualt value.
-            - `Literal['current_timestamp']`: Set SQL syntax 'current_timestamp', case insensitive.
-            - `Literal['on update current_timestamp']`: Set SQL syntax 'on update current_timestamp', case insensitive.
-        field_name : Database field name.
-            - `None`: Same as attribute name.
         field_type : Database field type.
             - `None`: Based type annotation automatic judgment.
+        field_default : Database field defualt value.
+            - `Literal[':time']`: Set SQL syntax 'DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'.
+            - `Literal[':create_time']`: Set SQL syntax 'DEFAULT CURRENT_TIMESTAMP'.
+            - `Literal[':update_time']`: Set SQL syntax 'ON UPDATE CURRENT_TIMESTAMP'.
+        arg_default : Call argument default value.
+            - `Callable[[], Any]`: Call function and use return value.
+        arg_update : In `Session` management, When commit update record, then default value is this value.
+            - `Callable[[], Any]`: Call function and use return value.
+        name : Call argument name and database field name.
+            - `None`: Same as attribute name.
         key : Whether the field is primary key.
-        key_auto : Whether the field is automatic increment primary key.
+        key_auto : Whether the field is primary key and automatic increment.
         not_null : Whether the field is not null constraint.
+            - `Litreal[False]`: When argument `arg_default` is `Null`, then set argument `arg_default` is `None`.
         index_n : Whether the field add normal index.
         index_u : Whether the field add unique index.
         comment : Field commment.
@@ -257,7 +268,6 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
 
         ## Convert argument name.
         mapping_keys = {
-            'arg_name': 'alias',
             'key': 'primary_key',
             'index_n': 'index',
             'index_u': 'unique',
@@ -272,7 +282,6 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
             'num_places': 'max_digits',
             'num_places_dec': 'decimal_places'
         }
-
         for key_old, key_new in mapping_keys.items():
             if type(key_new) != tuple:
                 key_new = (key_new,)
@@ -281,30 +290,13 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
                 for key in key_new:
                     kwargs[key] = value
 
-        ## Argument default.
-        if (
-            arg_default != Null
-            and callable(arg_default)
-        ):
-            kwargs['default_factory'] = arg_default
-        else:
-            kwargs['default'] = arg_default
-
-        ## Field default.
-        if 'field_default' in kwargs:
-            field_default: str = kwargs.pop('field_default')
-            field_default_upper = field_default.upper()
-            if field_default_upper in ('CURRENT_TIMESTAMP', 'ON UPDATE CURRENT_TIMESTAMP'):
-                field_default = sqlalchemy_text(field_default_upper)
-            kwargs['sa_column_kwargs']['server_default'] = field_default
-
-        ## Field name.
-        if 'field_name' in kwargs:
-            kwargs['sa_column_kwargs']['name'] = kwargs.pop('field_name')
-
         ## Field type.
-        if 'field_type' in kwargs:
-            kwargs['sa_type'] = kwargs.pop('field_type')
+        if field_type is not None:
+            kwargs['sa_type'] = field_type
+
+        ## Name.
+        if 'name' in kwargs:
+            kwargs['alias'] = kwargs['sa_column_kwargs']['name'] = kwargs.pop('field_name')
 
         ## Key auto.
         if kwargs.get('key_auto'):
@@ -313,11 +305,44 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
         else:
             kwargs['sa_column_kwargs']['autoincrement'] = False
 
+        ## Key.
+        if kwargs.get('primary_key'):
+            kwargs['nullable'] = False
+
         ## Non null.
         if 'not_null' in kwargs:
             kwargs['nullable'] = not kwargs.pop('not_null')
         else:
             kwargs['nullable'] = True
+
+        ## Field default.
+        if 'field_default' in kwargs:
+            field_default: str = kwargs.pop('field_default')
+            if field_default == ':time':
+                field_default = sqlalchemy_text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
+            if field_default == ':create_time':
+                field_default = sqlalchemy_text('CURRENT_TIMESTAMP')
+            elif field_default == ':update_time':
+                if kwargs['nullable']:
+                    field_default = sqlalchemy_text('NULL ON UPDATE CURRENT_TIMESTAMP')
+                else:
+                    field_default = sqlalchemy_text('NOT NULL ON UPDATE CURRENT_TIMESTAMP')
+            kwargs['sa_column_kwargs']['server_default'] = field_default
+
+        ## Argument default.
+        arg_default = kwargs.pop('arg_default', None)
+        if arg_default is not None:
+            if callable(arg_default):
+                kwargs['default_factory'] = arg_default
+            else:
+                kwargs['default'] = arg_default
+        elif kwargs['nullable']:
+            kwargs['default'] = None
+
+        ## Argument update.
+        if 'arg_update' in kwargs:
+            arg_update = kwargs.pop('arg_update')
+            kwargs['sa_column_kwargs']['onupdate'] = arg_update
 
         ## Comment.
         if 'comment' in kwargs:
@@ -1645,6 +1670,9 @@ types = types
 
 ## Database ORM model MySQL filed types.
 types_mysql = types_mysql
+
+## Database ORM model functions.
+funcs = sqlalchemy_func
 
 ## Create decorator of validate database ORM model.
 wrap_validate_model = pydantic_model_validator

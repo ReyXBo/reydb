@@ -38,12 +38,12 @@ class DatabaseTableError(rorm.Model, table=True):
     """
 
     __comment__ = 'Error log table.'
-    create_time: rorm.Datetime = rorm.Field(field_default='CURRENT_TIMESTAMP', not_null=True, index_n=True, comment='Record create time.')
-    id: int = rorm.Field(field_type=rorm.types_mysql.INTEGER(unsigned=True), key_auto=True, comment='ID.')
-    type: str = rorm.Field(field_type=rorm.types.VARCHAR(50), not_null=True, index_n=True, comment='Error type.')
-    data: str = rorm.Field(field_type=rorm.types.JSON, comment='Error data.')
-    stack: str = rorm.Field(field_type=rorm.types.JSON, comment='Error code traceback stack.')
-    note: str = rorm.Field(field_type=rorm.types.VARCHAR(500), comment='Error note.')
+    create_time: rorm.Datetime = rorm.Field(field_default=':create_time', not_null=True, index_n=True, comment='Record create time.')
+    id: int = rorm.Field(rorm.types_mysql.INTEGER(unsigned=True), key_auto=True, comment='ID.')
+    type: str = rorm.Field(rorm.types.VARCHAR(50), not_null=True, index_n=True, comment='Error type.')
+    data: str = rorm.Field(rorm.types.JSON, comment='Error data.')
+    stack: str = rorm.Field(rorm.types.JSON, comment='Error code traceback stack.')
+    note: str = rorm.Field(rorm.types.VARCHAR(500), comment='Error note.')
 
 
 class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):

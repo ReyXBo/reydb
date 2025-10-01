@@ -44,12 +44,12 @@ class DatabaseTableConfig(rorm.Model, table=True):
     """
 
     __comment__ = 'Config data table.'
-    create_time: rorm.Datetime = rorm.Field(field_default='CURRENT_TIMESTAMP', not_null=True, index_n=True, comment='Config create time.')
-    update_time: rorm.Datetime = rorm.Field(field_default='ON UPDATE CURRENT_TIMESTAMP', index_n=True, comment='Config update time.')
-    key: str = rorm.Field(field_type=rorm.types.VARCHAR(50), key=True, comment='Config key.')
-    value: str = rorm.Field(field_type=rorm.types.TEXT, not_null=True, comment='Config value.')
-    type: str = rorm.Field(field_type=rorm.types.VARCHAR(50), not_null=True, comment='Config value type.')
-    note: str = rorm.Field(field_type=rorm.types.VARCHAR(500), comment='Config note.')
+    create_time: rorm.Datetime = rorm.Field(field_default=':create_time', not_null=True, index_n=True, comment='Config create time.')
+    update_time: rorm.Datetime = rorm.Field(field_default=':update_time', index_n=True, comment='Config update time.')
+    key: str = rorm.Field(rorm.types.VARCHAR(50), key=True, comment='Config key.')
+    value: str = rorm.Field(rorm.types.TEXT, not_null=True, comment='Config value.')
+    type: str = rorm.Field(rorm.types.VARCHAR(50), not_null=True, comment='Config value type.')
+    note: str = rorm.Field(rorm.types.VARCHAR(500), comment='Config note.')
 
 
 class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
