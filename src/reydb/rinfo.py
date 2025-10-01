@@ -75,7 +75,7 @@ class DatabaseInformationSchemaSuper(DatabaseInformationBase, Generic[DatabaseT]
         Parameter `sql` and `filter_db`.
         """
 
-        # Handle parameter.
+        # Set parameter.
         filter_db = (
             'information_schema',
             'performance_schema',
@@ -193,7 +193,7 @@ class DatabaseInformationSchemaSuper(DatabaseInformationBase, Generic[DatabaseT]
         Judge result.
         """
 
-        # Handle parameter.
+        # Set parameter.
 
         # Judge.
         judge = (
@@ -298,7 +298,7 @@ class DatabaseInformationSchema(DatabaseInformationSchemaSuper['rdb.Database']):
         Judge result.
         """
 
-        # Handle parameter.
+        # Set parameter.
         if (
             refresh
             or self.db._schema is None
@@ -395,7 +395,7 @@ class DatabaseInformationSchemaAsync(DatabaseInformationSchemaSuper['rdb.Databas
         Judge result.
         """
 
-        # Handle parameter.
+        # Set parameter.
         if (
             refresh
             or self.db._schema is None

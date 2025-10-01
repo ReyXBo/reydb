@@ -19,8 +19,8 @@ from datetime import (
 from reykit.rbase import Null, throw
 
 from . import rdb
+from . import rorm
 from .rbase import DatabaseBase
-from .rorm import DatabaseORM as orm
 
 
 __all__ = (
@@ -71,19 +71,18 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
         Handle method of check and build database tables, by `self.db_names`.
         """
 
-        # Handle parameter.
+        # Set parameter.
 
         ## Table.
-        class Config(orm.Model, table=True):
+        class Config(rorm.Model, table=True):
             __name__ = self.db_names['config']
             __comment__ = 'Config data table.'
-            create_time: Datetime = orm.Field(field_default='CURRENT_TIMESTAMP', not_null=True, index_n=True, comment='Config create time.')
-            update_time: Datetime = orm.Field(field_default='CURRENT_TIMESTAMP', index_n=True, comment='Config update time.')
-            key: str = orm.Field(field_type=orm.types.VARCHAR(50), key=True, not_null=True, comment='Config key.')
-            value: str = orm.Field(field_type=orm.types.TEXT, not_null=True, comment='Config value.')
-            type: str = orm.Field(field_type=orm.types.VARCHAR(50), not_null=True, comment='Config value type.')
-            note: str = orm.Field(field_type=orm.types.VARCHAR(500), comment='Config note.')
-
+            create_time: rorm.Datetime = rorm.Field(field_default='CURRENT_TIMESTAMP', not_null=True, index_n=True, comment='Config create time.')
+            update_time: rorm.Datetime = rorm.Field(field_default='CURRENT_TIMESTAMP', index_n=True, comment='Config update time.')
+            key: str = rorm.Field(field_type=rorm.types.VARCHAR(50), key=True, comment='Config key.')
+            value: str = rorm.Field(field_type=rorm.types.TEXT, not_null=True, comment='Config value.')
+            type: str = rorm.Field(field_type=rorm.types.VARCHAR(50), not_null=True, comment='Config value type.')
+            note: str = rorm.Field(field_type=rorm.types.VARCHAR(500), comment='Config note.')
         tables = [Config]
 
         ## View stats.
@@ -142,7 +141,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         Check and build database tables, by `self.db_names`.
         """
 
-        # Handle parameter.
+        # Set parameter.
         tables, views_stats = self.handle_build_db()
 
         # Build.
@@ -265,7 +264,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
             - `ConfigTable`: Config key and value and note.
         """
 
-        # Handle parameter.
+        # Set parameter.
         if type(data) == dict:
             data = [
                 {
@@ -426,7 +425,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         value : Config value.
         """
 
-        # Handle parameter.
+        # Set parameter.
         if type(key_note) != str:
             key, note = key_note
         else:
@@ -467,7 +466,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
         Asynchronous check and build database tables, by `self.db_names`.
         """
 
-        # Handle parameter.
+        # Set parameter.
         tables, views_stats = self.handle_build_db()
 
         # Build.
@@ -590,7 +589,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
             - `ConfigTable`: Config key and value and note.
         """
 
-        # Handle parameter.
+        # Set parameter.
         if type(data) == dict:
             data = [
                 {
@@ -751,7 +750,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
         value : Config value.
         """
 
-        # Handle parameter.
+        # Set parameter.
         if type(key_note) != str:
             key, note = key_note
         else:

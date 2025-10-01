@@ -14,12 +14,11 @@ from collections.abc import Callable
 from inspect import iscoroutinefunction
 from traceback import StackSummary
 from functools import wraps as functools_wraps
-from datetime import datetime as Datetime
 from reykit.rbase import T, Exit, catch_exc
 
 from . import rdb
+from . import rorm
 from .rbase import DatabaseBase
-from .rorm import DatabaseORM as orm
 
 
 __all__ = (
@@ -66,18 +65,18 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
         Handle method of check and build database tables, by `self.db_names`.
         """
 
-        # Handle parameter.
+        # Set parameter.
 
         ## Table.
-        class error(orm.Model, table=True):
+        class error(rorm.Model, table=True):
             __name__ = self.db_names['error']
             __comment__ = 'Error log table.'
-            create_time: Datetime = orm.Field(field_default='CURRENT_TIMESTAMP', not_null=True, index_n=True, comment='Record create time.')
-            id: int = orm.Field(field_name='idd', field_type=orm.types_mysql.INTEGER(unsigned=True), key=True, key_auto=True, not_null=True, comment='ID.')
-            type: str = orm.Field(field_type=orm.types.VARCHAR(50), not_null=True, index_n=True, comment='Error type.')
-            data: str = orm.Field(field_type=orm.types.JSON, comment='Error data.')
-            stack: str = orm.Field(field_type=orm.types.JSON, comment='Error code traceback stack.')
-            note: str = orm.Field(field_type=orm.types.VARCHAR(500), comment='Error note.')
+            create_time: rorm.Datetime = rorm.Field(field_default='CURRENT_TIMESTAMP', not_null=True, index_n=True, comment='Record create time.')
+            id: int = rorm.Field(field_type=rorm.types_mysql.INTEGER(unsigned=True), key_auto=True, comment='ID.')
+            type: str = rorm.Field(field_type=rorm.types.VARCHAR(50), not_null=True, index_n=True, comment='Error type.')
+            data: str = rorm.Field(field_type=rorm.types.JSON, comment='Error data.')
+            stack: str = rorm.Field(field_type=rorm.types.JSON, comment='Error code traceback stack.')
+            note: str = rorm.Field(field_type=rorm.types.VARCHAR(500), comment='Error note.')
         tables = [error]
 
         ## View stats.
@@ -151,7 +150,7 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
         note : Exception note.
         """
 
-        # Handle parameter.
+        # Set parameter.
         exc_type = type(exc).__name__
         exc_data = list(exc.args) or None
         exc_stack = [
@@ -185,7 +184,7 @@ class DatabaseError(DatabaseErrorSuper['rdb.Database']):
         Check and build database tables, by `self.db_names`.
         """
 
-        # Handle parameter.
+        # Set parameter.
         tables, views_stats = self.handle_build_db()
 
         # Build.
@@ -208,7 +207,7 @@ class DatabaseError(DatabaseErrorSuper['rdb.Database']):
         note : Exception note.
         """
 
-        # Handle parameter.
+        # Set parameter.
         data = self.handle_record(exc, stack, note)
 
         # Insert.
@@ -235,7 +234,7 @@ class DatabaseError(DatabaseErrorSuper['rdb.Database']):
         filter_type : Exception types of not insert, but still throw exception.
         """
 
-        # Handle parameter.
+        # Set parameter.
         _, exc, stack = catch_exc()
 
         # Filter.
@@ -293,7 +292,7 @@ class DatabaseError(DatabaseErrorSuper['rdb.Database']):
         >>> func(*args, **kwargs)
         """
 
-        # Handle parameter.
+        # Set parameter.
         if issubclass(filter_type, BaseException):
             filter_type = (filter_type,)
 
@@ -363,7 +362,7 @@ class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseAsync']):
         Asynchrouous check and build database tables, by `self.db_names`.
         """
 
-        # Handle parameter.
+        # Set parameter.
         tables, views_stats = self.handle_build_db()
 
         # Build.
@@ -386,7 +385,7 @@ class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseAsync']):
         note : Exception note.
         """
 
-        # Handle parameter.
+        # Set parameter.
         data = self.handle_record(exc, stack, note)
 
         # Insert.
@@ -413,7 +412,7 @@ class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseAsync']):
         filter_type : Exception types of not insert, but still throw exception.
         """
 
-        # Handle parameter.
+        # Set parameter.
         _, exc, stack = catch_exc()
 
         # Filter.
@@ -472,7 +471,7 @@ class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseAsync']):
         >>> await func(*args, **kwargs)
         """
 
-        # Handle parameter.
+        # Set parameter.
         if issubclass(filter_type, BaseException):
             filter_type = (filter_type,)
 

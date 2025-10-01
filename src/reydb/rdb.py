@@ -113,7 +113,7 @@ class DatabaseSuper(
         query : Remote server database parameters.
         """
 
-        # Handle parameter.
+        # Set parameter.
         if type(port) == str:
             port = int(port)
 
@@ -237,7 +237,7 @@ class DatabaseSuper(
         Engine object.
         """
 
-        # Handle parameter.
+        # Set parameter.
         engine_params = {
             'url': self.url,
             'pool_size': self.pool_size,

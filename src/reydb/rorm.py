@@ -25,6 +25,7 @@ from sqlmodel import SQLModel, Session, Table
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.main import SQLModelMetaclass, FieldInfo, default_registry
 from sqlmodel.sql._expression_select_cls import SelectOfScalar as Select
+from datetime import datetime, date, time, timedelta
 from reykit.rbase import CallableT, Null, throw, is_instance
 
 from . import rdb
@@ -274,8 +275,9 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
             kwargs['sa_type'] = kwargs.pop('field_type')
 
         ## Key auto.
-        if 'key_auto' in kwargs:
+        if kwargs.get('key_auto'):
             kwargs['sa_column_kwargs']['autoincrement'] = True
+            kwargs['primary_key'] = True
         else:
             kwargs['sa_column_kwargs']['autoincrement'] = False
 
@@ -419,26 +421,7 @@ class DatabaseORMModelMethod(DatabaseORMBase):
 class DatabaseORMSuper(DatabaseORMBase, Generic[DatabaseT, DatabaseORMSessionT]):
     """
     Database ORM super type.
-
-    Attributes
-    ----------
-    metaData : Registry metadata instance.
-    DatabaseModel : Database ORM model type.
-    Field : Database ORM model field type.
-    Config : Database ORM model config type.
-    types : Database ORM model filed types module.
-    wrap_validate_model : Create decorator of validate database ORM model.
-    wrap_validate_filed : Create decorator of validate database ORM model field.
     """
-
-    metaData = default_registry.metadata
-    Model = DatabaseORMModel
-    Field = DatabaseORMModelField
-    Config = ConfigDict
-    types = types
-    types_mysql = types_mysql
-    wrap_validate_model = pydantic_model_validator
-    wrap_validate_filed = pydantic_field_validator
 
 
     def __init__(self, db: DatabaseT) -> None:
@@ -852,7 +835,7 @@ class DatabaseORMSession(
             throw(ValueError, tables)
 
         # Create.
-        self.orm.metaData.create_all(self.orm.db.engine, tables, skip)
+        metadata.create_all(self.orm.db.engine, tables, skip)
 
 
     @wrap_transact
@@ -881,7 +864,7 @@ class DatabaseORMSession(
             throw(ValueError, tables)
 
         # Drop.
-        self.orm.metaData.drop_all(self.orm.db.engine, tables, skip)
+        metadata.drop_all(self.orm.db.engine, tables, skip)
 
 
     @wrap_transact
@@ -1219,7 +1202,7 @@ class DatabaseORMSessionAsync(
 
         # Create.
         conn = await self.sess.connection()
-        await conn.run_sync(self.orm.metaData.create_all, tables, skip)
+        await conn.run_sync(metadata.create_all, tables, skip)
 
 
     @wrap_transact
@@ -1249,7 +1232,7 @@ class DatabaseORMSessionAsync(
 
         # Drop.
         conn = await self.sess.connection()
-        await conn.run_sync(self.orm.metaData.drop_all, tables, skip)
+        await conn.run_sync(metadata.drop_all, tables, skip)
 
 
     @wrap_transact
@@ -1587,3 +1570,36 @@ class DatabaseORMStatementDeleteAsync(DatabaseORMStatementAsync[None], Delete, G
     """
 
     inherit_cache: Final = True
+
+
+# Simple path.
+
+## Registry metadata instance.
+metadata = default_registry.metadata
+
+## Database ORM model type.
+Model = DatabaseORMModel
+
+## Database ORM model field type.
+Field = DatabaseORMModelField
+
+## Database ORM model config type.
+Config = ConfigDict
+
+## Database ORM model filed types.
+types = types
+
+## Database ORM model MySQL filed types.
+types_mysql = types_mysql
+
+## Create decorator of validate database ORM model.
+wrap_validate_model = pydantic_model_validator
+
+## Create decorator of validate database ORM model field.
+wrap_validate_filed = pydantic_field_validator
+
+## Time type.
+Datetime = datetime
+Date = date
+Time = time
+Timedelta = timedelta
