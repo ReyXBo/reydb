@@ -24,6 +24,7 @@ from .rbase import DatabaseBase
 
 
 __all__ = (
+    'TableConfig',
     'DatabaseConfigSuper',
     'DatabaseConfig',
     'DatabaseConfigAsync'
@@ -37,6 +38,20 @@ ConfigValueT = TypeVar('T', bound=ConfigValue) # Any.
 DatabaseT = TypeVar('DatabaseT', 'rdb.Database', 'rdb.DatabaseAsync')
 
 
+class TableConfig(rorm.Model, table=True):
+    """
+    Database `config` table model.
+    """
+
+    __comment__ = 'Config data table.'
+    create_time: rorm.Datetime = rorm.Field(field_default='CURRENT_TIMESTAMP', not_null=True, index_n=True, comment='Config create time.')
+    update_time: rorm.Datetime = rorm.Field(field_default='CURRENT_TIMESTAMP', index_n=True, comment='Config update time.')
+    key: str = rorm.Field(field_type=rorm.types.VARCHAR(50), key=True, comment='Config key.')
+    value: str = rorm.Field(field_type=rorm.types.TEXT, not_null=True, comment='Config value.')
+    type: str = rorm.Field(field_type=rorm.types.VARCHAR(50), not_null=True, comment='Config value type.')
+    note: str = rorm.Field(field_type=rorm.types.VARCHAR(500), comment='Config note.')
+
+
 class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
     """
     Database config super type.
@@ -45,23 +60,12 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
     Attributes
     ----------
     db_names : Database table name mapping dictionary.
-    Config : Database `config` table model.
     """
 
     db_names = {
         'config': 'config',
         'stats_config': 'stats_config'
     }
-
-
-    class Config(rorm.Model, table=True):
-        __comment__ = 'Config data table.'
-        create_time: rorm.Datetime = rorm.Field(field_default='CURRENT_TIMESTAMP', not_null=True, index_n=True, comment='Config create time.')
-        update_time: rorm.Datetime = rorm.Field(field_default='CURRENT_TIMESTAMP', index_n=True, comment='Config update time.')
-        key: str = rorm.Field(field_type=rorm.types.VARCHAR(50), key=True, comment='Config key.')
-        value: str = rorm.Field(field_type=rorm.types.TEXT, not_null=True, comment='Config value.')
-        type: str = rorm.Field(field_type=rorm.types.VARCHAR(50), not_null=True, comment='Config value type.')
-        note: str = rorm.Field(field_type=rorm.types.VARCHAR(500), comment='Config note.')
 
 
     def __init__(self, db: DatabaseT) -> None:
@@ -77,7 +81,7 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
         self.db = db
 
 
-    def handle_build_db(self) -> tuple[list[type[Config]], list[dict[str, Any]]] :
+    def handle_build_db(self) -> tuple[list[type[TableConfig]], list[dict[str, Any]]] :
         """
         Handle method of check and build database tables, by `self.db_names`.
 
@@ -87,10 +91,10 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
         """
 
         # Set parameter.
-        self.Config._name(self.db_names['config'])
+        TableConfig._set_name(self.db_names['config'])
 
         ## Table.
-        tables = [self.Config]
+        tables = [TableConfig]
 
         ## View stats.
         views_stats = [

@@ -983,7 +983,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         """
 
         # Get.
-        table = model._table()
+        table = model._get_table()
         text = f'TABLE `{self.db.database}`.`{table}`'
         if 'mysql_charset' in table.kwargs:
             text += f" | CHARSET '{table.kwargs['mysql_charset']}'"
@@ -1146,7 +1146,7 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
                 or issubclass(params, DatabaseORMModel)
             ):
                 database = self.db.database
-                table = params._table().name
+                table = params._get_table().name
 
                 ## Exist.
                 if (
@@ -1367,7 +1367,7 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
                 or issubclass(params, DatabaseORMModel)
             ):
                 database = self.db.database
-                table = params._table().name
+                table = params._get_table().name
 
                 ## Exist.
                 if (
@@ -2463,7 +2463,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         """
 
         # Get.
-        table = model._table()
+        table = model._get_table()
         text = f'TABLE `{self.db.database}`.`{table}`'
         if 'mysql_charset' in table.kwargs:
             text += f" | CHARSET '{table.kwargs['mysql_charset']}'"
@@ -2619,32 +2619,8 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
         # Table.
         for params in tables:
 
-            ## ORM.
-            if (
-                is_instance(params)
-                and isinstance(params, DatabaseORMModel)
-                or issubclass(params, DatabaseORMModel)
-            ):
-                database = self.db.database
-                table = params._table().name
-
-                ## Exist.
-                if (
-                    skip
-                    and self.db.schema.exist(self.db.database, table)
-                ):
-                    continue
-
-                ## Confirm.
-                if ask:
-                    text = self.get_orm_table_text(params)
-                    self.input_confirm_build(text)
-
-                ## Execute.
-                self.create_orm_table(params)
-
             ## Parameter.
-            else:
+            if type(params) == dict:
                 path: str | tuple[str, str] = params['path']
                 if type(path) == str:
                     database, table = self.db.database, path
@@ -2667,6 +2643,26 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
 
                 ### Execute.
                 self.db.execute(sql)
+
+            ## ORM.
+            else:
+                database = self.db.database
+                table = params._get_table().name
+
+                ## Exist.
+                if (
+                    skip
+                    and self.db.schema.exist(self.db.database, table)
+                ):
+                    continue
+
+                ## Confirm.
+                if ask:
+                    text = self.get_orm_table_text(params)
+                    self.input_confirm_build(text)
+
+                ## Execute.
+                self.create_orm_table(params)
 
             ## Report.
             text = f"Table '{table}' of database '{database}' build completed."
@@ -2847,7 +2843,7 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
                 or issubclass(params, DatabaseORMModel)
             ):
                 database = self.db.database
-                table = params._table().name
+                table = params._get_table().name
 
                 ## Exist.
                 if (

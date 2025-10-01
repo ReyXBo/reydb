@@ -312,7 +312,7 @@ class DatabaseORMModel(DatabaseORMBase, SQLModel, metaclass=model_metaclass):
 
 
     @classmethod
-    def _table(cls_or_self) -> Table:
+    def _get_table(cls_or_self) -> Table:
         """
         Return mapping database table instance.
 
@@ -328,24 +328,24 @@ class DatabaseORMModel(DatabaseORMBase, SQLModel, metaclass=model_metaclass):
 
 
     @classmethod
-    def _name(cls_or_self, name: str) -> None:
+    def _set_name(cls_or_self, name: str) -> None:
         """
         Set database table name.
         """
 
         # Get.
-        table = cls_or_self._table()
+        table = cls_or_self._get_table()
         table.name = name
 
 
     @classmethod
-    def _comment(cls_or_self, comment: str) -> None:
+    def _set_comment(cls_or_self, comment: str) -> None:
         """
         Set database table comment.
         """
 
         # Get.
-        table = cls_or_self._table()
+        table = cls_or_self._get_table()
         table.comment = comment
 
 
@@ -848,7 +848,7 @@ class DatabaseORMSession(
 
         # Handle parameter.
         tables = [
-            model._table()
+            model._get_table()
             for model in models
         ]
 
@@ -877,7 +877,7 @@ class DatabaseORMSession(
 
         # Handle parameter.
         tables = [
-            model._table()
+            model._get_table()
             for model in models
         ]
 
@@ -1214,7 +1214,7 @@ class DatabaseORMSessionAsync(
 
         # Handle parameter.
         tables = [
-            model._table()
+            model._get_table()
             for model in models
         ]
 
@@ -1244,7 +1244,7 @@ class DatabaseORMSessionAsync(
 
         # Handle parameter.
         tables = [
-            model._table()
+            model._get_table()
             for model in models
         ]
 
