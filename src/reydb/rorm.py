@@ -27,7 +27,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.main import SQLModelMetaclass, FieldInfo, default_registry
 from sqlmodel.sql._expression_select_cls import SelectOfScalar as Select
 from datetime import datetime, date, time, timedelta
-from reykit.rbase import CallableT, throw, is_instance
+from reykit.rbase import CallableT, Null, throw, is_instance
 
 from . import rdb
 from .rbase import (
@@ -190,7 +190,7 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
         field_type: TypeEngine | None = None,
         *,
         field_default: str | Literal[':time'] | Literal[':create_time'] | Literal[':update_time'] = None,
-        arg_default: Any | Callable[[], Any] | None = None,
+        arg_default: Any | Callable[[], Any] | Null.Type = Null,
         arg_update: Any | Callable[[], Any] = None,
         name: str | None = None,
         key: bool = False,
@@ -329,14 +329,14 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
             kwargs['sa_column_kwargs']['server_default'] = field_default
 
         ## Argument default.
-        arg_default = kwargs.pop('arg_default', None)
-        if arg_default is not None:
-            if callable(arg_default):
-                kwargs['default_factory'] = arg_default
-            else:
-                kwargs['default'] = arg_default
-        elif kwargs['nullable']:
-            kwargs['default'] = None
+        arg_default = kwargs.pop('arg_default', Null)
+        if arg_default == Null:
+            if kwargs['nullable']:
+                kwargs['default'] = None
+        elif callable(arg_default):
+            kwargs['default_factory'] = arg_default
+        else:
+            kwargs['default'] = arg_default
 
         ## Argument update.
         if 'arg_update' in kwargs:
