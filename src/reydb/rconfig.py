@@ -170,11 +170,13 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         """
 
         # Get.
-        result = self.db.execute.select(
-            self.db_names['config'],
-            ['key', 'value', 'type', 'note'],
-            order='IFNULL(`update_time`, `create_time`) DESC'
-        )
+        result = self.db.orm.select(
+            DatabaseTableConfig
+        ).fields(
+            DatabaseTableConfig.key, DatabaseTableConfig.value, DatabaseTableConfig.type, DatabaseTableConfig.note
+        ).order_by(
+            rorm.funcs.IFNULL(DatabaseTableConfig.update_time, DatabaseTableConfig.create_time).desc()
+        ).execute()
 
         # Convert.
         global_dict = {'datetime': Datetime}

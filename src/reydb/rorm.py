@@ -9,22 +9,22 @@
 """
 
 
-from typing import Self, Any, Type, Literal, TypeVar, Generic, Final, overload
+from typing import Self, Any, Type, Literal, TypeVar, Generic, Final, NoReturn, overload
 from collections.abc import Callable
 from functools import wraps as functools_wraps
 from inspect import iscoroutinefunction as inspect_iscoroutinefunction
 from pydantic import ConfigDict, field_validator as pydantic_field_validator, model_validator as pydantic_model_validator
-from sqlalchemy import text as sqlalchemy_text
-from sqlalchemy.orm import SessionTransaction
-from sqlalchemy.ext.asyncio import AsyncSessionTransaction
-from sqlalchemy import types
-from sqlalchemy.dialects.mysql import types as types_mysql
-from sqlalchemy.sql.sqltypes import TypeEngine
-from sqlalchemy.sql.dml import Insert, Update, Delete
+from sqlalchemy import types, text as sqlalchemy_text
+from sqlalchemy.orm import SessionTransaction, load_only
+from sqlalchemy.orm.strategy_options import _AttrType
 from sqlalchemy.sql import func as sqlalchemy_func
+from sqlalchemy.sql.dml import Insert, Update, Delete
+from sqlalchemy.sql.sqltypes import TypeEngine
+from sqlalchemy.ext.asyncio import AsyncSessionTransaction
+from sqlalchemy.dialects.mysql import types as types_mysql
 from sqlmodel import SQLModel, Session, Table
-from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.main import SQLModelMetaclass, FieldInfo, default_registry
+from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.sql._expression_select_cls import SelectOfScalar as Select
 from datetime import datetime, date, time, timedelta
 from reykit.rbase import CallableT, Null, throw, is_instance
@@ -1503,6 +1503,10 @@ class DatabaseORMStatementSuper(DatabaseORMBase, Generic[DatabaseORMSessionT]):
         self.model = model
 
 
+    @overload
+    def with_only_columns(self) -> NoReturn: ...
+
+
 class DatabaseORMStatement(DatabaseORMStatementSuper[DatabaseORMSession], Generic[DatabaseORMStatementReturn]):
     """
     Database ORM statement type.
@@ -1532,7 +1536,8 @@ class DatabaseORMStatement(DatabaseORMStatementSuper[DatabaseORMSession], Generi
             ## Select.
             if isinstance(self, Select):
                 for model in result:
-                    self.sess.sess.expunge(model)
+                    if isinstance(model, DatabaseORMModel):
+                        self.sess.sess.expunge(model)
 
             self.sess.commit()
             self.sess.close()
@@ -1569,7 +1574,8 @@ class DatabaseORMStatementAsync(DatabaseORMStatementSuper[DatabaseORMSessionAsyn
             ## Select.
             if isinstance(self, Select):
                 for model in result:
-                    self.sess.sess.expunge(model)
+                    if isinstance(model, DatabaseORMModel):
+                        self.sess.sess.expunge(model)
 
             await self.sess.commit()
             await self.sess.close()
@@ -1578,7 +1584,39 @@ class DatabaseORMStatementAsync(DatabaseORMStatementSuper[DatabaseORMSessionAsyn
         return result
 
 
-class DatabaseORMStatementSelect(DatabaseORMStatement, Select, Generic[DatabaseORMStatementReturn]):
+class DatabaseORMStatementSelectSuper(DatabaseORMStatementSuper, Select):
+    """
+    Database ORM `select` statement type.
+
+    Attributes
+    ----------
+    inherit_cache : Compatible `Select` type.
+    """
+
+    inherit_cache: Final = True
+
+
+    def fields(self, *field: _AttrType) -> Self:
+        """
+        Replace select fiedls.
+
+        Parameters
+        ----------
+        field : Field set.
+
+        Returns
+        -------
+        Set self.
+        """
+
+        # Set.
+        set = load_only(*field)
+        select = self.options(set)
+
+        return select
+
+
+class DatabaseORMStatementSelect(DatabaseORMStatement, DatabaseORMStatementSelectSuper, Generic[DatabaseORMStatementReturn]):
     """
     Database ORM `select` statement type.
 
@@ -1632,7 +1670,7 @@ class DatabaseORMStatementDelete(DatabaseORMStatement[None], Delete):
     inherit_cache: Final = True
 
 
-class DatabaseORMStatementSelectAsync(DatabaseORMStatementAsync, Select):
+class DatabaseORMStatementSelectAsync(DatabaseORMStatementAsync, DatabaseORMStatementSelectSuper, Generic[DatabaseORMStatementReturn]):
     """
     Asynchronous database ORM `select` statement type.
 

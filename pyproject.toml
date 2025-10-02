@@ -1,6 +1,6 @@
 [project]
 name = "reydb"
-version = "1.2.11"
+version = "1.2.12"
 description = "Database method set."
 readme = "README.md"
 requires-python = ">=3.12"
