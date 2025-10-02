@@ -43,6 +43,7 @@ class DatabaseTableConfig(rorm.Model, table=True):
     Database `config` table model.
     """
 
+    __name__ = 'config'
     __comment__ = 'Config data table.'
     create_time: rorm.Datetime = rorm.Field(field_default=':create_time', not_null=True, index_n=True, comment='Config create time.')
     update_time: rorm.Datetime = rorm.Field(field_default=':update_time', index_n=True, comment='Config update time.')

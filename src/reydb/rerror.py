@@ -37,6 +37,7 @@ class DatabaseTableError(rorm.Model, table=True):
     Database `error` table model.
     """
 
+    __name__ = 'error'
     __comment__ = 'Error log table.'
     create_time: rorm.Datetime = rorm.Field(field_default=':create_time', not_null=True, index_n=True, comment='Record create time.')
     id: int = rorm.Field(rorm.types_mysql.INTEGER(unsigned=True), key_auto=True, comment='ID.')

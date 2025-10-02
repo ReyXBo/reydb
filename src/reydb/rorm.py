@@ -641,9 +641,9 @@ class DatabaseORMSessionSuper(
         # Build.
         match self:
             case DatabaseORMSession():
-                select = DatabaseORMStatementSelect[DatabaseORMModelT](self, model)
+                select = DatabaseORMStatementSelect(self, model)
             case DatabaseORMSessionAsync():
-                select = DatabaseORMStatementSelectAsync[DatabaseORMModelT](self, model)
+                select = DatabaseORMStatementSelectAsync(self, model)
 
         return select
 
@@ -668,9 +668,9 @@ class DatabaseORMSessionSuper(
         # Build.
         match self:
             case DatabaseORMSession():
-                insert = DatabaseORMStatementInsert[DatabaseORMModelT](self, model)
+                insert = DatabaseORMStatementInsert(self, model)
             case DatabaseORMSessionAsync():
-                insert = DatabaseORMStatementInsertAsync[DatabaseORMModelT](self, model)
+                insert = DatabaseORMStatementInsertAsync(self, model)
 
         return insert
 
@@ -695,9 +695,9 @@ class DatabaseORMSessionSuper(
         # Build.
         match self:
             case DatabaseORMSession():
-                update = DatabaseORMStatementUpdate[DatabaseORMModelT](self, model)
+                update = DatabaseORMStatementUpdate(self, model)
             case DatabaseORMSessionAsync():
-                update = DatabaseORMStatementUpdateAsync[DatabaseORMModelT](self, model)
+                update = DatabaseORMStatementUpdateAsync(self, model)
 
         return update
 
@@ -722,9 +722,9 @@ class DatabaseORMSessionSuper(
         # Build.
         match self:
             case DatabaseORMSession():
-                delete = DatabaseORMStatementDelete[DatabaseORMModelT](self, model)
+                delete = DatabaseORMStatementDelete(self, model)
             case DatabaseORMSessionAsync():
-                delete = DatabaseORMStatementDeleteAsync[DatabaseORMModelT](self, model)
+                delete = DatabaseORMStatementDeleteAsync(self, model)
 
         return delete
 
@@ -1095,6 +1095,12 @@ class DatabaseORMSession(
             self.sess.expire(model)
 
 
+    @overload
+    def select(self, model: Type[DatabaseORMModelT] | DatabaseORMModelT) -> 'DatabaseORMStatementSelect[list[DatabaseORMModelT]]': ...
+
+    select = DatabaseORMSessionSuper.select
+
+
 class DatabaseORMSessionAsync(
     DatabaseORMSessionSuper[
         DatabaseORMAsync,
@@ -1463,6 +1469,12 @@ class DatabaseORMSessionAsync(
             self.sess.expire(model)
 
 
+    @overload
+    def select(self, model: Type[DatabaseORMModelT] | DatabaseORMModelT) -> 'DatabaseORMStatementSelectAsync[list[DatabaseORMModelT]]': ...
+
+    select = DatabaseORMSessionSuper.select
+
+
 class DatabaseORMStatementSuper(DatabaseORMBase, Generic[DatabaseORMSessionT]):
     """
     Database ORM statement super type.
@@ -1516,6 +1528,12 @@ class DatabaseORMStatement(DatabaseORMStatementSuper[DatabaseORMSession], Generi
 
         # Automatic commit.
         if self.sess.autocommit:
+
+            ## Select.
+            if isinstance(self, Select):
+                for model in result:
+                    self.sess.sess.expunge(model)
+
             self.sess.commit()
             self.sess.close()
 
@@ -1547,6 +1565,12 @@ class DatabaseORMStatementAsync(DatabaseORMStatementSuper[DatabaseORMSessionAsyn
 
         # Automatic commit.
         if self.sess.autocommit:
+
+            ## Select.
+            if isinstance(self, Select):
+                for model in result:
+                    self.sess.sess.expunge(model)
+
             await self.sess.commit()
             await self.sess.close()
             await self.sess.orm.db.dispose()
@@ -1554,7 +1578,7 @@ class DatabaseORMStatementAsync(DatabaseORMStatementSuper[DatabaseORMSessionAsyn
         return result
 
 
-class DatabaseORMStatementSelect(DatabaseORMStatement[list[DatabaseORMModelT]], Select, Generic[DatabaseORMModelT]):
+class DatabaseORMStatementSelect(DatabaseORMStatement, Select, Generic[DatabaseORMStatementReturn]):
     """
     Database ORM `select` statement type.
 
@@ -1566,7 +1590,13 @@ class DatabaseORMStatementSelect(DatabaseORMStatement[list[DatabaseORMModelT]], 
     inherit_cache: Final = True
 
 
-class DatabaseORMStatementInsert(DatabaseORMStatement[None], Insert, Generic[DatabaseORMModelT]):
+    @overload
+    def execute(self) -> DatabaseORMStatementReturn: ...
+
+    execute = DatabaseORMStatement.execute
+
+
+class DatabaseORMStatementInsert(DatabaseORMStatement[None], Insert):
     """
     Database ORM `insert` statement type.
 
@@ -1578,7 +1608,7 @@ class DatabaseORMStatementInsert(DatabaseORMStatement[None], Insert, Generic[Dat
     inherit_cache: Final = True
 
 
-class DatabaseORMStatementUpdate(DatabaseORMStatement[None], Update, Generic[DatabaseORMModelT]):
+class DatabaseORMStatementUpdate(DatabaseORMStatement[None], Update):
     """
     Database ORM `update` statement type.
 
@@ -1590,7 +1620,7 @@ class DatabaseORMStatementUpdate(DatabaseORMStatement[None], Update, Generic[Dat
     inherit_cache: Final = True
 
 
-class DatabaseORMStatementDelete(DatabaseORMStatement[None], Delete, Generic[DatabaseORMModelT]):
+class DatabaseORMStatementDelete(DatabaseORMStatement[None], Delete):
     """
     Database ORM `delete` statement type.
 
@@ -1602,7 +1632,7 @@ class DatabaseORMStatementDelete(DatabaseORMStatement[None], Delete, Generic[Dat
     inherit_cache: Final = True
 
 
-class DatabaseORMStatementSelectAsync(DatabaseORMStatementAsync[list[DatabaseORMModelT]], Select, Generic[DatabaseORMModelT]):
+class DatabaseORMStatementSelectAsync(DatabaseORMStatementAsync, Select):
     """
     Asynchronous database ORM `select` statement type.
 
@@ -1614,7 +1644,13 @@ class DatabaseORMStatementSelectAsync(DatabaseORMStatementAsync[list[DatabaseORM
     inherit_cache: Final = True
 
 
-class DatabaseORMStatementInsertAsync(DatabaseORMStatementAsync[None], Insert, Generic[DatabaseORMModelT]):
+    @overload
+    async def execute(self) -> DatabaseORMStatementReturn: ...
+
+    execute = DatabaseORMStatementAsync.execute
+
+
+class DatabaseORMStatementInsertAsync(DatabaseORMStatementAsync[None], Insert):
     """
     Asynchronous database ORM `insert` statement type.
 
@@ -1626,7 +1662,7 @@ class DatabaseORMStatementInsertAsync(DatabaseORMStatementAsync[None], Insert, G
     inherit_cache: Final = True
 
 
-class DatabaseORMStatementUpdateAsync(DatabaseORMStatementAsync[None], Update, Generic[DatabaseORMModelT]):
+class DatabaseORMStatementUpdateAsync(DatabaseORMStatementAsync[None], Update):
     """
     Asynchronous database ORM `update` statement type.
 
@@ -1638,7 +1674,7 @@ class DatabaseORMStatementUpdateAsync(DatabaseORMStatementAsync[None], Update, G
     inherit_cache: Final = True
 
 
-class DatabaseORMStatementDeleteAsync(DatabaseORMStatementAsync[None], Delete, Generic[DatabaseORMModelT]):
+class DatabaseORMStatementDeleteAsync(DatabaseORMStatementAsync[None], Delete):
     """
     Asynchronous database ORM `delete` statement type.
 
