@@ -17,7 +17,6 @@ from reykit.rbase import throw, get_first_notnone
 from reykit.rdata import FunctionGenerator
 from reykit.rmonkey import monkey_sqlalchemy_result_more_fetch, monkey_sqlalchemy_row_index_field
 from reykit.rrand import randn
-from reykit.rre import findall
 from reykit.rstdout import echo as recho
 from reykit.rtable import TableData, Table
 from reykit.rtime import TimeMark, time_to
