@@ -28,6 +28,7 @@ from .rbase import DatabaseBase, handle_sql, handle_data
 
 __all__ = (
     'Result',
+    'ResultORM',
     'DatabaseExecuteSuper',
     'DatabaseExecute',
     'DatabaseExecuteAsync'
@@ -35,8 +36,8 @@ __all__ = (
 
 
 # Monkey path.
-Result_ = monkey_sqlalchemy_result_more_fetch()
-Result = Result_
+_Result = monkey_sqlalchemy_result_more_fetch()
+Result = _Result
 monkey_sqlalchemy_row_index_field()
 
 

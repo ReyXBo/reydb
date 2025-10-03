@@ -170,23 +170,25 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         """
 
         # Get.
-        result = self.db.orm.select(
-            DatabaseTableConfig
-        ).fields(
-            DatabaseTableConfig.key, DatabaseTableConfig.value, DatabaseTableConfig.type, DatabaseTableConfig.note
-        ).order_by(
-            rorm.funcs.IFNULL(DatabaseTableConfig.update_time, DatabaseTableConfig.create_time).desc()
-        ).execute()
+        models = (
+            self.db.orm.select(DatabaseTableConfig)
+            .fields(DatabaseTableConfig.key, DatabaseTableConfig.value, DatabaseTableConfig.type, DatabaseTableConfig.note)
+            .order_by(
+                rorm.funcs.IFNULL(DatabaseTableConfig.update_time, DatabaseTableConfig.create_time)
+                .desc()
+            )
+            .execute()
+        )
 
         # Convert.
         global_dict = {'datetime': Datetime}
         result = [
             {
-                'key': row['key'],
-                'value': eval(row['value'], global_dict),
-                'note': row['note']
+                'key': model.key,
+                'value': eval(model.value, global_dict),
+                'note': model.note
             }
-            for row in result
+            for model in models
         ]
 
         return result
@@ -207,18 +209,10 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         """
 
         # Get.
-        where = '`key` = :key'
-        result = self.db.execute.select(
-            self.db_names['config'],
-            '`value`',
-            where,
-            limit=1,
-            key=key
-        )
-        value = result.scalar()
+        model = self.db.orm.get(DatabaseTableConfig, key)
 
         # Default.
-        if value is None:
+        if model.value is None:
             value = default
         else:
             global_dict = {'datetime': Datetime}
@@ -254,10 +248,11 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
             'type': type(default).__name__,
             'note': default_note
         }
-        result = self.db.execute.insert(
-            self.db_names['config'],
-            data,
-            'ignore'
+        result = (
+            self.db.orm.insert(DatabaseTableConfig)
+            .values(data)
+            .ignore()
+            .execute()
         )
 
         # Get.
@@ -295,10 +290,11 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
                 row['type'] = type(row['value']).__name__
 
         # Update.
-        self.db.execute.insert(
-            self.db_names['config'],
-            data,
-            'update'
+        (
+            self.db.orm.insert(DatabaseTableConfig)
+            .values(data)
+            .update()
+            .execute()
         )
 
 
@@ -313,16 +309,16 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
 
         # Remove.
         if type(key) == str:
-            where = '`key` = :key'
+            where = DatabaseTableConfig == key
             limit = 1
         else:
-            where = '`key` in :key'
+            where = DatabaseTableConfig in key
             limit = None
-        result = self.db.execute.delete(
-            self.db_names['base.config'],
-            where,
-            limit=limit,
-            key=key
+        result = (
+            self.db.orm.delete(DatabaseTableConfig)
+            .where(where)
+            .limit(limit)
+            .execute()
         )
 
         # Check.
@@ -340,17 +336,17 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         """
 
         # Get.
-        result = self.db.execute.select(
-            self.db_names['config'],
-            ['key', 'value']
+        models = (
+            self.db.orm.select(DatabaseTableConfig)
+            .fields('key', 'value')
+            .execute()
         )
 
         # Convert.
         global_dict = {'datetime': Datetime}
-        result = result.to_dict('key', 'value')
         result = {
-            key: eval(value, global_dict)
-            for key, value in result.items()
+            model.key: eval(model.value, global_dict)
+            for model in models
         }
 
         return result
@@ -644,7 +640,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
             where = '`key` in :key'
             limit = None
         result = await self.db.execute.delete(
-            self.db_names['base.config'],
+            self.db_names['config'],
             where,
             limit=limit,
             key=key

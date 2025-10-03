@@ -14,19 +14,22 @@ from collections.abc import Callable
 from functools import wraps as functools_wraps
 from inspect import iscoroutinefunction as inspect_iscoroutinefunction
 from pydantic import ConfigDict, field_validator as pydantic_field_validator, model_validator as pydantic_model_validator
-from sqlalchemy import types, text as sqlalchemy_text
+from sqlalchemy import Column, types, text as sqlalchemy_text
 from sqlalchemy.orm import SessionTransaction, load_only
 from sqlalchemy.orm.strategy_options import _AttrType
 from sqlalchemy.sql import func as sqlalchemy_func
-from sqlalchemy.sql.dml import Insert, Update, Delete
+from sqlalchemy.sql.dml import Update, Delete
 from sqlalchemy.sql.sqltypes import TypeEngine
+from sqlalchemy.sql._typing import _ColumnExpressionArgument
 from sqlalchemy.ext.asyncio import AsyncSessionTransaction
-from sqlalchemy.dialects.mysql import types as types_mysql
+from sqlalchemy.dialects.mysql import Insert, types as types_mysql
+from sqlalchemy.exc import SAWarning
 from sqlmodel import SQLModel, Session, Table
 from sqlmodel.main import SQLModelMetaclass, FieldInfo, default_registry
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.sql._expression_select_cls import SelectOfScalar as Select
 from datetime import datetime, date, time, timedelta
+from warnings import filterwarnings
 from reykit.rbase import CallableT, Null, throw, is_instance
 
 from . import rdb
@@ -35,6 +38,7 @@ from .rbase import (
     SessionTransactionT,
     DatabaseBase
 )
+from .rexec import Result
 
 
 __all__ = (
@@ -52,13 +56,15 @@ __all__ = (
     'DatabaseORMStatementSuper',
     'DatabaseORMStatement',
     'DatabaseORMStatementAsync',
+    'DatabaseORMStatementSelectSuper',
     'DatabaseORMStatementSelect',
-    'DatabaseORMStatementInsert',
-    'DatabaseORMStatementUpdate',
-    'DatabaseORMStatementDelete',
     'DatabaseORMStatementSelectAsync',
+    'DatabaseORMStatementInsertSuper',
+    'DatabaseORMStatementInsert',
     'DatabaseORMStatementInsertAsync',
+    'DatabaseORMStatementUpdate',
     'DatabaseORMStatementUpdateAsync',
+    'DatabaseORMStatementDelete',
     'DatabaseORMStatementDeleteAsync'
 )
 
@@ -67,7 +73,6 @@ DatabaseT = TypeVar('DatabaseT', 'rdb.Database', 'rdb.DatabaseAsync')
 DatabaseORMModelT = TypeVar('DatabaseORMModelT', bound='DatabaseORMModel')
 DatabaseORMT = TypeVar('DatabaseORMT', 'DatabaseORM', 'DatabaseORMAsync')
 DatabaseORMSessionT = TypeVar('DatabaseORMSessionT', 'DatabaseORMSession', 'DatabaseORMSessionAsync')
-DatabaseORMStatementReturn = TypeVar('DatabaseORMStatementReturn')
 DatabaseORMStatementSelectT = TypeVar('DatabaseORMStatementSelectT', 'DatabaseORMStatementSelect', 'DatabaseORMStatementSelectAsync')
 DatabaseORMStatementInsertT = TypeVar('DatabaseORMStatementInsertT', 'DatabaseORMStatementInsert', 'DatabaseORMStatementInsertAsync')
 DatabaseORMStatementUpdateT = TypeVar('DatabaseORMStatementUpdateT', 'DatabaseORMStatementUpdate', 'DatabaseORMStatementUpdateAsync')
@@ -660,7 +665,7 @@ class DatabaseORMSessionSuper(
         -------
         Instance.
         """
-        print(model)
+
         # Set parameter.
         if is_instance(model):
             model = type(model)
@@ -1096,7 +1101,7 @@ class DatabaseORMSession(
 
 
     @overload
-    def select(self, model: Type[DatabaseORMModelT] | DatabaseORMModelT) -> 'DatabaseORMStatementSelect[list[DatabaseORMModelT]]': ...
+    def select(self, model: Type[DatabaseORMModelT] | DatabaseORMModelT) -> 'DatabaseORMStatementSelect[DatabaseORMModelT]': ...
 
     select = DatabaseORMSessionSuper.select
 
@@ -1470,7 +1475,7 @@ class DatabaseORMSessionAsync(
 
 
     @overload
-    def select(self, model: Type[DatabaseORMModelT] | DatabaseORMModelT) -> 'DatabaseORMStatementSelectAsync[list[DatabaseORMModelT]]': ...
+    def select(self, model: Type[DatabaseORMModelT] | DatabaseORMModelT) -> 'DatabaseORMStatementSelectAsync[DatabaseORMModelT]': ...
 
     select = DatabaseORMSessionSuper.select
 
@@ -1507,37 +1512,44 @@ class DatabaseORMStatementSuper(DatabaseORMBase, Generic[DatabaseORMSessionT]):
     def with_only_columns(self) -> NoReturn: ...
 
 
-class DatabaseORMStatement(DatabaseORMStatementSuper[DatabaseORMSession], Generic[DatabaseORMStatementReturn]):
+class DatabaseORMStatement(DatabaseORMStatementSuper[DatabaseORMSession]):
     """
     Database ORM statement type.
     """
 
 
-    def execute(self) -> DatabaseORMStatementReturn:
+    def execute(self) -> Result:
         """
         Execute statement.
+
+        Returns
+        -------
+        Result.
         """
+
+        # Filter warning.
+        filterwarnings(
+            'ignore',
+            category=SAWarning,
+            message=".*'inherit_cache' attribute to ``True``.*"
+        )
 
         # Transaction.
         self.sess.get_begin()
 
         # Execute.
-        result = self.sess.sess.exec(self)
+        result: Result = self.sess.sess.exec(self)
 
-        ## Select.
+        ## Select.)
         if isinstance(self, Select):
-            result = list(result)
-        else:
-            result = None
+            result: list[DatabaseORMModel] = list(result)
 
         # Automatic commit.
         if self.sess.autocommit:
 
             ## Select.
             if isinstance(self, Select):
-                for model in result:
-                    if isinstance(model, DatabaseORMModel):
-                        self.sess.sess.expunge(model)
+                self.sess.sess.expunge_all()
 
             self.sess.commit()
             self.sess.close()
@@ -1545,37 +1557,44 @@ class DatabaseORMStatement(DatabaseORMStatementSuper[DatabaseORMSession], Generi
         return result
 
 
-class DatabaseORMStatementAsync(DatabaseORMStatementSuper[DatabaseORMSessionAsync], Generic[DatabaseORMStatementReturn]):
+class DatabaseORMStatementAsync(DatabaseORMStatementSuper[DatabaseORMSessionAsync]):
     """
     Asynchronous dtabase ORM statement type.
     """
 
 
-    async def execute(self) -> DatabaseORMStatementReturn:
+    async def execute(self) -> Result:
         """
-        Asynchronous execute statement.
+        Asynchrouous execute statement.
+
+        Returns
+        -------
+        Result.
         """
+
+        # Filter warning.
+        filterwarnings(
+            'ignore',
+            category=SAWarning,
+            message=".*'inherit_cache' attribute to ``True``.*"
+        )
 
         # Transaction.
         await self.sess.get_begin()
 
         # Execute.
-        result = await self.sess.sess.exec(self)
+        result: Result = await self.sess.sess.exec(self)
 
         ## Select.
         if isinstance(self, Select):
-            result = list(result)
-        else:
-            result = None
+            result: list[DatabaseORMModel] = list(result)
 
         # Automatic commit.
         if self.sess.autocommit:
 
             ## Select.
             if isinstance(self, Select):
-                for model in result:
-                    if isinstance(model, DatabaseORMModel):
-                        self.sess.sess.expunge(model)
+                self.sess.sess.expunge_all()
 
             await self.sess.commit()
             await self.sess.close()
@@ -1586,23 +1605,23 @@ class DatabaseORMStatementAsync(DatabaseORMStatementSuper[DatabaseORMSessionAsyn
 
 class DatabaseORMStatementSelectSuper(DatabaseORMStatementSuper, Select):
     """
-    Database ORM `select` statement type.
+    Database ORM `select` statement super type.
 
     Attributes
     ----------
-    inherit_cache : Compatible `Select` type.
+    inherit_cache : Compatible type.
     """
 
     inherit_cache: Final = True
 
 
-    def fields(self, *field: _AttrType) -> Self:
+    def fields(self, *names: str) -> Self:
         """
         Replace select fiedls.
 
         Parameters
         ----------
-        field : Field set.
+        names : Field name. (Note: primary key automatic add)
 
         Returns
         -------
@@ -1610,115 +1629,354 @@ class DatabaseORMStatementSelectSuper(DatabaseORMStatementSuper, Select):
         """
 
         # Set.
-        set = load_only(*field)
+        attrs = [
+            self.model[name]
+            for name in names
+        ]
+        set = load_only(*attrs)
         select = self.options(set)
 
         return select
 
 
-class DatabaseORMStatementSelect(DatabaseORMStatement, DatabaseORMStatementSelectSuper, Generic[DatabaseORMStatementReturn]):
+    def where(self, *clauses: str | _ColumnExpressionArgument[bool]) -> Self:
+        """
+        Set `WHERE` syntax.
+
+        Parameters
+        ----------
+        clauses : Judgement clauses.
+            - `str`: SQL string.
+            - `_ColumnExpressionArgument[bool]`: Clause.
+
+        Returns
+        -------
+        Set self.
+        """
+
+        # Set parameter.
+        clauses = [
+            sqlalchemy_text(clause)
+            if type(clause) == str
+            else clause
+            for clause in clauses
+        ]
+
+        # Super.
+        stmt = super().where(*clauses)
+
+        return stmt
+
+
+class DatabaseORMStatementSelect(DatabaseORMStatement, DatabaseORMStatementSelectSuper, Generic[DatabaseORMModelT]):
     """
     Database ORM `select` statement type.
 
     Attributes
     ----------
-    inherit_cache : Compatible `Select` type.
+    inherit_cache : Compatible type.
     """
 
     inherit_cache: Final = True
 
 
     @overload
-    def execute(self) -> DatabaseORMStatementReturn: ...
+    def execute(self) -> list[DatabaseORMModelT]: ...
 
     execute = DatabaseORMStatement.execute
 
 
-class DatabaseORMStatementInsert(DatabaseORMStatement[None], Insert):
-    """
-    Database ORM `insert` statement type.
-
-    Attributes
-    ----------
-    inherit_cache : Compatible `Select` type.
-    """
-
-    inherit_cache: Final = True
-
-
-class DatabaseORMStatementUpdate(DatabaseORMStatement[None], Update):
-    """
-    Database ORM `update` statement type.
-
-    Attributes
-    ----------
-    inherit_cache : Compatible `Update` type.
-    """
-
-    inherit_cache: Final = True
-
-
-class DatabaseORMStatementDelete(DatabaseORMStatement[None], Delete):
-    """
-    Database ORM `delete` statement type.
-
-    Attributes
-    ----------
-    inherit_cache : Compatible `Delete` type.
-    """
-
-    inherit_cache: Final = True
-
-
-class DatabaseORMStatementSelectAsync(DatabaseORMStatementAsync, DatabaseORMStatementSelectSuper, Generic[DatabaseORMStatementReturn]):
+class DatabaseORMStatementSelectAsync(DatabaseORMStatementAsync, DatabaseORMStatementSelectSuper, Generic[DatabaseORMModelT]):
     """
     Asynchronous database ORM `select` statement type.
 
     Attributes
     ----------
-    inherit_cache : Compatible `Select` type.
+    inherit_cache : Compatible type.
     """
 
     inherit_cache: Final = True
 
 
     @overload
-    async def execute(self) -> DatabaseORMStatementReturn: ...
+    async def execute(self) -> list[DatabaseORMModelT]: ...
 
     execute = DatabaseORMStatementAsync.execute
 
 
-class DatabaseORMStatementInsertAsync(DatabaseORMStatementAsync[None], Insert):
+class DatabaseORMStatementInsertSuper(DatabaseORMStatementSuper, Insert):
+    """
+    Database ORM `select` statement super type.
+
+    Attributes
+    ----------
+    inherit_cache : Compatible type.
+    """
+
+    inherit_cache: Final = True
+
+
+    def ignore(self) -> Self:
+        """
+        Add `IGNORE` syntax.
+
+        Returns
+        -------
+        Set self.
+        """
+
+        # Set.
+        insert = self.prefix_with('IGNORE')
+
+        return insert
+
+
+    @overload
+    def update(self, *names: str) -> Self: ...
+
+    @overload
+    def update(self, **values: Any) -> Self: ...
+
+    @overload
+    def update(self) -> Self: ...
+
+    def update(self, *names: str, **values: Any) -> Self:
+        """
+        Add `ON DUPLICATE KEY UPDATE`.
+
+        Parameters
+        ----------
+        names : Field name. One to one update to this field value. (i.e. `field = VALUE(field)`)
+        values : Scalar value. One to many update to this value. (i.e. `field = :value`)
+            - `Empty`: All parameters omit. One to one update to all fields value. (i.e. `field = VALUE(field), ...`)
+
+        Returns
+        -------
+        Set self.
+
+        Examples
+        --------
+        >>> data = [{'score': 1}, {'score': 2}]
+
+        Name.
+        >>> orm.insert(model).values(data).update('score')
+
+        Value.
+        >>> orm.insert(model).values(data).update(score=0)
+
+        Empty.
+        >>> orm.insert(model).values(data).update()
+        """
+
+        # Set.
+
+        ## Name.
+        if names != ():
+            columns: dict[str, Column] = {
+                name: self.inserted[name]
+                for name in names
+            }
+            insert = self.on_duplicate_key_update(**columns)
+
+        ## Value.
+        elif values != {}:
+            insert = self.on_duplicate_key_update(**values)
+
+        ## Empty.
+        else:
+            columns: dict[str, Column] = dict(self.inserted.items())
+            insert = self.on_duplicate_key_update(**columns)
+
+        return insert
+
+
+class DatabaseORMStatementInsert(DatabaseORMStatement, DatabaseORMStatementInsertSuper):
+    """
+    Database ORM `insert` statement type.
+
+    Attributes
+    ----------
+    inherit_cache : Compatible type.
+    """
+
+    inherit_cache: Final = True
+
+
+class DatabaseORMStatementInsertAsync(DatabaseORMStatementAsync, DatabaseORMStatementInsertSuper):
     """
     Asynchronous database ORM `insert` statement type.
 
     Attributes
     ----------
-    inherit_cache : Compatible `Select` type.
+    inherit_cache : Compatible type.
     """
 
     inherit_cache: Final = True
 
 
-class DatabaseORMStatementUpdateAsync(DatabaseORMStatementAsync[None], Update):
+class DatabaseORMStatementUpdateSuper(DatabaseORMStatementSuper, Update):
+    """
+    Database ORM `update` statement super type.
+
+    Attributes
+    ----------
+    inherit_cache : Compatible type.
+    """
+
+    inherit_cache: Final = True
+
+
+    def where(self, *clauses: str | _ColumnExpressionArgument[bool]) -> Self:
+        """
+        Set `WHERE` syntax.
+
+        Parameters
+        ----------
+        clauses : Judgement clauses.
+            - `str`: SQL string.
+            - `_ColumnExpressionArgument[bool]`: Clause.
+
+        Returns
+        -------
+        Set self.
+        """
+
+        # Set parameter.
+        clauses = [
+            sqlalchemy_text(clause)
+            if type(clause) == str
+            else clause
+            for clause in clauses
+        ]
+
+        # Super.
+        stmt = super().where(*clauses)
+
+        return stmt
+
+
+    def limit(self, number: int) -> Self:
+        """
+        Set `limit` syntax.
+
+        Parameters
+        ----------
+        number : Limit number.
+
+        Returns
+        -------
+        Set self.
+        """
+
+        # Set.
+        update = self.with_dialect_options(mysql_limit=number)
+
+        return update
+
+
+class DatabaseORMStatementUpdate(DatabaseORMStatement, DatabaseORMStatementUpdateSuper):
+    """
+    Database ORM `update` statement type.
+
+    Attributes
+    ----------
+    inherit_cache : Compatible type.
+    """
+
+    inherit_cache: Final = True
+
+
+class DatabaseORMStatementUpdateAsync(DatabaseORMStatementAsync, DatabaseORMStatementUpdateSuper):
     """
     Asynchronous database ORM `update` statement type.
 
     Attributes
     ----------
-    inherit_cache : Compatible `Update` type.
+    inherit_cache : Compatible type.
     """
 
     inherit_cache: Final = True
 
 
-class DatabaseORMStatementDeleteAsync(DatabaseORMStatementAsync[None], Delete):
+class DatabaseORMStatementDeleteSuper(DatabaseORMStatementSuper, Delete):
+    """
+    Database ORM `delete` statement super type.
+
+    Attributes
+    ----------
+    inherit_cache : Compatible type.
+    """
+
+    inherit_cache: Final = True
+
+
+    def where(self, *clauses: str | _ColumnExpressionArgument[bool]) -> Self:
+        """
+        Set `WHERE` syntax.
+
+        Parameters
+        ----------
+        clauses : Judgement clauses.
+            - `str`: SQL string.
+            - `_ColumnExpressionArgument[bool]`: Clause.
+
+        Returns
+        -------
+        Set self.
+        """
+
+        # Set parameter.
+        clauses = [
+            sqlalchemy_text(clause)
+            if type(clause) == str
+            else clause
+            for clause in clauses
+        ]
+
+        # Super.
+        stmt = super().where(*clauses)
+
+        return stmt
+
+
+    def limit(self, number: int) -> Self:
+        """
+        Set `limit` syntax.
+
+        Parameters
+        ----------
+        number : Limit number.
+
+        Returns
+        -------
+        Set self.
+        """
+
+        # Set.
+        update = self.with_dialect_options(mysql_limit=number)
+
+        return update
+
+
+class DatabaseORMStatementDelete(DatabaseORMStatement, DatabaseORMStatementDeleteSuper):
+    """
+    Database ORM `delete` statement type.
+
+    Attributes
+    ----------
+    inherit_cache : Compatible type.
+    """
+
+    inherit_cache: Final = True
+
+
+class DatabaseORMStatementDeleteAsync(DatabaseORMStatementAsync, DatabaseORMStatementDeleteSuper):
     """
     Asynchronous database ORM `delete` statement type.
 
     Attributes
     ----------
-    inherit_cache : Compatible `Delete` type.
+    inherit_cache : Compatible type.
     """
 
     inherit_cache: Final = True
