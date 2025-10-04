@@ -32,7 +32,7 @@ __all__ = (
 
 
 type ConfigValue = bool | str | int | float | list | tuple | dict | set | Datetime | Date | Time | Timedelta | None
-ConfigRow = TypedDict('ConfigRow', {'key': str, 'value': ConfigValue, 'type': str, 'note': str | None})
+ConfigRow = TypedDict('ConfigRow', {'key': str, 'value': ConfigValue, 'note': str | None})
 type ConfigTable = list[ConfigRow]
 ConfigValueT = TypeVar('T', bound=ConfigValue) # Any.
 DatabaseT = TypeVar('DatabaseT', 'rdb.Database', 'rdb.DatabaseAsync')
@@ -170,25 +170,21 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         """
 
         # Get.
-        models = (
-            self.db.orm.select(DatabaseTableConfig)
-            .fields(DatabaseTableConfig.key, DatabaseTableConfig.value, DatabaseTableConfig.type, DatabaseTableConfig.note)
-            .order_by(
-                rorm.funcs.IFNULL(DatabaseTableConfig.update_time, DatabaseTableConfig.create_time)
-                .desc()
-            )
-            .execute()
+        result = self.db.execute.select(
+            self.db_names['config'],
+            ['key', 'value', 'note'],
+            order='IFNULL(`update_time`, `create_time`) DESC'
         )
 
         # Convert.
         global_dict = {'datetime': Datetime}
         result = [
             {
-                'key': model.key,
-                'value': eval(model.value, global_dict),
-                'note': model.note
+                'key': row['key'],
+                'value': eval(row['value'], global_dict),
+                'note': row['note']
             }
-            for model in models
+            for row in result
         ]
 
         return result
@@ -209,10 +205,18 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         """
 
         # Get.
-        model = self.db.orm.get(DatabaseTableConfig, key)
+        where = '`key` = :key'
+        result = self.db.execute.select(
+            self.db_names['config'],
+            '`value`',
+            where,
+            limit=1,
+            key=key
+        )
+        value = result.scalar()
 
         # Default.
-        if model.value is None:
+        if value is None:
             value = default
         else:
             global_dict = {'datetime': Datetime}
@@ -225,7 +229,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         self,
         key: str,
         default: ConfigValueT | None = None,
-        default_note: str | None = None
+        note: str | None = None
     ) -> ConfigValue | ConfigValueT:
         """
         Set config default value.
@@ -234,7 +238,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         ----------
         key : Config key.
         default : Config default value.
-        default_note : Config default note.
+        note : Config default note.
 
         Returns
         -------
@@ -246,13 +250,12 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
             'key': key,
             'value': repr(default),
             'type': type(default).__name__,
-            'note': default_note
+            'note': note
         }
-        result = (
-            self.db.orm.insert(DatabaseTableConfig)
-            .values(data)
-            .ignore()
-            .execute()
+        result = self.db.execute.insert(
+            self.db_names['config'],
+            data,
+            'ignore'
         )
 
         # Get.
@@ -262,39 +265,30 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         return default
 
 
-    def update(self, data: dict[str, ConfigValue] | ConfigTable) -> None:
+    def update(self, data: ConfigRow | ConfigTable) -> None:
         """
         Update config values.
 
         Parameters
         ----------
         data : Config update data.
-            - `dict[str, Any]`: Config key and value.
-            - `ConfigTable`: Config key and value and note.
+            - `ConfigRow`: One config.
+            - `ConfigTable`: Multiple configs.
         """
 
         # Set parameter.
         if type(data) == dict:
-            data = [
-                {
-                    'key': key,
-                    'value': repr(value),
-                    'type': type(value).__name__
-                }
-                for key, value in data.items()
-            ]
-        else:
-            data = data.copy()
-            for row in data:
-                row['value'] = repr(row['value'])
-                row['type'] = type(row['value']).__name__
+            data = [data]
+        data = data.copy()
+        for row in data:
+            row['value'] = repr(row['value'])
+            row['type'] = type(row['value']).__name__
 
         # Update.
-        (
-            self.db.orm.insert(DatabaseTableConfig)
-            .values(data)
-            .update()
-            .execute()
+        self.db.execute.insert(
+            self.db_names['config'],
+            data,
+            'update'
         )
 
 
@@ -309,16 +303,16 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
 
         # Remove.
         if type(key) == str:
-            where = DatabaseTableConfig == key
+            where = '`key` = :key'
             limit = 1
         else:
-            where = DatabaseTableConfig in key
+            where = '`key` in :key'
             limit = None
-        result = (
-            self.db.orm.delete(DatabaseTableConfig)
-            .where(where)
-            .limit(limit)
-            .execute()
+        result = self.db.execute.delete(
+            self.db_names['base.config'],
+            where,
+            limit=limit,
+            key=key
         )
 
         # Check.
@@ -336,17 +330,17 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         """
 
         # Get.
-        models = (
-            self.db.orm.select(DatabaseTableConfig)
-            .fields('key', 'value')
-            .execute()
+        result = self.db.execute.select(
+            self.db_names['config'],
+            ['key', 'value']
         )
 
         # Convert.
         global_dict = {'datetime': Datetime}
+        result = result.to_dict('key', 'value')
         result = {
-            model.key: eval(model.value, global_dict)
-            for model in models
+            key: eval(value, global_dict)
+            for key, value in result.items()
         }
 
         return result
@@ -425,35 +419,34 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         return value
 
 
-    def __setitem__(self, key_note: str | tuple[str, str], value: ConfigValue) -> None:
+    def __setitem__(
+        self,
+        key_and_note: str | tuple[str, str],
+        value: ConfigValue
+    ) -> None:
         """
         Set config value.
 
         Parameters
         ----------
-        key_note : Config key and note.
+        key_and_note : Config key and note.
         value : Config value.
         """
 
         # Set parameter.
-        if type(key_note) != str:
-            key, note = key_note
+        if type(key_and_note) != str:
+            key, note = key_and_note
         else:
-            key = key_note
+            key = key_and_note
             note = None
 
         # Set.
         data = {
             'key': key,
             'value': repr(value),
-            'type': type(value).__name__,
             'note': note
         }
-        self.db.execute.insert(
-            self.db_names['config'],
-            data,
-            'update'
-        )
+        self.update(data)
 
 
 class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
@@ -495,7 +488,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
         # Get.
         result = await self.db.execute.select(
             self.db_names['config'],
-            ['key', 'value', 'type', 'note'],
+            ['key', 'value', 'note'],
             order='IFNULL(`update_time`, `create_time`) DESC'
         )
 
@@ -552,7 +545,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
         self,
         key: str,
         default: ConfigValueT | None = None,
-        default_note: str | None = None
+        note: str | None = None
     ) -> ConfigValue | ConfigValueT:
         """
         Asynchronous set config default value.
@@ -561,7 +554,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
         ----------
         key : Config key.
         default : Config default value.
-        default_note : Config default note.
+        note : Config default note.
 
         Returns
         -------
@@ -573,7 +566,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
             'key': key,
             'value': repr(default),
             'type': type(default).__name__,
-            'note': default_note
+            'note': note
         }
         result = await self.db.execute.insert(
             self.db_names['config'],
@@ -588,32 +581,24 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
         return default
 
 
-    async def update(self, data: dict[str, ConfigValue] | ConfigTable) -> None:
+    async def update(self, data: ConfigRow | ConfigTable) -> None:
         """
         Asynchronous update config values.
 
         Parameters
         ----------
         data : Config update data.
-            - `dict[str, Any]`: Config key and value.
-            - `ConfigTable`: Config key and value and note.
+            - `ConfigRow`: One config.
+            - `ConfigTable`: Multiple configs.
         """
 
         # Set parameter.
         if type(data) == dict:
-            data = [
-                {
-                    'key': key,
-                    'value': repr(value),
-                    'type': type(value).__name__
-                }
-                for key, value in data.items()
-            ]
-        else:
-            data = data.copy()
-            for row in data:
-                row['value'] = repr(row['value'])
-                row['type'] = type(row['value']).__name__
+            data = [data]
+        data = data.copy()
+        for row in data:
+            row['value'] = repr(row['value'])
+            row['type'] = type(row['value']).__name__
 
         # Update.
         await self.db.execute.insert(
@@ -750,32 +735,31 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
         return value
 
 
-    async def __setitem__(self, key_note: str | tuple[str, str], value: ConfigValue) -> None:
+    async def __setitem__(
+        self,
+        key_and_note: str | tuple[str, str],
+        value: ConfigValue
+    ) -> None:
         """
         Asynchronous set config value.
 
         Parameters
         ----------
-        key_note : Config key and note.
+        key_and_note : Config key and note.
         value : Config value.
         """
 
         # Set parameter.
-        if type(key_note) != str:
-            key, note = key_note
+        if type(key_and_note) != str:
+            key, note = key_and_note
         else:
-            key = key_note
+            key = key_and_note
             note = None
 
         # Set.
         data = {
             'key': key,
             'value': repr(value),
-            'type': type(value).__name__,
             'note': note
         }
-        await self.db.execute.insert(
-            self.db_names['config'],
-            data,
-            'update'
-        )
+        await self.update(data)
