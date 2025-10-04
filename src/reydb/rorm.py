@@ -251,11 +251,11 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
         re : Require the partial string if is match regular expression.
         len_min : Require the sequence or string minimum length.
         len_max : Require the sequence or string maximum length.
-        num_gt : Require the number greater than this value. (i.e. `number > num_gt`)
-        num_lt : Require the number less than this value. (i.e. `number < num_lt`)
-        num_ge : Require the number greater than and equal to this value. (i.e. `number >= num_ge`)
-        num_le : Require the number less than and equal to this value. (i.e. `number <= num_le`)
-        num_multiple : Require the number to be multiple of this value. (i.e. `number % num_multiple == 0`)
+        num_gt : Require the number greater than this value (i.e. `number > num_gt`).
+        num_lt : Require the number less than this value (i.e. `number < num_lt`).
+        num_ge : Require the number greater than and equal to this value (i.e. `number >= num_ge`).
+        num_le : Require the number less than and equal to this value (i.e. `number <= num_le`).
+        num_multiple : Require the number to be multiple of this value (i.e. `number % num_multiple == 0`).
         num_places : Require the number digit places maximum length.
         num_places_dec : Require the number decimal places maximum length.
         **kwargs : Other key arguments.
@@ -362,6 +362,7 @@ model_metaclass: SQLModelMetaclass = DatabaseORMModelMeta
 class DatabaseORMModel(DatabaseORMBase, SQLModel, metaclass=model_metaclass):
     """
     Database ORM model type.
+    Based on `sqlalchemy` and `sqlmodel` package.
 
     Examples
     --------
@@ -1621,7 +1622,7 @@ class DatabaseORMStatementSelectSuper(DatabaseORMStatementSuper, Select):
 
         Parameters
         ----------
-        names : Field name. (Note: primary key automatic add)
+        names : Field name. Note: primary key automatic add.
 
         Returns
         -------
@@ -1746,9 +1747,9 @@ class DatabaseORMStatementInsertSuper(DatabaseORMStatementSuper, Insert):
 
         Parameters
         ----------
-        names : Field name. One to one update to this field value. (i.e. `field = VALUE(field)`)
-        values : Scalar value. One to many update to this value. (i.e. `field = :value`)
-            - `Empty`: All parameters omit. One to one update to all fields value. (i.e. `field = VALUE(field), ...`)
+        names : Field name. One to one update to this field value (i.e. `field = VALUE(field)`).
+        values : Scalar value. One to many update to this value (i.e. `field = :value`).
+            - `Empty`: All parameters omit. One to one update to all fields value (i.e. `field = VALUE(field), ...`).
 
         Returns
         -------
