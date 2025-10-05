@@ -75,7 +75,7 @@ def handle_sql(sql: str | TextClause) -> TextClause:
     TextClause instance.
     """
 
-    # Set parameter.
+    # Parameter.
     if type(sql) == TextClause:
         sql = sql.text
 
@@ -102,7 +102,7 @@ def handle_data(data: list[dict], sql: str | TextClause) -> list[dict]:
     Filled data.
     """
 
-    # Set parameter.
+    # Parameter.
     if type(sql) == TextClause:
         sql = sql.text
 
@@ -298,7 +298,7 @@ def get_syntax(self, sql: str | TextClause) -> list[str]:
     SQL syntax type for each segment.
     """
 
-    # Set parameter.
+    # Parameter.
     if type(sql) == TextClause:
         sql = sql.text
 
@@ -325,7 +325,7 @@ def is_multi_sql(self, sql: str | TextClause) -> bool:
     Judgment result.
     """
 
-    # Set parameter.
+    # Parameter.
     if type(sql) == TextClause:
         sql = sql.text
 

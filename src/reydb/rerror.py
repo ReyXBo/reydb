@@ -85,7 +85,7 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
         Build database parameter.
         """
 
-        # Set parameter.
+        # Parameter.
 
         ## Table.
         DatabaseTableError._set_name(self.db_names['error'])
@@ -162,7 +162,7 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
         note : Exception note.
         """
 
-        # Set parameter.
+        # Parameter.
         exc_type = type(exc).__name__
         exc_data = list(exc.args) or None
         exc_stack = [
@@ -196,7 +196,7 @@ class DatabaseError(DatabaseErrorSuper['rdb.Database']):
         Check and build database tables, by `self.db_names`.
         """
 
-        # Set parameter.
+        # Parameter.
         tables, views_stats = self.handle_build_db()
 
         # Build.
@@ -219,7 +219,7 @@ class DatabaseError(DatabaseErrorSuper['rdb.Database']):
         note : Exception note.
         """
 
-        # Set parameter.
+        # Parameter.
         data = self.handle_record(exc, stack, note)
 
         # Insert.
@@ -246,7 +246,7 @@ class DatabaseError(DatabaseErrorSuper['rdb.Database']):
         filter_type : Exception types of not insert, but still throw exception.
         """
 
-        # Set parameter.
+        # Parameter.
         _, exc, stack = catch_exc()
 
         # Filter.
@@ -304,7 +304,7 @@ class DatabaseError(DatabaseErrorSuper['rdb.Database']):
         >>> func(*args, **kwargs)
         """
 
-        # Set parameter.
+        # Parameter.
         if issubclass(filter_type, BaseException):
             filter_type = (filter_type,)
 
@@ -364,17 +364,17 @@ class DatabaseError(DatabaseErrorSuper['rdb.Database']):
 
 class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseAsync']):
     """
-    Asynchrouous database error type.
+    Asynchronous database error type.
     Can create database used `self.build_db` method.
     """
 
 
     async def build_db(self) -> None:
         """
-        Asynchrouous check and build database tables, by `self.db_names`.
+        Asynchronous check and build database tables, by `self.db_names`.
         """
 
-        # Set parameter.
+        # Parameter.
         tables, views_stats = self.handle_build_db()
 
         # Build.
@@ -388,7 +388,7 @@ class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseAsync']):
         note: str | None = None
     ) -> None:
         """
-        Asynchrouous insert exception information into the table of database.
+        Asynchronous insert exception information into the table of database.
 
         Parameters
         ----------
@@ -397,7 +397,7 @@ class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseAsync']):
         note : Exception note.
         """
 
-        # Set parameter.
+        # Parameter.
         data = self.handle_record(exc, stack, note)
 
         # Insert.
@@ -416,7 +416,7 @@ class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseAsync']):
         filter_type : BaseException | tuple[BaseException, ...] = Exit
     ) -> NoReturn:
         """
-        Asynchrouous catch and insert exception information into the table of database and throw exception, must used in except syntax.
+        Asynchronous catch and insert exception information into the table of database and throw exception, must used in except syntax.
 
         Parameters
         ----------
@@ -424,7 +424,7 @@ class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseAsync']):
         filter_type : Exception types of not insert, but still throw exception.
         """
 
-        # Set parameter.
+        # Parameter.
         _, exc, stack = catch_exc()
 
         # Filter.
@@ -448,7 +448,7 @@ class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseAsync']):
         filter_type : BaseException | tuple[BaseException, ...] = Exit
     ) -> T | Callable[[Callable[..., T]], Callable[..., T]]:
         """
-        Asynchrouous decorator, insert exception information into the table of database, throw exception.
+        Asynchronous decorator, insert exception information into the table of database, throw exception.
 
         Parameters
         ----------
@@ -479,11 +479,11 @@ class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseAsync']):
         >>> wrap = wrap(**wrap_kwargs)
         >>> func = wrap(func)
 
-        Must asynchrouous execute.
+        Must asynchronous execute.
         >>> await func(*args, **kwargs)
         """
 
-        # Set parameter.
+        # Parameter.
         if issubclass(filter_type, BaseException):
             filter_type = (filter_type,)
 

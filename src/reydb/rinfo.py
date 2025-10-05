@@ -59,7 +59,7 @@ class DatabaseInformationSchemaSuper(DatabaseInformationBase, Generic[DatabaseT]
         db: Database instance.
         """
 
-        # Set parameter.
+        # Parameter.
         self.db = db
 
     def handle_before__call__(self, filter_default: bool = True) -> tuple[str, tuple[str, ...]]:
@@ -75,7 +75,7 @@ class DatabaseInformationSchemaSuper(DatabaseInformationBase, Generic[DatabaseT]
         Parameter `sql` and `filter_db`.
         """
 
-        # Set parameter.
+        # Parameter.
         filter_db = (
             'information_schema',
             'performance_schema',
@@ -193,7 +193,7 @@ class DatabaseInformationSchemaSuper(DatabaseInformationBase, Generic[DatabaseT]
         Judge result.
         """
 
-        # Set parameter.
+        # Parameter.
 
         # Judge.
         judge = (
@@ -298,7 +298,7 @@ class DatabaseInformationSchema(DatabaseInformationSchemaSuper['rdb.Database']):
         Judge result.
         """
 
-        # Set parameter.
+        # Parameter.
         if (
             cache
             and self.db._schema is not None
@@ -395,7 +395,7 @@ class DatabaseInformationSchemaAsync(DatabaseInformationSchemaSuper['rdb.Databas
         Judge result.
         """
 
-        # Set parameter.
+        # Parameter.
         if (
             refresh
             or self.db._schema is None
@@ -431,7 +431,7 @@ class DatabaseInformationParameterSuper(DatabaseInformationBase, Generic[Databas
         db: Database instance.
         """
 
-        # Set parameter.
+        # Parameter.
         self.db = db
 
 
@@ -559,13 +559,13 @@ class DatabaseInformationParameter(DatabaseInformationParameterSuper['rdb.Databa
 
 class DatabaseInformationParameterAsync(DatabaseInformationParameterSuper['rdb.DatabaseAsync']):
     """
-    Asynchrouous database information parameters type.
+    Asynchronous database information parameters type.
     """
 
 
     async def __getitem__(self, key: str) -> str | None:
         """
-        Asynchrouous get item of parameter dictionary.
+        Asynchronous get item of parameter dictionary.
 
         Parameters
         ----------
@@ -584,7 +584,7 @@ class DatabaseInformationParameterAsync(DatabaseInformationParameterSuper['rdb.D
 
     async def __setitem__(self, key: str, value: str | float) -> None:
         """
-        Asynchrouous set item of parameter dictionary.
+        Asynchronous set item of parameter dictionary.
 
         Parameters
         ----------
@@ -607,7 +607,7 @@ class DatabaseInformationParameterAsync(DatabaseInformationParameterSuper['rdb.D
 
     async def get(self, key: str | None = None) -> dict[str, str] | str | None:
         """
-        Asynchrouous get parameter.
+        Asynchronous get parameter.
 
         Parameters
         ----------
@@ -649,7 +649,7 @@ class DatabaseInformationParameterAsync(DatabaseInformationParameterSuper['rdb.D
 
     async def update(self, params: dict[str, str | float]) -> None:
         """
-        Asynchrouous update parameter.
+        Asynchronous update parameter.
 
         Parameters
         ----------
@@ -721,7 +721,7 @@ class DatabaseInformationParameterStatusGlobal(DatabaseInformationParameter):
 
 class DatabaseInformationParameterVariablesAsync(DatabaseInformationParameterAsync):
     """
-    Asynchrouous database information variable parameters type.
+    Asynchronous database information variable parameters type.
     """
 
     mode: Final = 'VARIABLES'
@@ -730,7 +730,7 @@ class DatabaseInformationParameterVariablesAsync(DatabaseInformationParameterAsy
 
 class DatabaseInformationParameterStatusAsync(DatabaseInformationParameterAsync):
     """
-    Asynchrouous database information status parameters type.
+    Asynchronous database information status parameters type.
     """
 
     mode: Final = 'STATUS'
@@ -739,7 +739,7 @@ class DatabaseInformationParameterStatusAsync(DatabaseInformationParameterAsync)
 
 class DatabaseInformationParameterVariablesGlobalAsync(DatabaseInformationParameterAsync):
     """
-    Asynchrouous database information global variable parameters type.
+    Asynchronous database information global variable parameters type.
     """
 
     mode: Final = 'VARIABLES'
@@ -748,7 +748,7 @@ class DatabaseInformationParameterVariablesGlobalAsync(DatabaseInformationParame
 
 class DatabaseInformationParameterStatusGlobalAsync(DatabaseInformationParameterAsync):
     """
-    Asynchrouous database information global status parameters type.
+    Asynchronous database information global status parameters type.
     """
 
     mode: Final = 'STATUS'

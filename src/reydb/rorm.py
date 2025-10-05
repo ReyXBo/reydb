@@ -109,7 +109,7 @@ class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
         kwargs : Type other key arguments.
         """
 
-        # Set parameter.
+        # Parameter.
         if '__annotations__' in attrs:
             table_args = attrs.setdefault('__table_args__', {})
             table_args['quote'] = True
@@ -164,7 +164,7 @@ class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
         # Super.
         super().__init__(name, bases, attrs, **kwargs)
 
-        # Set parameter.
+        # Parameter.
         if (
             '__annotations__' in attrs
             and hasattr(cls, '__table__')
@@ -261,7 +261,7 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
         **kwargs : Other key arguments.
         """
 
-        # Set parameter.
+        # Parameter.
         kwargs = {
             key: value
             for key, value in kwargs.items()
@@ -640,7 +640,7 @@ class DatabaseORMSessionSuper(
         Instance.
         """
 
-        # Set parameter.
+        # Parameter.
         if is_instance(model):
             model = type(model)
 
@@ -667,7 +667,7 @@ class DatabaseORMSessionSuper(
         Instance.
         """
 
-        # Set parameter.
+        # Parameter.
         if is_instance(model):
             model = type(model)
 
@@ -694,7 +694,7 @@ class DatabaseORMSessionSuper(
         Instance.
         """
 
-        # Set parameter.
+        # Parameter.
         if is_instance(model):
             model = type(model)
 
@@ -721,7 +721,7 @@ class DatabaseORMSessionSuper(
         Instance.
         """
 
-        # Set parameter.
+        # Parameter.
         if is_instance(model):
             model = type(model)
 
@@ -908,7 +908,7 @@ class DatabaseORMSession(
         skip : Whether skip existing table.
         """
 
-        # Set parameter.
+        # Parameter.
         tables = [
             model._get_table()
             for model in models
@@ -937,7 +937,7 @@ class DatabaseORMSession(
         skip : Skip not exist table.
         """
 
-        # Set parameter.
+        # Parameter.
         tables = [
             model._get_table()
             for model in models
@@ -968,7 +968,7 @@ class DatabaseORMSession(
         With records ORM model instance or null.
         """
 
-        # Set parameter.
+        # Parameter.
         if is_instance(model):
             model = type(model)
 
@@ -1002,7 +1002,7 @@ class DatabaseORMSession(
         With records ORM model instance list.
         """
 
-        # Set parameter.
+        # Parameter.
         if is_instance(model):
             model = type(model)
 
@@ -1030,7 +1030,7 @@ class DatabaseORMSession(
         With records ORM model instance list.
         """
 
-        # Set parameter.
+        # Parameter.
         if is_instance(model):
             model = type(model)
 
@@ -1280,7 +1280,7 @@ class DatabaseORMSessionAsync(
         skip : Whether skip existing table.
         """
 
-        # Set parameter.
+        # Parameter.
         tables = [
             model._get_table()
             for model in models
@@ -1310,7 +1310,7 @@ class DatabaseORMSessionAsync(
         skip : Skip not exist table.
         """
 
-        # Set parameter.
+        # Parameter.
         tables = [
             model._get_table()
             for model in models
@@ -1342,7 +1342,7 @@ class DatabaseORMSessionAsync(
         With records ORM model instance or null.
         """
 
-        # Set parameter.
+        # Parameter.
         if is_instance(model):
             model = type(model)
 
@@ -1376,7 +1376,7 @@ class DatabaseORMSessionAsync(
         With records ORM model instance list.
         """
 
-        # Set parameter.
+        # Parameter.
         if is_instance(model):
             model = type(model)
 
@@ -1404,7 +1404,7 @@ class DatabaseORMSessionAsync(
         With records ORM model instance list.
         """
 
-        # Set parameter.
+        # Parameter.
         if is_instance(model):
             model = type(model)
 
@@ -1566,7 +1566,7 @@ class DatabaseORMStatementAsync(DatabaseORMStatementSuper[DatabaseORMSessionAsyn
 
     async def execute(self) -> Result:
         """
-        Asynchrouous execute statement.
+        Asynchronous execute statement.
 
         Returns
         -------
@@ -1655,7 +1655,7 @@ class DatabaseORMStatementSelectSuper(DatabaseORMStatementSuper, Select):
         Set self.
         """
 
-        # Set parameter.
+        # Parameter.
         clauses = [
             sqlalchemy_text(clause)
             if type(clause) == str
@@ -1842,7 +1842,7 @@ class DatabaseORMStatementUpdateSuper(DatabaseORMStatementSuper, Update):
         Set self.
         """
 
-        # Set parameter.
+        # Parameter.
         clauses = [
             sqlalchemy_text(clause)
             if type(clause) == str
@@ -1926,7 +1926,7 @@ class DatabaseORMStatementDeleteSuper(DatabaseORMStatementSuper, Delete):
         Set self.
         """
 
-        # Set parameter.
+        # Parameter.
         clauses = [
             sqlalchemy_text(clause)
             if type(clause) == str

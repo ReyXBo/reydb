@@ -91,7 +91,7 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
         Build database parameter.
         """
 
-        # Set parameter.
+        # Parameter.
 
         ## Table.
         DatabaseTableConfig._set_name(self.db_names['config'])
@@ -153,7 +153,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         Check and build database tables, by `self.db_names`.
         """
 
-        # Set parameter.
+        # Parameter.
         tables, views_stats = self.handle_build_db()
 
         # Build.
@@ -276,7 +276,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
             - `ConfigTable`: Multiple configs.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(data) == dict:
             data = [data]
         data = data.copy()
@@ -433,7 +433,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         value : Config value.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(key_and_note) != str:
             key, note = key_and_note
         else:
@@ -469,7 +469,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
         Asynchronous check and build database tables, by `self.db_names`.
         """
 
-        # Set parameter.
+        # Parameter.
         tables, views_stats = self.handle_build_db()
 
         # Build.
@@ -592,7 +592,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
             - `ConfigTable`: Multiple configs.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(data) == dict:
             data = [data]
         data = data.copy()
@@ -749,7 +749,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
         value : Config value.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(key_and_note) != str:
             key, note = key_and_note
         else:

@@ -5,7 +5,7 @@ description = "Database method set."
 readme = "README.md"
 requires-python = ">=3.12"
 license = {file = "LICENSE"}
-keywords = ["rey", "reyxbo", "db", "database", "async", "asynchrouous", "orm"]
+keywords = ["rey", "reyxbo", "db", "database", "async", "asynchronous", "orm"]
 authors = [
     {name = "Rey", email = "reyxbo@163.com"}
 ]

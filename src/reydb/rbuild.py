@@ -122,7 +122,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         Field set SQL.
         """
 
-        # Set parameter.
+        # Parameter.
 
         ## Constraint.
         constraint = ' ' + constraint
@@ -176,7 +176,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         Index set SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if fields.__class__ == str:
             fields = [fields]
         match type_:
@@ -276,7 +276,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.db.database, path
         else:
@@ -364,7 +364,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.db.database, path
         else:
@@ -479,7 +479,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.db.database, path
         else:
@@ -510,7 +510,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.db.database, path
         else:
@@ -617,7 +617,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.db.database, path
         else:
@@ -705,7 +705,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.db.database, path
         else:
@@ -793,7 +793,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.db.database, path
         else:
@@ -887,7 +887,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.db.database, path
         else:
@@ -918,7 +918,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.db.database, path
         else:
@@ -1105,7 +1105,7 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
         skip : Whether skip existing table.
         """
 
-        # Set parameter.
+        # Parameter.
         databases = databases or []
         tables = tables or []
         views = views or []
@@ -1325,7 +1325,7 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
         skip : Whether skip existing table.
         """
 
-        # Set parameter.
+        # Parameter.
         databases = databases or []
         tables = tables or []
         tables_orm = tables_orm or []
@@ -1602,7 +1602,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         Field set SQL.
         """
 
-        # Set parameter.
+        # Parameter.
 
         ## Constraint.
         constraint = ' ' + constraint
@@ -1656,7 +1656,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         Index set SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if fields.__class__ == str:
             fields = [fields]
         match type_:
@@ -1756,7 +1756,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.db.database, path
         else:
@@ -1844,7 +1844,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.db.database, path
         else:
@@ -1959,7 +1959,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.db.database, path
         else:
@@ -1990,7 +1990,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.db.database, path
         else:
@@ -2097,7 +2097,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.db.database, path
         else:
@@ -2185,7 +2185,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.db.database, path
         else:
@@ -2273,7 +2273,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.db.database, path
         else:
@@ -2367,7 +2367,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.db.database, path
         else:
@@ -2398,7 +2398,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         SQL.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.db.database, path
         else:
@@ -2599,7 +2599,7 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
         skip : Whether skip existing table.
         """
 
-        # Set parameter.
+        # Parameter.
         databases = databases or []
         tables = tables or []
         views = views or []
@@ -2815,7 +2815,7 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
         skip : Whether skip existing table.
         """
 
-        # Set parameter.
+        # Parameter.
         databases = databases or []
         tables = tables or []
         tables_orm = tables_orm or []

@@ -87,7 +87,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         Parameter `sql` and `data` and `report`.
         """
 
-        # Set parameter.
+        # Parameter.
         echo = get_first_notnone(echo, self.conn.db.echo)
         sql = handle_sql(sql)
         if data is None:
@@ -142,7 +142,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         Parameter `sql`.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.conn.db.database, path
         else:
@@ -240,7 +240,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         Parameter `sql` and `kwdata`.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.conn.db.database, path
         else:
@@ -383,7 +383,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         Parameter `sql` and `data`.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.conn.db.database, path
         else:
@@ -517,7 +517,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         Parameter `sql`.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.conn.db.database, path
         else:
@@ -580,7 +580,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         Parameter `sql`.
         """
 
-        # Set parameter.
+        # Parameter.
         if type(path) == str:
             database, table = self.conn.db.database, path
         else:
@@ -658,7 +658,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         Result object.
         """
 
-        # Set parameter.
+        # Parameter.
         sql, data, echo = self.handle_execute(sql, data, echo, **kwdata)
 
         # Transaction.
@@ -755,7 +755,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         [{'id': 1, 'id_': 2}, ...]
         """
 
-        # Set parameter.
+        # Parameter.
         sql = self.handle_select(path, fields, where, group, having, order, limit)
 
         # Execute SQL.
@@ -808,7 +808,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         [{'key': 'a', 'value1': 1, 'value2': 2}, {'key': 'b', 'value1': 1, 'value2': 2}]
         """
 
-        # Set parameter.
+        # Parameter.
         sql, kwdata = self.handle_insert(path, data, duplicate, **kwdata)
 
         # Execute SQL.
@@ -867,7 +867,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         [{'key': 'a', 'value': 1, 'name': 'a'}, {'key': 'b', 'value': 1, 'name': 'b'}]
         """
 
-        # Set parameter.
+        # Parameter.
         sql, data = self.handle_update(path, data, where_fields, **kwdata)
 
         # Execute SQL.
@@ -913,7 +913,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         2
         """
 
-        # Set parameter.
+        # Parameter.
         sql = self.handle_delete(path, where, order, limit)
 
         # Execute SQL.
@@ -964,7 +964,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
         2
         """
 
-        # Set parameter.
+        # Parameter.
         sql = self.handle_copy(path, fields, where, limit)
 
         # Execute SQL.
@@ -1145,7 +1145,7 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
             - When parameters `precision` is `greater than 0`, then return float.
         """
 
-        # Set parameter.
+        # Parameter.
         if len(thresholds) == 1:
             second = thresholds[0]
         else:
@@ -1187,7 +1187,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         Result object.
         """
 
-        # Set parameter.
+        # Parameter.
         sql, data, echo = self.handle_execute(sql, data, echo, **kwdata)
 
         # Transaction.
@@ -1301,7 +1301,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         [{'id': 1, 'id_': 2}, ...]
         """
 
-        # Set parameter.
+        # Parameter.
         sql = self.handle_select(path, fields, where, group, having, order, limit)
 
         # Execute SQL.
@@ -1354,7 +1354,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         [{'key': 'a', 'value1': 1, 'value2': 2}, {'key': 'b', 'value1': 1, 'value2': 2}]
         """
 
-        # Set parameter.
+        # Parameter.
         sql, kwdata = self.handle_insert(path, data, duplicate, **kwdata)
 
         # Execute SQL.
@@ -1413,7 +1413,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         [{'key': 'a', 'value': 1, 'name': 'a'}, {'key': 'b', 'value': 1, 'name': 'b'}]
         """
 
-        # Set parameter.
+        # Parameter.
         sql, data = self.handle_update(path, data, where_fields, **kwdata)
 
         # Execute SQL.
@@ -1459,7 +1459,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         2
         """
 
-        # Set parameter.
+        # Parameter.
         sql = self.handle_delete(path, where, order, limit)
 
         # Execute SQL.
@@ -1510,7 +1510,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         2
         """
 
-        # Set parameter.
+        # Parameter.
         sql = self.handle_copy(path, fields, where, limit)
 
         # Execute SQL.
@@ -1689,7 +1689,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
             - When parameters `precision` is `greater than 0`, then return float.
         """
 
-        # Set parameter.
+        # Parameter.
         if len(thresholds) == 1:
             second = thresholds[0]
         else:
