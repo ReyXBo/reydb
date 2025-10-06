@@ -57,16 +57,7 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
     """
     Database config super type.
     Can create database used `self.build_db` method.
-
-    Attributes
-    ----------
-    db_names : Database table name mapping dictionary.
     """
-
-    db_names = {
-        'config': 'config',
-        'stats_config': 'stats_config'
-    }
 
 
     def __init__(self, db: DatabaseT) -> None:
@@ -84,7 +75,7 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
 
     def handle_build_db(self) -> tuple[list[type[DatabaseTableConfig]], list[dict[str, Any]]] :
         """
-        Handle method of check and build database tables, by `self.db_names`.
+        Handle method of check and build database tables.
 
         Returns
         -------
@@ -92,21 +83,21 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
         """
 
         # Parameter.
+        database = self.db.database
 
         ## Table.
-        DatabaseTableConfig._set_name(self.db_names['config'])
         tables = [DatabaseTableConfig]
 
         ## View stats.
         views_stats = [
             {
-                'path': self.db_names['stats_config'],
+                'path': 'stats_config',
                 'items': [
                     {
                         'name': 'count',
                         'select': (
                             'SELECT COUNT(1)\n'
-                            f'FROM `{self.db.database}`.`{self.db_names['config']}`'
+                            f'FROM `{database}`.`config`'
                         ),
                         'comment': 'Config count.'
                     },
@@ -114,7 +105,7 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
                         'name': 'last_create_time',
                         'select': (
                             'SELECT MAX(`create_time`)\n'
-                            f'FROM `{self.db.database}`.`{self.db_names['config']}`'
+                            f'FROM `{database}`.`config`'
                         ),
                         'comment': 'Config last record create time.'
                     },
@@ -122,7 +113,7 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
                         'name': 'last_update_time',
                         'select': (
                             'SELECT MAX(`update_time`)\n'
-                            f'FROM `{self.db.database}`.`{self.db_names['config']}`'
+                            f'FROM `{database}`.`config`'
                         ),
                         'comment': 'Config last record update time.'
                     }
@@ -150,7 +141,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
 
     def build_db(self) -> None:
         """
-        Check and build database tables, by `self.db_names`.
+        Check and build database tables.
         """
 
         # Parameter.
@@ -171,7 +162,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
 
         # Get.
         result = self.db.execute.select(
-            self.db_names['config'],
+            'config',
             ['key', 'value', 'note'],
             order='IFNULL(`update_time`, `create_time`) DESC'
         )
@@ -207,7 +198,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         # Get.
         where = '`key` = :key'
         result = self.db.execute.select(
-            self.db_names['config'],
+            'config',
             '`value`',
             where,
             limit=1,
@@ -253,7 +244,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
             'note': note
         }
         result = self.db.execute.insert(
-            self.db_names['config'],
+            'config',
             data,
             'ignore'
         )
@@ -286,7 +277,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
 
         # Update.
         self.db.execute.insert(
-            self.db_names['config'],
+            'config',
             data,
             'update'
         )
@@ -309,7 +300,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
             where = '`key` in :key'
             limit = None
         result = self.db.execute.delete(
-            self.db_names['base.config'],
+            'config',
             where,
             limit=limit,
             key=key
@@ -331,7 +322,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
 
         # Get.
         result = self.db.execute.select(
-            self.db_names['config'],
+            'config',
             ['key', 'value']
         )
 
@@ -357,7 +348,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
 
         # Get.
         result = self.db.execute.select(
-            self.db_names['config'],
+            'config',
             '`key`'
         )
 
@@ -382,7 +373,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
 
         # Get.
         result = self.db.execute.select(
-            self.db_names['config'],
+            'config',
             '`value`'
         )
 
@@ -466,7 +457,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
 
     async def build_db(self) -> None:
         """
-        Asynchronous check and build database tables, by `self.db_names`.
+        Asynchronous check and build database tables.
         """
 
         # Parameter.
@@ -487,7 +478,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
 
         # Get.
         result = await self.db.execute.select(
-            self.db_names['config'],
+            'config',
             ['key', 'value', 'note'],
             order='IFNULL(`update_time`, `create_time`) DESC'
         )
@@ -523,7 +514,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
         # Get.
         where = '`key` = :key'
         result = await self.db.execute.select(
-            self.db_names['config'],
+            'config',
             '`value`',
             where,
             limit=1,
@@ -569,7 +560,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
             'note': note
         }
         result = await self.db.execute.insert(
-            self.db_names['config'],
+            'config',
             data,
             'ignore'
         )
@@ -602,7 +593,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
 
         # Update.
         await self.db.execute.insert(
-            self.db_names['config'],
+            'config',
             data,
             'update'
         )
@@ -625,7 +616,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
             where = '`key` in :key'
             limit = None
         result = await self.db.execute.delete(
-            self.db_names['config'],
+            'config',
             where,
             limit=limit,
             key=key
@@ -647,7 +638,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
 
         # Get.
         result = await self.db.execute.select(
-            self.db_names['config'],
+            'config',
             ['key', 'value']
         )
 
@@ -673,7 +664,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
 
         # Get.
         result = await self.db.execute.select(
-            self.db_names['config'],
+            'config',
             '`key`'
         )
 
@@ -698,7 +689,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
 
         # Get.
         result = await self.db.execute.select(
-            self.db_names['config'],
+            'config',
             '`value`'
         )
 

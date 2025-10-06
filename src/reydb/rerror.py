@@ -51,16 +51,7 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
     """
     Database error super type.
     Can create database used `self.build_db` method.
-
-    Attributes
-    ----------
-    db_names : Database table name mapping dictionary.
     """
-
-    db_names = {
-        'error': 'error',
-        'stats_error': 'stats_error'
-    }
 
 
     def __init__(self, db: DatabaseT) -> None:
@@ -78,7 +69,7 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
 
     def handle_build_db(self) -> tuple[list[type[DatabaseTableError]], list[dict[str, Any]]]:
         """
-        Handle method of check and build database tables, by `self.db_names`.
+        Handle method of check and build database tables.
 
         Returns
         -------
@@ -86,21 +77,21 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
         """
 
         # Parameter.
+        database = self.db.database
 
         ## Table.
-        DatabaseTableError._set_name(self.db_names['error'])
         tables = [DatabaseTableError]
 
         ## View stats.
         views_stats = [
             {
-                'path': self.db_names['stats_error'],
+                'path': 'stats_error',
                 'items': [
                     {
                         'name': 'count',
                         'select': (
                             'SELECT COUNT(1)\n'
-                            f'FROM `{self.db.database}`.`{self.db_names['error']}`'
+                            f'FROM `{database}`.`error`'
                         ),
                         'comment': 'Error log count.'
                     },
@@ -108,7 +99,7 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
                         'name': 'past_day_count',
                         'select': (
                             'SELECT COUNT(1)\n'
-                            f'FROM `{self.db.database}`.`{self.db_names['error']}`\n'
+                            f'FROM `{database}`.`error`\n'
                             'WHERE TIMESTAMPDIFF(DAY, `create_time`, NOW()) = 0'
                         ),
                         'comment': 'Error log count in the past day.'
@@ -117,7 +108,7 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
                         'name': 'past_week_count',
                         'select': (
                             'SELECT COUNT(1)\n'
-                            f'FROM `{self.db.database}`.`{self.db_names['error']}`\n'
+                            f'FROM `{database}`.`error`\n'
                             'WHERE TIMESTAMPDIFF(DAY, `create_time`, NOW()) <= 6'
                         ),
                         'comment': 'Error log count in the past week.'
@@ -126,7 +117,7 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
                         'name': 'past_month_count',
                         'select': (
                             'SELECT COUNT(1)\n'
-                            f'FROM `{self.db.database}`.`{self.db_names['error']}`\n'
+                            f'FROM `{database}`.`error`\n'
                             'WHERE TIMESTAMPDIFF(DAY, `create_time`, NOW()) <= 29'
                         ),
                         'comment': 'Error log count in the past month.'
@@ -135,7 +126,7 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
                         'name': 'last_time',
                         'select': (
                             'SELECT MAX(`create_time`)\n'
-                            f'FROM `{self.db.database}`.`{self.db_names['error']}`'
+                            f'FROM `{database}`.`error`'
                         ),
                         'comment': 'Error log last record create time.'
                     }
@@ -193,7 +184,7 @@ class DatabaseError(DatabaseErrorSuper['rdb.Database']):
 
     def build_db(self) -> None:
         """
-        Check and build database tables, by `self.db_names`.
+        Check and build database tables.
         """
 
         # Parameter.
@@ -224,7 +215,7 @@ class DatabaseError(DatabaseErrorSuper['rdb.Database']):
 
         # Insert.
         self.db.execute.insert(
-            self.db_names['error'],
+            'error',
             data=data
         )
 
@@ -371,7 +362,7 @@ class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseAsync']):
 
     async def build_db(self) -> None:
         """
-        Asynchronous check and build database tables, by `self.db_names`.
+        Asynchronous check and build database tables.
         """
 
         # Parameter.
@@ -402,7 +393,7 @@ class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseAsync']):
 
         # Insert.
         await self.db.execute.insert(
-            self.db_names['error'],
+            'error',
             data=data
         )
 
