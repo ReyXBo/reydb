@@ -1,6 +1,6 @@
 # reydb
 
-> Rey's database method set.
+> Backend database method set.
 
 ## Install
 

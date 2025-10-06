@@ -1,11 +1,11 @@
 [project]
 name = "reydb"
-version = "1.2.15"
+version = "1.2.16"
 description = "Database method set."
 readme = "README.md"
 requires-python = ">=3.12"
 license = {file = "LICENSE"}
-keywords = ["rey", "reyxbo", "db", "database", "async", "asynchronous", "orm"]
+keywords = ["rey", "reyxbo", "db", "database", "orm", "async", "asynchronous"]
 authors = [
     {name = "Rey", email = "reyxbo@163.com"}
 ]
