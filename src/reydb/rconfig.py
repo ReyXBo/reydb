@@ -24,7 +24,7 @@ from .rbase import DatabaseBase
 
 
 __all__ = (
-    'DatabaseTableConfig',
+    'DatabaseORMTableConfig',
     'DatabaseConfigSuper',
     'DatabaseConfig',
     'DatabaseConfigAsync'
@@ -38,9 +38,9 @@ ConfigValueT = TypeVar('T', bound=ConfigValue) # Any.
 DatabaseT = TypeVar('DatabaseT', 'rdb.Database', 'rdb.DatabaseAsync')
 
 
-class DatabaseTableConfig(rorm.Model, table=True):
+class DatabaseORMTableConfig(rorm.Model, table=True):
     """
-    Database `config` table model.
+    Database `config` table ORM model.
     """
 
     __name__ = 'config'
@@ -59,6 +59,8 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
     Can create database used `self.build_db` method.
     """
 
+    _checked: bool = False
+
 
     def __init__(self, db: DatabaseT) -> None:
         """
@@ -72,8 +74,16 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
         # Build.
         self.db = db
 
+        # Build Database.
+        if not self._checked:
+            if type(self) == DatabaseConfig:
+                self.build_db()
+            elif type(self) == DatabaseConfigAsync:
+                db.sync_database.config.build_db()
+            self._checked = True
 
-    def handle_build_db(self) -> tuple[list[type[DatabaseTableConfig]], list[dict[str, Any]]] :
+
+    def handle_build_db(self) -> tuple[list[type[DatabaseORMTableConfig]], list[dict[str, Any]]] :
         """
         Handle method of check and build database tables.
 
@@ -86,7 +96,7 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
         database = self.db.database
 
         ## Table.
-        tables = [DatabaseTableConfig]
+        tables = [DatabaseORMTableConfig]
 
         ## View stats.
         views_stats = [

@@ -22,7 +22,7 @@ from .rbase import DatabaseBase
 
 
 __all__ = (
-    'DatabaseTableError',
+    'DatabaseORMTableError',
     'DatabaseErrorSuper',
     'DatabaseError',
     'DatabaseErrorAsync'
@@ -32,9 +32,9 @@ __all__ = (
 DatabaseT = TypeVar('DatabaseT', 'rdb.Database', 'rdb.DatabaseAsync')
 
 
-class DatabaseTableError(rorm.Model, table=True):
+class DatabaseORMTableError(rorm.Model, table=True):
     """
-    Database `error` table model.
+    Database `error` table ORM model.
     """
 
     __name__ = 'error'
@@ -53,6 +53,8 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
     Can create database used `self.build_db` method.
     """
 
+    _checked: bool = False
+
 
     def __init__(self, db: DatabaseT) -> None:
         """
@@ -66,8 +68,16 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
         # Build.
         self.db = db
 
+        # Build Database.
+        if not self._checked:
+            if type(self) == DatabaseError:
+                self.build_db()
+            elif type(self) == DatabaseErrorAsync:
+                db.sync_database.error.build_db()
+            self._checked = True
 
-    def handle_build_db(self) -> tuple[list[type[DatabaseTableError]], list[dict[str, Any]]]:
+
+    def handle_build_db(self) -> tuple[list[type[DatabaseORMTableError]], list[dict[str, Any]]]:
         """
         Handle method of check and build database tables.
 
@@ -80,7 +90,7 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
         database = self.db.database
 
         ## Table.
-        tables = [DatabaseTableError]
+        tables = [DatabaseORMTableError]
 
         ## View stats.
         views_stats = [

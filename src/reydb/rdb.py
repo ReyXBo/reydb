@@ -9,7 +9,7 @@
 """
 
 
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, overload
 from urllib.parse import quote as urllib_quote
 from pymysql.constants.CLIENT import MULTI_STATEMENTS
 from sqlalchemy import Engine, create_engine as sqlalchemy_create_engine
@@ -519,6 +519,30 @@ class Database(
     """
 
 
+    @property
+    def async_database(self) -> 'DatabaseAsync':
+        """
+        Same engine `DatabaseAsync` instance.
+        """
+
+        # Build.
+        db = DatabaseAsync(
+            self.host,
+            self.port,
+            self.username,
+            self.password,
+            self.database,
+            self.pool_size,
+            self.max_overflow,
+            self.pool_timeout,
+            self.pool_recycle,
+            self.echo,
+            **self.query
+        )
+
+        return db
+
+
 class DatabaseAsync(
     DatabaseSuper[
         AsyncEngine,
@@ -537,6 +561,30 @@ class DatabaseAsync(
     """
     Asynchronous database type, based `MySQL`.
     """
+
+
+    @property
+    def sync_database(self) -> Database:
+        """
+        Same engine `Database` instance.
+        """
+
+        # Build.
+        db = Database(
+            self.host,
+            self.port,
+            self.username,
+            self.password,
+            self.database,
+            self.pool_size,
+            self.max_overflow,
+            self.pool_timeout,
+            self.pool_recycle,
+            self.echo,
+            **self.query
+        )
+
+        return db
 
 
     async def dispose(self) -> None:

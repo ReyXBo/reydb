@@ -28,7 +28,6 @@ from .rbase import DatabaseBase, handle_sql, handle_data
 
 __all__ = (
     'Result',
-    'ResultORM',
     'DatabaseExecuteSuper',
     'DatabaseExecute',
     'DatabaseExecuteAsync'

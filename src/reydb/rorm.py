@@ -560,32 +560,12 @@ class DatabaseORMSuper(DatabaseORMBase, Generic[DatabaseT, DatabaseORMSessionT])
 class DatabaseORM(DatabaseORMSuper['rdb.Database', 'DatabaseORMSession']):
     """
     Database ORM type.
-
-    Attributes
-    ----------
-    metaData : Registry metadata instance.
-    DatabaseModel : Database ORM model type.
-    Field : Database ORM model field type.
-    Config : Database ORM model config type.
-    types : Database ORM model filed types module.
-    wrap_validate_model : Create decorator of validate database ORM model.
-    wrap_validate_filed : Create decorator of validate database ORM model field.
     """
 
 
 class DatabaseORMAsync(DatabaseORMSuper['rdb.DatabaseAsync', 'DatabaseORMSessionAsync']):
     """
     Asynchronous database ORM type.
-
-    Attributes
-    ----------
-    metaData : Registry metadata instance.
-    DatabaseModel : Database ORM model type.
-    Field : Database ORM model field type.
-    Config : Database ORM model config type.
-    types : Database ORM model filed types module.
-    wrap_validate_model : Create decorator of validate database ORM model.
-    wrap_validate_filed : Create decorator of validate database ORM model field.
     """
 
 
@@ -1607,13 +1587,10 @@ class DatabaseORMStatementAsync(DatabaseORMStatementSuper[DatabaseORMSessionAsyn
 class DatabaseORMStatementSelectSuper(DatabaseORMStatementSuper, Select):
     """
     Database ORM `select` statement super type.
-
-    Attributes
-    ----------
-    inherit_cache : Compatible type.
     """
 
     inherit_cache: Final = True
+    'Compatible type.'
 
 
     def fields(self, *names: str) -> Self:
@@ -1672,13 +1649,10 @@ class DatabaseORMStatementSelectSuper(DatabaseORMStatementSuper, Select):
 class DatabaseORMStatementSelect(DatabaseORMStatement, DatabaseORMStatementSelectSuper, Generic[DatabaseORMModelT]):
     """
     Database ORM `select` statement type.
-
-    Attributes
-    ----------
-    inherit_cache : Compatible type.
     """
 
     inherit_cache: Final = True
+    'Compatible type.'
 
 
     @overload
@@ -1690,13 +1664,10 @@ class DatabaseORMStatementSelect(DatabaseORMStatement, DatabaseORMStatementSelec
 class DatabaseORMStatementSelectAsync(DatabaseORMStatementAsync, DatabaseORMStatementSelectSuper, Generic[DatabaseORMModelT]):
     """
     Asynchronous database ORM `select` statement type.
-
-    Attributes
-    ----------
-    inherit_cache : Compatible type.
     """
 
     inherit_cache: Final = True
+    'Compatible type.'
 
 
     @overload
@@ -1708,13 +1679,10 @@ class DatabaseORMStatementSelectAsync(DatabaseORMStatementAsync, DatabaseORMStat
 class DatabaseORMStatementInsertSuper(DatabaseORMStatementSuper, Insert):
     """
     Database ORM `select` statement super type.
-
-    Attributes
-    ----------
-    inherit_cache : Compatible type.
     """
 
     inherit_cache: Final = True
+    'Compatible type.'
 
 
     def ignore(self) -> Self:
@@ -1794,37 +1762,28 @@ class DatabaseORMStatementInsertSuper(DatabaseORMStatementSuper, Insert):
 class DatabaseORMStatementInsert(DatabaseORMStatement, DatabaseORMStatementInsertSuper):
     """
     Database ORM `insert` statement type.
-
-    Attributes
-    ----------
-    inherit_cache : Compatible type.
     """
 
     inherit_cache: Final = True
+    'Compatible type.'
 
 
 class DatabaseORMStatementInsertAsync(DatabaseORMStatementAsync, DatabaseORMStatementInsertSuper):
     """
     Asynchronous database ORM `insert` statement type.
-
-    Attributes
-    ----------
-    inherit_cache : Compatible type.
     """
 
     inherit_cache: Final = True
+    'Compatible type.'
 
 
 class DatabaseORMStatementUpdateSuper(DatabaseORMStatementSuper, Update):
     """
     Database ORM `update` statement super type.
-
-    Attributes
-    ----------
-    inherit_cache : Compatible type.
     """
 
     inherit_cache: Final = True
+    'Compatible type.'
 
 
     def where(self, *clauses: str | _ColumnExpressionArgument[bool]) -> Self:
@@ -1878,37 +1837,28 @@ class DatabaseORMStatementUpdateSuper(DatabaseORMStatementSuper, Update):
 class DatabaseORMStatementUpdate(DatabaseORMStatement, DatabaseORMStatementUpdateSuper):
     """
     Database ORM `update` statement type.
-
-    Attributes
-    ----------
-    inherit_cache : Compatible type.
     """
 
     inherit_cache: Final = True
+    'Compatible type.'
 
 
 class DatabaseORMStatementUpdateAsync(DatabaseORMStatementAsync, DatabaseORMStatementUpdateSuper):
     """
     Asynchronous database ORM `update` statement type.
-
-    Attributes
-    ----------
-    inherit_cache : Compatible type.
     """
 
     inherit_cache: Final = True
+    'Compatible type.'
 
 
 class DatabaseORMStatementDeleteSuper(DatabaseORMStatementSuper, Delete):
     """
     Database ORM `delete` statement super type.
-
-    Attributes
-    ----------
-    inherit_cache : Compatible type.
     """
 
     inherit_cache: Final = True
+    'Compatible type.'
 
 
     def where(self, *clauses: str | _ColumnExpressionArgument[bool]) -> Self:
@@ -1962,25 +1912,19 @@ class DatabaseORMStatementDeleteSuper(DatabaseORMStatementSuper, Delete):
 class DatabaseORMStatementDelete(DatabaseORMStatement, DatabaseORMStatementDeleteSuper):
     """
     Database ORM `delete` statement type.
-
-    Attributes
-    ----------
-    inherit_cache : Compatible type.
     """
 
     inherit_cache: Final = True
+    'Compatible type.'
 
 
 class DatabaseORMStatementDeleteAsync(DatabaseORMStatementAsync, DatabaseORMStatementDeleteSuper):
     """
     Asynchronous database ORM `delete` statement type.
-
-    Attributes
-    ----------
-    inherit_cache : Compatible type.
     """
 
     inherit_cache: Final = True
+    'Compatible type.'
 
 
 # Simple path.
