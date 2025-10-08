@@ -303,11 +303,9 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
             kwargs['alias'] = kwargs['sa_column_kwargs']['name'] = kwargs.pop('field_name')
 
         ## Key auto.
-        if kwargs.get('key_auto'):
-            kwargs['sa_column_kwargs']['autoincrement'] = True
+        if kwargs.pop('key_auto', False):
             kwargs['primary_key'] = True
-        else:
-            kwargs['sa_column_kwargs']['autoincrement'] = False
+            kwargs['sa_column_kwargs']['autoincrement'] = True
 
         ## Key.
         if kwargs.get('primary_key'):
@@ -336,7 +334,11 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
         ## Argument default.
         arg_default = kwargs.pop('arg_default', Null)
         if arg_default == Null:
-            if kwargs['nullable']:
+            if (
+                kwargs['nullable']
+                or kwargs['sa_column_kwargs'].get('autoincrement')
+                or kwargs['sa_column_kwargs'].get('server_default') is not None
+            ):
                 kwargs['default'] = None
         elif callable(arg_default):
             kwargs['default_factory'] = arg_default
@@ -603,7 +605,7 @@ class DatabaseORMSessionSuper(
         # Build.
         self.orm = orm
         self.autocommit = autocommit
-        self.sess: SessionT | None = None
+        self.session: SessionT | None = None
         self.begin: SessionTransactionT | None = None
 
 
@@ -774,10 +776,10 @@ class DatabaseORMSession(
         """
 
         # Create.
-        if self.sess is None:
-            self.sess = Session(self.orm.db.engine)
+        if self.session is None:
+            self.session = Session(self.orm.db.engine)
 
-        return self.sess
+        return self.session
 
 
     def get_begin(self) -> SessionTransaction:
@@ -828,9 +830,18 @@ class DatabaseORMSession(
         if self.begin is not None:
             self.begin.close()
             self.begin = None
-        if self.sess is not None:
-            self.sess.close()
-            self.sess = None
+        if self.session is not None:
+            self.session.close()
+            self.session = None
+
+
+    def flush(self) -> None:
+        """
+        Send execution to database, can refresh increment primary key attribute value of model.
+        """
+
+        # Send.
+        self.session.flush()
 
 
     def wrap_transact(method: CallableT) -> CallableT:
@@ -847,17 +858,16 @@ class DatabaseORMSession(
         """
 
 
-        # Define.
         @functools_wraps(method)
         def wrap(self: 'DatabaseORMSession', *args, **kwargs):
 
             # Session.
-            if self.sess is None:
-                self.sess = Session(self.orm.db.engine)
+            if self.session is None:
+                self.session = Session(self.orm.db.engine)
 
             # Begin.
             if self.begin is None:
-                self.begin = self.sess.begin()
+                self.begin = self.session.begin()
 
             # Execute.
             result = method(self, *args, **kwargs)
@@ -953,14 +963,14 @@ class DatabaseORMSession(
             model = type(model)
 
         # Get.
-        result = self.sess.get(model, key)
+        result = self.session.get(model, key)
 
         # Autucommit.
         if (
             self.autocommit
             and result is not None
         ):
-            self.sess.expunge(result)
+            self.session.expunge(result)
 
         return result
 
@@ -990,7 +1000,7 @@ class DatabaseORMSession(
         results = [
             result
             for key in keys
-            if (result := self.sess.get(model, key)) is not None
+            if (result := self.session.get(model, key)) is not None
         ]
 
         return results
@@ -1016,7 +1026,7 @@ class DatabaseORMSession(
 
         # Get.
         select = Select(model)
-        models = self.sess.exec(select)
+        models = self.session.exec(select)
         models = list(models)
 
         return models
@@ -1033,7 +1043,7 @@ class DatabaseORMSession(
         """
 
         # Add.
-        self.sess.add_all(models)
+        self.session.add_all(models)
 
 
     @wrap_transact
@@ -1048,7 +1058,7 @@ class DatabaseORMSession(
 
         # Delete.
         for model in models:
-            self.sess.delete(model)
+            self.session.delete(model)
 
 
     @wrap_transact
@@ -1063,7 +1073,7 @@ class DatabaseORMSession(
 
         # Refresh.
         for model in models:
-            self.sess.refresh(model)
+            self.session.refresh(model)
 
 
     @wrap_transact
@@ -1078,7 +1088,7 @@ class DatabaseORMSession(
 
         # Refresh.
         for model in models:
-            self.sess.expire(model)
+            self.session.expire(model)
 
 
     @overload
@@ -1147,10 +1157,10 @@ class DatabaseORMSessionAsync(
         """
 
         # Create.
-        if self.sess is None:
-            self.sess = AsyncSession(self.orm.db.engine)
+        if self.session is None:
+            self.session = AsyncSession(self.orm.db.engine)
 
-        return self.sess
+        return self.session
 
 
     async def get_begin(self) -> AsyncSessionTransaction:
@@ -1201,9 +1211,18 @@ class DatabaseORMSessionAsync(
         if self.begin is not None:
             await self.begin.rollback()
             self.begin = None
-        if self.sess is not None:
-            await self.sess.close()
-            self.sess = None
+        if self.session is not None:
+            await self.session.close()
+            self.session = None
+
+
+    async def flush(self) -> None:
+        """
+        Asynchronous send execution to database, can refresh increment primary key attribute value of model.
+        """
+
+        # Send.
+        await self.session.flush()
 
 
     def wrap_transact(method: CallableT) -> CallableT:
@@ -1220,7 +1239,6 @@ class DatabaseORMSessionAsync(
         """
 
 
-        # Define.
         @functools_wraps(method)
         async def wrap(self: 'DatabaseORMSessionAsync', *args, **kwargs):
 
@@ -1271,7 +1289,7 @@ class DatabaseORMSessionAsync(
             throw(ValueError, tables)
 
         # Create.
-        conn = await self.sess.connection()
+        conn = await self.session.connection()
         await conn.run_sync(metadata.create_all, tables, skip)
 
 
@@ -1301,7 +1319,7 @@ class DatabaseORMSessionAsync(
             throw(ValueError, tables)
 
         # Drop.
-        conn = await self.sess.connection()
+        conn = await self.session.connection()
         await conn.run_sync(metadata.drop_all, tables, skip)
 
 
@@ -1327,14 +1345,14 @@ class DatabaseORMSessionAsync(
             model = type(model)
 
         # Get.
-        result = await self.sess.get(model, key)
+        result = await self.session.get(model, key)
 
         # Autucommit.
         if (
             self.autocommit
             and result is not None
         ):
-            self.sess.expunge(result)
+            self.session.expunge(result)
 
         return result
 
@@ -1364,7 +1382,7 @@ class DatabaseORMSessionAsync(
         results = [
             result
             for key in keys
-            if (result := await self.sess.get(model, key)) is not None
+            if (result := await self.session.get(model, key)) is not None
         ]
 
         return results
@@ -1390,7 +1408,7 @@ class DatabaseORMSessionAsync(
 
         # Get.
         select = Select(model)
-        models = await self.sess.exec(select)
+        models = await self.session.exec(select)
         models = list(models)
 
         return models
@@ -1407,7 +1425,7 @@ class DatabaseORMSessionAsync(
         """
 
         # Add.
-        self.sess.add_all(models)
+        self.session.add_all(models)
 
 
     @wrap_transact
@@ -1422,7 +1440,7 @@ class DatabaseORMSessionAsync(
 
         # Delete.
         for model in models:
-            await self.sess.delete(model)
+            await self.session.delete(model)
 
 
     @wrap_transact
@@ -1437,7 +1455,7 @@ class DatabaseORMSessionAsync(
 
         # Refresh.
         for model in models:
-            await self.sess.refresh(model)
+            await self.session.refresh(model)
 
 
     @wrap_transact
@@ -1452,7 +1470,7 @@ class DatabaseORMSessionAsync(
 
         # Refresh.
         for model in models:
-            self.sess.expire(model)
+            self.session.expire(model)
 
 
     @overload
@@ -1519,7 +1537,7 @@ class DatabaseORMStatement(DatabaseORMStatementSuper[DatabaseORMSession]):
         self.sess.get_begin()
 
         # Execute.
-        result: Result = self.sess.sess.exec(self)
+        result: Result = self.sess.session.exec(self)
 
         ## Select.)
         if isinstance(self, Select):
@@ -1530,7 +1548,7 @@ class DatabaseORMStatement(DatabaseORMStatementSuper[DatabaseORMSession]):
 
             ## Select.
             if isinstance(self, Select):
-                self.sess.sess.expunge_all()
+                self.sess.session.expunge_all()
 
             self.sess.commit()
             self.sess.close()
@@ -1564,7 +1582,7 @@ class DatabaseORMStatementAsync(DatabaseORMStatementSuper[DatabaseORMSessionAsyn
         await self.sess.get_begin()
 
         # Execute.
-        result: Result = await self.sess.sess.exec(self)
+        result: Result = await self.sess.session.exec(self)
 
         ## Select.
         if isinstance(self, Select):
@@ -1575,7 +1593,7 @@ class DatabaseORMStatementAsync(DatabaseORMStatementSuper[DatabaseORMSessionAsyn
 
             ## Select.
             if isinstance(self, Select):
-                self.sess.sess.expunge_all()
+                self.sess.session.expunge_all()
 
             await self.sess.commit()
             await self.sess.close()
