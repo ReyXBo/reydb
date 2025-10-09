@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-@Time    : 2025-09-22 22:12:33
+@Time    : 2025-09-22
 @Author  : Rey
 @Contact : reyxbo@163.com
 @Explain : Execute methods.
@@ -87,7 +87,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
         """
 
         # Parameter.
-        echo = get_first_notnone(echo, self.conn.db.echo)
+        echo = get_first_notnone(echo, self.conn.engine.echo)
         sql = handle_sql(sql)
         if data is None:
             if kwdata == {}:
@@ -143,7 +143,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
         # Parameter.
         if type(path) == str:
-            database, table = self.conn.db.database, path
+            database, table = self.conn.engine.database, path
         else:
             database, table = path
 
@@ -241,7 +241,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
         # Parameter.
         if type(path) == str:
-            database, table = self.conn.db.database, path
+            database, table = self.conn.engine.database, path
         else:
             database, table = path
 
@@ -384,7 +384,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
         # Parameter.
         if type(path) == str:
-            database, table = self.conn.db.database, path
+            database, table = self.conn.engine.database, path
         else:
             database, table = path
 
@@ -518,7 +518,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
         # Parameter.
         if type(path) == str:
-            database, table = self.conn.db.database, path
+            database, table = self.conn.engine.database, path
         else:
             database, table = path
 
@@ -581,7 +581,7 @@ class DatabaseExecuteSuper(DatabaseBase, Generic[DatabaseConnectionT]):
 
         # Parameter.
         if type(path) == str:
-            database, table = self.conn.db.database, path
+            database, table = self.conn.engine.database, path
         else:
             database, table = path
         if fields is None:
@@ -1236,7 +1236,7 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         if self.conn.autocommit:
             await self.conn.commit()
             await self.conn.close()
-            await self.conn.db.dispose()
+            await self.conn.engine.dispose()
 
         return result
 

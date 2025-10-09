@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-@Time    : 2022-12-05 14:10:02
+@Time    : 2022-12-05
 @Author  : Rey
 @Contact : reyxbo@163.com
 @Explain : Database information methods.
@@ -11,7 +11,7 @@
 
 from typing import Literal, TypeVar, Generic, Final, overload
 
-from . import rdb
+from . import rengine
 from .rbase import DatabaseBase
 from .rexec import Result
 
@@ -35,7 +35,7 @@ __all__ = (
 )
 
 
-DatabaseT = TypeVar('DatabaseT', 'rdb.Database', 'rdb.DatabaseAsync')
+DatabaseEngineT = TypeVar('DatabaseEngineT', 'rengine.DatabaseEngine', 'rengine.DatabaseEngineAsync')
 
 
 class DatabaseInformationBase(DatabaseBase):
@@ -44,23 +44,23 @@ class DatabaseInformationBase(DatabaseBase):
     """
 
 
-class DatabaseInformationSchemaSuper(DatabaseInformationBase, Generic[DatabaseT]):
+class DatabaseInformationSchemaSuper(DatabaseInformationBase, Generic[DatabaseEngineT]):
     """
     Database information schema super type.
     """
 
 
-    def __init__(self, db: DatabaseT) -> None:
+    def __init__(self, engine: DatabaseEngineT) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        db: Database instance.
+        engine: Database engine.
         """
 
         # Parameter.
-        self.db = db
+        self.engine = engine
 
     def handle_before__call__(self, filter_default: bool = True) -> tuple[str, tuple[str, ...]]:
         """
@@ -214,7 +214,7 @@ class DatabaseInformationSchemaSuper(DatabaseInformationBase, Generic[DatabaseT]
         return judge
 
 
-class DatabaseInformationSchema(DatabaseInformationSchemaSuper['rdb.Database']):
+class DatabaseInformationSchema(DatabaseInformationSchemaSuper['rengine.DatabaseEngine']):
     """
     Database information schema type.
     """
@@ -235,14 +235,14 @@ class DatabaseInformationSchema(DatabaseInformationSchemaSuper['rdb.Database']):
 
         # Get.
         sql, filter_db = self.handle_before__call__(filter_default)
-        result = self.db.execute(sql, filter_db=filter_db)
+        result = self.engine.execute(sql, filter_db=filter_db)
         schema = self.handle_after__call__(result)
 
         # Cache.
-        if self.db._schema is None:
-            self.db._schema = schema
+        if self.engine._schema is None:
+            self.engine._schema = schema
         else:
-            self.db._schema.update(schema)
+            self.engine._schema.update(schema)
 
         return schema
 
@@ -301,9 +301,9 @@ class DatabaseInformationSchema(DatabaseInformationSchemaSuper['rdb.Database']):
         # Parameter.
         if (
             cache
-            and self.db._schema is not None
+            and self.engine._schema is not None
         ):
-            schema = self.db._schema
+            schema = self.engine._schema
         else:
             schema = self.schema()
 
@@ -313,7 +313,7 @@ class DatabaseInformationSchema(DatabaseInformationSchemaSuper['rdb.Database']):
         return result
 
 
-class DatabaseInformationSchemaAsync(DatabaseInformationSchemaSuper['rdb.DatabaseAsync']):
+class DatabaseInformationSchemaAsync(DatabaseInformationSchemaSuper['rengine.DatabaseEngineAsync']):
     """
     Asynchronous database information schema type.
     """
@@ -334,12 +334,12 @@ class DatabaseInformationSchemaAsync(DatabaseInformationSchemaSuper['rdb.Databas
 
         # Get.
         sql, filter_db = self.handle_before__call__(filter_default)
-        result = await self.db.execute(sql, filter_db=filter_db)
+        result = await self.engine.execute(sql, filter_db=filter_db)
         schema = self.handle_after__call__(result)
 
         # Cache.
-        if self.db._schema is not None:
-            self.db._schema.update(schema)
+        if self.engine._schema is not None:
+            self.engine._schema.update(schema)
 
         return schema
 
@@ -398,11 +398,11 @@ class DatabaseInformationSchemaAsync(DatabaseInformationSchemaSuper['rdb.Databas
         # Parameter.
         if (
             refresh
-            or self.db._schema is None
+            or self.engine._schema is None
         ):
             schema = await self.schema()
         else:
-            schema = self.db._schema
+            schema = self.engine._schema
 
         # Judge.
         result = self.handle_exist(schema, database, table, column)
@@ -410,7 +410,7 @@ class DatabaseInformationSchemaAsync(DatabaseInformationSchemaSuper['rdb.Databas
         return result
 
 
-class DatabaseInformationParameterSuper(DatabaseInformationBase, Generic[DatabaseT]):
+class DatabaseInformationParameterSuper(DatabaseInformationBase, Generic[DatabaseEngineT]):
     """
     Database information parameters super type.
     """
@@ -421,21 +421,21 @@ class DatabaseInformationParameterSuper(DatabaseInformationBase, Generic[Databas
 
     def __init__(
         self,
-        db: DatabaseT
+        engine: DatabaseEngineT
     ) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        db: Database instance.
+        engine: Database engine.
         """
 
         # Parameter.
-        self.db = db
+        self.engine = engine
 
 
-class DatabaseInformationParameter(DatabaseInformationParameterSuper['rdb.Database']):
+class DatabaseInformationParameter(DatabaseInformationParameterSuper['rengine.DatabaseEngine']):
     """
     Database information parameters type.
     """
@@ -509,13 +509,13 @@ class DatabaseInformationParameter(DatabaseInformationParameterSuper['rdb.Databa
 
         ## Dictionary.
         if key is None:
-            result = self.db.execute(sql, key=key)
+            result = self.engine.execute(sql, key=key)
             status = result.to_dict(val_field=1)
 
         ## Value.
         else:
             sql += ' LIKE :key'
-            result = self.db.execute(sql, key=key)
+            result = self.engine.execute(sql, key=key)
             row = result.first()
             if row is None:
                 status = None
@@ -554,10 +554,10 @@ class DatabaseInformationParameter(DatabaseInformationParameterSuper['rdb.Databa
         ) + sql_set
 
         # Execute SQL.
-        self.db.execute(sql)
+        self.engine.execute(sql)
 
 
-class DatabaseInformationParameterAsync(DatabaseInformationParameterSuper['rdb.DatabaseAsync']):
+class DatabaseInformationParameterAsync(DatabaseInformationParameterSuper['rengine.DatabaseEngineAsync']):
     """
     Asynchronous database information parameters type.
     """
@@ -631,13 +631,13 @@ class DatabaseInformationParameterAsync(DatabaseInformationParameterSuper['rdb.D
 
         ## Dictionary.
         if key is None:
-            result = await self.db.execute(sql, key=key)
+            result = await self.engine.execute(sql, key=key)
             status = result.to_dict(val_field=1)
 
         ## Value.
         else:
             sql += ' LIKE :key'
-            result = await self.db.execute(sql, key=key)
+            result = await self.engine.execute(sql, key=key)
             row = result.first()
             if row is None:
                 status = None
@@ -680,7 +680,7 @@ class DatabaseInformationParameterAsync(DatabaseInformationParameterSuper['rdb.D
         ) + sql_set
 
         # Execute SQL.
-        await self.db.execute(sql)
+        await self.engine.execute(sql)
 
 
 class DatabaseInformationParameterVariables(DatabaseInformationParameter):

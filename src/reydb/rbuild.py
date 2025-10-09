@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-@Time    : 2023-10-14 23:05:35
+@Time    : 2023-10-14
 @Author  : Rey
 @Contact : reyxbo@163.com
 @Explain : Database build methods.
@@ -15,7 +15,7 @@ from sqlalchemy import UniqueConstraint
 from reykit.rbase import throw, is_instance
 from reykit.rstdout import ask
 
-from . import rdb
+from . import rengine
 from .rbase import DatabaseBase
 from .rorm import DatabaseORMModel
 
@@ -47,26 +47,26 @@ IndexSet = TypedDict(
         'comment': NotRequired[str | None]
     }
 )
-DatabaseT = TypeVar('DatabaseT', 'rdb.Database', 'rdb.DatabaseAsync')
+DatabaseEngineT = TypeVar('DatabaseEngineT', 'rengine.DatabaseEngine', 'rengine.DatabaseEngineAsync')
 
 
-class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
+class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseEngineT]):
     """
     Database build super type.
     """
 
 
-    def __init__(self, db: DatabaseT) -> None:
+    def __init__(self, engine: DatabaseEngineT) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        db: Database instance.
+        engine: Database engine.
         """
 
         # Set attribute.
-        self.db = db
+        self.engine = engine
 
 
     def get_sql_create_database(
@@ -278,7 +278,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         # Parameter.
         if type(path) == str:
-            database, table = self.db.database, path
+            database, table = self.engine.database, path
         else:
             database, table = path
         if fields.__class__ == dict:
@@ -366,7 +366,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         # Parameter.
         if type(path) == str:
-            database, table = self.db.database, path
+            database, table = self.engine.database, path
         else:
             database, table = path
 
@@ -481,7 +481,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         # Parameter.
         if type(path) == str:
-            database, table = self.db.database, path
+            database, table = self.engine.database, path
         else:
             database, table = path
 
@@ -512,7 +512,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         # Parameter.
         if type(path) == str:
-            database, table = self.db.database, path
+            database, table = self.engine.database, path
         else:
             database, table = path
 
@@ -619,7 +619,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         # Parameter.
         if type(path) == str:
-            database, table = self.db.database, path
+            database, table = self.engine.database, path
         else:
             database, table = path
         if fields.__class__ == dict:
@@ -707,7 +707,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         # Parameter.
         if type(path) == str:
-            database, table = self.db.database, path
+            database, table = self.engine.database, path
         else:
             database, table = path
         if fields.__class__ == str:
@@ -795,7 +795,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         # Parameter.
         if type(path) == str:
-            database, table = self.db.database, path
+            database, table = self.engine.database, path
         else:
             database, table = path
         if fields.__class__ == dict:
@@ -889,7 +889,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         # Parameter.
         if type(path) == str:
-            database, table = self.db.database, path
+            database, table = self.engine.database, path
         else:
             database, table = path
 
@@ -920,7 +920,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         # Parameter.
         if type(path) == str:
-            database, table = self.db.database, path
+            database, table = self.engine.database, path
         else:
             database, table = path
 
@@ -985,7 +985,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
 
         # Get.
         table = model._get_table()
-        text = f'TABLE `{self.db.database}`.`{table}`'
+        text = f'TABLE `{self.engine.database}`.`{table}`'
         if 'mysql_charset' in table.kwargs:
             text += f" | CHARSET '{table.kwargs['mysql_charset']}'"
         if table.comment:
@@ -1055,7 +1055,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseT]):
         return text
 
 
-class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
+class DatabaseBuild(DatabaseBuildSuper['rengine.DatabaseEngine']):
     """
     Database build type.
     """
@@ -1076,7 +1076,7 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
         """
 
         # Create.
-        self.db.orm.create(*models, skip=skip)
+        self.engine.orm.create(*models, skip=skip)
 
 
     def drop_orm_table(
@@ -1094,7 +1094,7 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
         """
 
         # Drop.
-        self.db.orm.drop(*models, skip=skip)
+        self.engine.orm.drop(*models, skip=skip)
 
 
     def build(
@@ -1133,7 +1133,7 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
             ## Exist.
             if (
                 skip
-                and self.db.schema.exist(database)
+                and self.engine.schema.exist(database)
             ):
                 continue
 
@@ -1145,7 +1145,7 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
                 self.input_confirm_build(sql)
 
             ## Execute.
-            self.db.execute(sql)
+            self.engine.execute(sql)
 
             ## Report.
             text = f"Database '{database}' build completed."
@@ -1158,14 +1158,14 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
             if type(params) == dict:
                 path: str | tuple[str, str] = params['path']
                 if type(path) == str:
-                    database, table = self.db.database, path
+                    database, table = self.engine.database, path
                 else:
                     database, table = path
 
                 ### Exist.
                 if (
                     skip
-                    and self.db.schema.exist(database, table)
+                    and self.engine.schema.exist(database, table)
                 ):
                     continue
 
@@ -1177,17 +1177,17 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
                     self.input_confirm_build(sql)
 
                 ### Execute.
-                self.db.execute(sql)
+                self.engine.execute(sql)
 
             ## ORM.
             else:
-                database = self.db.database
+                database = self.engine.database
                 table = params._get_table().name
 
                 ## Exist.
                 if (
                     skip
-                    and self.db.schema.exist(self.db.database, table)
+                    and self.engine.schema.exist(self.engine.database, table)
                 ):
                     continue
 
@@ -1206,20 +1206,20 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
 
         # Refresh schema.
         if refresh_schema:
-            self.db.schema()
+            self.engine.schema()
 
         # View.
         for params in views:
             path = params['path']
             if type(path) == str:
-                database, table = self.db.database, path
+                database, table = self.engine.database, path
             else:
                 database, table = path
 
             ## Exist.
             if (
                 skip
-                and self.db.schema.exist(database, table)
+                and self.engine.schema.exist(database, table)
             ):
                 continue
 
@@ -1231,7 +1231,7 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
                 self.input_confirm_build(sql)
 
             ## Execute.
-            self.db.execute(sql)
+            self.engine.execute(sql)
 
             ## Report.
             text = f"View '{table}' of database '{database}' build completed."
@@ -1241,14 +1241,14 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
         for params in views_stats:
             path = params['path']
             if type(path) == str:
-                database, table = self.db.database, path
+                database, table = self.engine.database, path
             else:
                 database, table = path
 
             ## Exist.
             if (
                 skip
-                and self.db.schema.exist(database, table)
+                and self.engine.schema.exist(database, table)
             ):
                 continue
 
@@ -1260,7 +1260,7 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
                 self.input_confirm_build(sql)
 
             ## Execute.
-            self.db.execute(sql)
+            self.engine.execute(sql)
 
             ## Report.
             text = f"View '{table}' of database '{database}' build completed."
@@ -1270,7 +1270,7 @@ class DatabaseBuild(DatabaseBuildSuper['rdb.Database']):
     __call__ = build
 
 
-class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
+class DatabaseBuildAsync(DatabaseBuildSuper['rengine.DatabaseEngineAsync']):
     """
     Asynchronous database build type.
     """
@@ -1291,7 +1291,7 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
         """
 
         # Create.
-        await self.db.orm.create(*models, skip=skip)
+        await self.engine.orm.create(*models, skip=skip)
 
 
     async def drop_orm_table(
@@ -1309,7 +1309,7 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
         """
 
         # Drop.
-        await self.db.orm.drop(*models, skip=skip)
+        await self.engine.orm.drop(*models, skip=skip)
 
 
     async def build(
@@ -1350,7 +1350,7 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
             ## Exist.
             if (
                 skip
-                and await self.db.schema.exist(database)
+                and await self.engine.schema.exist(database)
             ):
                 continue
 
@@ -1362,7 +1362,7 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
                 self.input_confirm_build(sql)
 
             ## Execute.
-            await self.db.execute(sql)
+            await self.engine.execute(sql)
 
             ## Report.
             text = f"Database '{database}' build completed."
@@ -1377,13 +1377,13 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
                 and isinstance(params, DatabaseORMModel)
                 or issubclass(params, DatabaseORMModel)
             ):
-                database = self.db.database
+                database = self.engine.database
                 table = params._get_table().name
 
                 ## Exist.
                 if (
                     skip
-                    and await self.db.schema.exist(self.db.database, table)
+                    and await self.engine.schema.exist(self.engine.database, table)
                 ):
                     continue
 
@@ -1399,14 +1399,14 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
             else:
                 path: str | tuple[str, str] = params['path']
                 if type(path) == str:
-                    database, table = self.db.database, path
+                    database, table = self.engine.database, path
                 else:
                     database, table = path
 
                 ### Exist.
                 if (
                     skip
-                    and await self.db.schema.exist(database, table)
+                    and await self.engine.schema.exist(database, table)
                 ):
                     continue
 
@@ -1418,7 +1418,7 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
                     self.input_confirm_build(sql)
 
                 ### Execute.
-                await self.db.execute(sql)
+                await self.engine.execute(sql)
                 refresh_schema = True
 
             ## Report.
@@ -1427,20 +1427,20 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
 
         # Refresh schema.
         if refresh_schema:
-            self.db.schema()
+            self.engine.schema()
 
         # View.
         for params in views:
             path = params['path']
             if type(path) == str:
-                database, table = self.db.database, path
+                database, table = self.engine.database, path
             else:
                 database, table = path
 
             ## Exist.
             if (
                 skip
-                and await self.db.schema.exist(database, table)
+                and await self.engine.schema.exist(database, table)
             ):
                 continue
 
@@ -1452,7 +1452,7 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
                 self.input_confirm_build(sql)
 
             ## Execute.
-            await self.db.execute(sql)
+            await self.engine.execute(sql)
 
             ## Report.
             text = f"View '{table}' of database '{database}' build completed."
@@ -1462,14 +1462,14 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
         for params in views_stats:
             path = params['path']
             if type(path) == str:
-                database, table = self.db.database, path
+                database, table = self.engine.database, path
             else:
                 database, table = path
 
             ## Exist.
             if (
                 skip
-                and await self.db.schema.exist(database, table)
+                and await self.engine.schema.exist(database, table)
             ):
                 continue
 
@@ -1481,7 +1481,7 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rdb.DatabaseAsync']):
                 self.input_confirm_build(sql)
 
             ## Execute.
-            await self.db.execute(sql)
+            await self.engine.execute(sql)
 
             ## Report.
             text = f"View '{table}' of database '{database}' build completed."

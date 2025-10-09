@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-@Time    : 2025-08-20 16:57:19
+@Time    : 2025-08-20
 @Author  : Rey
 @Contact : reyxbo@163.com
 @Explain : Database error methods.
@@ -16,7 +16,7 @@ from traceback import StackSummary
 from functools import wraps as functools_wraps
 from reykit.rbase import T, Exit, catch_exc
 
-from . import rdb
+from . import rengine
 from . import rorm
 from .rbase import DatabaseBase
 
@@ -29,7 +29,7 @@ __all__ = (
 )
 
 
-DatabaseT = TypeVar('DatabaseT', 'rdb.Database', 'rdb.DatabaseAsync')
+DatabaseEngineT = TypeVar('DatabaseEngineT', 'rdb.Database', 'rdb.DatabaseEngineAsync')
 
 
 class DatabaseORMTableError(rorm.Model, table=True):
@@ -47,7 +47,7 @@ class DatabaseORMTableError(rorm.Model, table=True):
     note: str = rorm.Field(rorm.types.VARCHAR(500), comment='Error note.')
 
 
-class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
+class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseEngineT]):
     """
     Database error super type.
     Can create database used `self.build_db` method.
@@ -56,24 +56,24 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
     _checked: bool = False
 
 
-    def __init__(self, db: DatabaseT) -> None:
+    def __init__(self, engine: DatabaseEngineT) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        db: Database instance.
+        engine: Database engine.
         """
 
         # Build.
-        self.db = db
+        self.engine = engine
 
         # Build Database.
         if not self._checked:
             if type(self) == DatabaseError:
                 self.build_db()
             elif type(self) == DatabaseErrorAsync:
-                db.sync_database.error.build_db()
+                engine.sync_database.error.build_db()
             self._checked = True
 
 
@@ -87,7 +87,7 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseT]):
         """
 
         # Parameter.
-        database = self.db.database
+        database = self.engine.database
 
         ## Table.
         tables = [DatabaseORMTableError]
@@ -201,7 +201,7 @@ class DatabaseError(DatabaseErrorSuper['rdb.Database']):
         tables, views_stats = self.handle_build_db()
 
         # Build.
-        self.db.build.build(tables=tables, views_stats=views_stats, skip=True)
+        self.engine.build.build(tables=tables, views_stats=views_stats, skip=True)
 
 
     def record(
@@ -224,7 +224,7 @@ class DatabaseError(DatabaseErrorSuper['rdb.Database']):
         data = self.handle_record(exc, stack, note)
 
         # Insert.
-        self.db.execute.insert(
+        self.engine.execute.insert(
             'error',
             data=data
         )
@@ -363,7 +363,7 @@ class DatabaseError(DatabaseErrorSuper['rdb.Database']):
             return _func
 
 
-class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseAsync']):
+class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseEngineAsync']):
     """
     Asynchronous database error type.
     Can create database used `self.build_db` method.
@@ -379,7 +379,7 @@ class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseAsync']):
         tables, views_stats = self.handle_build_db()
 
         # Build.
-        await self.db.build.build(tables=tables, views_stats=views_stats, skip=True)
+        await self.engine.build.build(tables=tables, views_stats=views_stats, skip=True)
 
 
     async def record(
@@ -402,7 +402,7 @@ class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseAsync']):
         data = self.handle_record(exc, stack, note)
 
         # Insert.
-        await self.db.execute.insert(
+        await self.engine.execute.insert(
             'error',
             data=data
         )

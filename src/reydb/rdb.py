@@ -2,595 +2,124 @@
 # -*- coding: utf-8 -*-
 
 """
-@Time    : 2022-12-05 14:10:02
+@Time    : 2025-10-09
 @Author  : Rey
 @Contact : reyxbo@163.com
 @Explain : Database methods.
 """
 
 
-from typing import TypeVar, Generic, overload
-from urllib.parse import quote as urllib_quote
-from pymysql.constants.CLIENT import MULTI_STATEMENTS
-from sqlalchemy import Engine, create_engine as sqlalchemy_create_engine
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine as sqlalchemy_create_async_engine
-from reykit.rtext import join_data_text
+from typing import TypeVar, Generic, Self, Type
+from functools import wraps as functools_wraps
+from reykit.rbase import CallableT, warn
 
-from . import rbase, rbuild, rconfig, rconn, rerror, rexec, rinfo, rorm
+from .rbase import DatabaseBase
+from .rengine import DatabaseEngine, DatabaseEngineAsync
 
 
-__all__ = (
-    'DatabaseSuper',
-    'Database',
-    'DatabaseAsync'
-)
+DatabaseEngineT = TypeVar('DatabaseEngineT', DatabaseEngine, DatabaseEngineAsync)
 
 
-DatabaseConnectionT = TypeVar('DatabaseConnectionT', 'rconn.DatabaseConnection', 'rconn.DatabaseConnectionAsync')
-DatabaseExecuteT = TypeVar('DatabaseExecuteT', 'rexec.DatabaseExecute', 'rexec.DatabaseExecuteAsync')
-DatabaseORMT = TypeVar('DatabaseORMT', 'rorm.DatabaseORM', 'rorm.DatabaseORMAsync')
-DatabaseBuildT = TypeVar('DatabaseBuildT', 'rbuild.DatabaseBuild', 'rbuild.DatabaseBuildAsync')
-DatabaseConfigT = TypeVar('DatabaseConfigT', 'rconfig.DatabaseConfig', 'rconfig.DatabaseConfigAsync')
-DatabaseInformationSchemaT = TypeVar(
-    'DatabaseInformationSchemaT',
-    'rinfo.DatabaseInformationSchema',
-    'rinfo.DatabaseInformationSchemaAsync'
-)
-DatabaseInformationParameterVariablesT = TypeVar(
-    'DatabaseInformationParameterVariablesT',
-    'rinfo.DatabaseInformationParameterVariables',
-    'rinfo.DatabaseInformationParameterVariablesAsync'
-)
-DatabaseInformationParameterStatusT = TypeVar(
-    'DatabaseInformationParameterStatusT',
-    'rinfo.DatabaseInformationParameterStatus',
-    'rinfo.DatabaseInformationParameterStatusAsync'
-)
-DatabaseInformationParameterVariablesGlobalT = TypeVar(
-    'DatabaseInformationParameterVariablesGlobalT',
-    'rinfo.DatabaseInformationParameterVariablesGlobal',
-    'rinfo.DatabaseInformationParameterVariablesGlobalAsync'
-)
-DatabaseInformationParameterStatusGlobalT = TypeVar(
-    'DatabaseInformationParameterStatusGlobalT',
-    'rinfo.DatabaseInformationParameterStatusGlobal',
-    'rinfo.DatabaseInformationParameterStatusGlobalAsync'
-)
-
-
-class DatabaseSuper(
-    rbase.DatabaseBase,
-    Generic[
-        rbase.EngineT,
-        DatabaseConnectionT,
-        DatabaseExecuteT,
-        DatabaseORMT,
-        DatabaseBuildT,
-        DatabaseConfigT,
-        DatabaseInformationSchemaT,
-        DatabaseInformationParameterVariablesT,
-        DatabaseInformationParameterStatusT,
-        DatabaseInformationParameterVariablesGlobalT,
-        DatabaseInformationParameterStatusGlobalT
-    ]
-):
+class DatabaseSuper(DatabaseBase, Generic[DatabaseEngineT]):
     """
-    Database super type, based `MySQL`.
+    Database super type.
     """
 
 
-    def __init__(
-        self,
-        host: str,
-        port: int | str,
-        username: str,
-        password: str,
-        database: str,
-        pool_size: int = 5,
-        max_overflow: int = 10,
-        pool_timeout: float = 30.0,
-        pool_recycle: int | None = 3600,
-        echo: bool = False,
-        **query: str
-    ) -> None:
+    def __init__(self):
         """
         Build instance attributes.
+        """
+
+        # Build.
+        self.__engine_dict: dict[str, DatabaseEngineT] = {}
+
+
+    @classmethod
+    def _wrap_add(
+        cls_or_self,
+        engine_type: Type[DatabaseEngine] | Type[DatabaseEngineAsync],
+        type_hint: CallableT
+    ) -> CallableT:
+        """
+        Decorator, create and add database engine.
 
         Parameters
         ----------
-        host : Remote server database host.
-        port : Remote server database port.
-        username : Remote server database username.
-        password : Remote server database password.
-        database : Remote server database name.
-        pool_size : Number of connections `keep open`.
-        max_overflow : Number of connections `allowed overflow`.
-        pool_timeout : Number of seconds `wait create` connection.
-        pool_recycle : Number of seconds `recycle` connection.
-            - `None | Literal[-1]`: No recycle.
-            - `int`: Use this value.
-        echo : Whether report SQL execute information, not include ORM execute.
-        query : Remote server database parameters.
-        """
-
-        # Parameter.
-        if type(port) == str:
-            port = int(port)
-
-        # Build.
-        self.username = username
-        self.password = password
-        self.host = host
-        self.port: int | None = port
-        self.database = database
-        self.pool_size = pool_size
-        self.max_overflow = max_overflow
-        self.pool_timeout = pool_timeout
-        if pool_recycle is None:
-            self.pool_recycle = -1
-        else:
-            self.pool_recycle = pool_recycle
-        self.echo = echo
-        self.query = query
-
-        ## Schema.
-        self._schema: dict[str, dict[str, list[str]]] | None = None
-
-        ## Create engine.
-        self.engine = self.__create_engine()
-
-
-    def __str__(self) -> str:
-        """
-        Return connection information text.
-        """
-
-        # Generate.
-        filter_key = (
-            'engine',
-            'connection',
-            'rdatabase',
-            'begin'
-        )
-        info = {
-            key: value
-            for key, value in self.__dict__.items()
-            if key not in filter_key
-        }
-        info['conn_count'] = self.conn_count
-        text = join_data_text(info)
-
-        return text
-
-
-    @property
-    def backend(self) -> str:
-        """
-        Database backend name.
+        engine_type : Database engine type.
+        type_hint : Type hint.
 
         Returns
         -------
-        Name.
+        Decorated method.
+        """
+
+
+        @functools_wraps(engine_type.__init__)
+        def func(self: Self, *args, **kwargs):
+
+            # Build.
+            engine: DatabaseEngineT = engine_type(*args, **kwargs)
+
+            # Warning.
+            if engine.database in self.__engine_dict:
+                warn(f'database engine "{engine.database}" re registered.')
+
+            # Add.
+            self.__engine_dict[engine.database] = engine
+
+            return engine
+
+
+        return func
+
+
+    def __getitem__(self, database: str) -> DatabaseEngineT:
+        """
+        Get added database engine.
+
+        Parameters
+        ----------
+        database : Database name.
         """
 
         # Get.
-        url_params = rbase.extract_url(self.url)
-        backend = url_params['backend']
-
-        return backend
-
-
-    @property
-    def driver(self) -> str:
-        """
-        Database driver name.
-
-        Returns
-        -------
-        Name.
-        """
-
-        # Get.
-        url_params = rbase.extract_url(self.url)
-        driver = url_params['driver']
-
-        return driver
-
-
-    @property
-    def url(self) -> str:
-        """
-        Generate server URL.
-
-        Returns
-        -------
-        Server URL.
-        """
-
-        # Generate URL.
-        password = urllib_quote(self.password)
-        match self:
-            case Database():
-                url_ = f'mysql+pymysql://{self.username}:{password}@{self.host}:{self.port}/{self.database}'
-            case DatabaseAsync():
-                url_ = f'mysql+aiomysql://{self.username}:{password}@{self.host}:{self.port}/{self.database}'
-
-        # Add Server parameter.
-        if self.query != {}:
-            query = '&'.join(
-                [
-                    f'{key}={value}'
-                    for key, value in self.query.items()
-                ]
-            )
-            url_ = f'{url_}?{query}'
-
-        return url_
-
-
-    def __create_engine(self) -> rbase.EngineT:
-        """
-        Create database `Engine` object.
-
-        Returns
-        -------
-        Engine object.
-        """
-
-        # Parameter.
-        engine_params = {
-            'url': self.url,
-            'pool_size': self.pool_size,
-            'max_overflow': self.max_overflow,
-            'pool_timeout': self.pool_timeout,
-            'pool_recycle': self.pool_recycle,
-            'connect_args': {'client_flag': MULTI_STATEMENTS}
-        }
-
-        # Create Engine.
-        match self:
-            case Database():
-                engine = sqlalchemy_create_engine(**engine_params)
-            case DatabaseAsync():
-                engine = sqlalchemy_create_async_engine(**engine_params)
+        engine = self.__engine_dict[database]
 
         return engine
 
 
-    @property
-    def conn_count(self) -> tuple[int, int]:
+    __getattr__ = __getitem__
+
+
+    def __contains__(self, database: str) -> bool:
         """
-        Count number of keep open and allowed overflow connection.
-
-        Returns
-        -------
-        Number of keep open and allowed overflow connection.
-        """
-
-        # Count.
-        _overflow: int = self.engine.pool._overflow
-        if _overflow < 0:
-            keep_n = self.pool_size + _overflow
-            overflow_n = 0
-        else:
-            keep_n = self.pool_size
-            overflow_n = _overflow
-
-        return keep_n, overflow_n
-
-
-    def connect(self, autocommit: bool = False) -> DatabaseConnectionT:
-        """
-        Build database connection instance.
+        Whether the exist this database engine.
 
         Parameters
         ----------
-        autocommit: Whether automatic commit execute.
-
-        Returns
-        -------
-        Database connection instance.
+        database : Database name.
         """
 
-        # Build.
-        match self:
-            case Database():
-                conn = rconn.DatabaseConnection(self, autocommit)
-            case DatabaseAsync():
-                conn = rconn.DatabaseConnectionAsync(self, autocommit)
+        # Judge.
+        result = database in self.__engine_dict
 
-        return conn
+        return result
 
 
-    @property
-    def execute(self) -> DatabaseExecuteT:
-        """
-        Build database execute instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Build.
-        conn = self.connect(True)
-        exec = conn.execute
-
-        return exec
-
-
-    @property
-    def orm(self) -> DatabaseORMT:
-        """
-        Build database ORM instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Build.
-        match self:
-            case Database():
-                orm = rorm.DatabaseORM(self)
-            case DatabaseAsync():
-                orm = rorm.DatabaseORMAsync(self)
-
-        return orm
-
-
-    @property
-    def build(self) -> DatabaseBuildT:
-        """
-        Build database build instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Build.
-        match self:
-            case Database():
-                build = rbuild.DatabaseBuild(self)
-            case DatabaseAsync():
-                build = rbuild.DatabaseBuildAsync(self)
-
-        return build
-
-
-    @property
-    def error(self):
-        """
-        Build database error instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Build.
-        match self:
-            case Database():
-                error = rerror.DatabaseError(self)
-            case DatabaseAsync():
-                error = rerror.DatabaseErrorAsync(self)
-
-        return error
-
-
-    @property
-    def config(self) -> DatabaseConfigT:
-        """
-        Build database config instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Build.
-        match self:
-            case Database():
-                config = rconfig.DatabaseConfig(self)
-            case DatabaseAsync():
-                config = rconfig.DatabaseConfigAsync(self)
-
-        return config
-
-
-    @property
-    def schema(self) -> DatabaseInformationSchemaT:
-        """
-        Build database schema instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Build.
-        match self:
-            case Database():
-                schema = rinfo.DatabaseInformationSchema(self)
-            case DatabaseAsync():
-                schema = rinfo.DatabaseInformationSchemaAsync(self)
-
-        return schema
-
-
-    @property
-    def var(self) -> DatabaseInformationParameterVariablesT:
-        """
-        Build database parameters variable instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Build.
-        match self:
-            case Database():
-                var = rinfo.DatabaseInformationParameterVariables(self)
-            case DatabaseAsync():
-                var = rinfo.DatabaseInformationParameterVariablesAsync(self)
-
-        return var
-
-
-    @property
-    def stat(self) -> DatabaseInformationParameterVariablesT:
-        """
-        Build database parameters status instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Build.
-        match self:
-            case Database():
-                stat = rinfo.DatabaseInformationParameterStatus(self)
-            case DatabaseAsync():
-                stat = rinfo.DatabaseInformationParameterStatusAsync(self)
-
-        return stat
-
-
-    @property
-    def glob_var(self) -> DatabaseInformationParameterVariablesGlobalT:
-        """
-        Build global database parameters variable instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Build.
-        match self:
-            case Database():
-                var = rinfo.DatabaseInformationParameterVariablesGlobal(self)
-            case DatabaseAsync():
-                var = rinfo.DatabaseInformationParameterVariablesGlobalAsync(self)
-
-        return var
-
-
-    @property
-    def glob_stat(self) -> DatabaseInformationParameterStatusGlobalT:
-        """
-        Build global database parameters status instance.
-
-        Returns
-        -------
-        Instance.
-        """
-
-        # Build.
-        match self:
-            case Database():
-                stat = rinfo.DatabaseInformationParameterStatusGlobal(self)
-            case DatabaseAsync():
-                stat = rinfo.DatabaseInformationParameterStatusGlobalAsync(self)
-
-        return stat
-
-
-class Database(
-    DatabaseSuper[
-        Engine,
-        'rconn.DatabaseConnection',
-        'rexec.DatabaseExecute',
-        'rorm.DatabaseORM',
-        'rbuild.DatabaseBuild',
-        'rconfig.DatabaseConfig',
-        'rinfo.DatabaseInformationSchema',
-        'rinfo.DatabaseInformationParameterVariables',
-        'rinfo.DatabaseInformationParameterStatus',
-        'rinfo.DatabaseInformationParameterVariablesGlobal',
-        'rinfo.DatabaseInformationParameterStatusGlobal'
-    ]
-):
+class Database(DatabaseSuper[DatabaseEngine]):
     """
-    Database type, based `MySQL`.
+    Database type.
     """
 
 
-    @property
-    def async_database(self) -> 'DatabaseAsync':
-        """
-        Same engine `DatabaseAsync` instance.
-        """
-
-        # Build.
-        db = DatabaseAsync(
-            self.host,
-            self.port,
-            self.username,
-            self.password,
-            self.database,
-            self.pool_size,
-            self.max_overflow,
-            self.pool_timeout,
-            self.pool_recycle,
-            self.echo,
-            **self.query
-        )
-
-        return db
+    __call__ = DatabaseSuper._wrap_add(DatabaseEngine, DatabaseEngine.__init__)
 
 
-class DatabaseAsync(
-    DatabaseSuper[
-        AsyncEngine,
-        'rconn.DatabaseConnectionAsync',
-        'rexec.DatabaseExecuteAsync',
-        'rorm.DatabaseORMAsync',
-        'rbuild.DatabaseBuildAsync',
-        'rconfig.DatabaseConfigAsync',
-        'rinfo.DatabaseInformationSchemaAsync',
-        'rinfo.DatabaseInformationParameterVariablesAsync',
-        'rinfo.DatabaseInformationParameterStatusAsync',
-        'rinfo.DatabaseInformationParameterVariablesGlobalAsync',
-        'rinfo.DatabaseInformationParameterStatusGlobalAsync'
-    ]
-):
+class DatabaseAsync(DatabaseSuper[DatabaseEngineAsync]):
     """
-    Asynchronous database type, based `MySQL`.
+    Asynchronous database type.
     """
 
 
-    @property
-    def sync_database(self) -> Database:
-        """
-        Same engine `Database` instance.
-        """
-
-        # Build.
-        db = Database(
-            self.host,
-            self.port,
-            self.username,
-            self.password,
-            self.database,
-            self.pool_size,
-            self.max_overflow,
-            self.pool_timeout,
-            self.pool_recycle,
-            self.echo,
-            **self.query
-        )
-
-        return db
-
-
-    async def dispose(self) -> None:
-        """
-        Dispose asynchronous connections.
-        """
-
-        # Dispose.
-        await self.engine.dispose()
+    __call__ = DatabaseSuper._wrap_add(DatabaseEngineAsync, DatabaseEngineAsync.__init__)

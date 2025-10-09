@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-@Time    : 2022-12-05 14:10:02
+@Time    : 2022-12-05
 @Author  : Rey
 @Contact : reyxbo@163.com
 @Explain : Database connection methods.
@@ -13,7 +13,7 @@ from typing import Self, TypeVar, Generic
 from sqlalchemy import Connection, Transaction
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncTransaction
 
-from . import rdb, rexec
+from . import rengine, rexec
 from .rbase import ConnectionT, TransactionT, DatabaseBase
 
 
@@ -24,11 +24,11 @@ __all__ = (
 )
 
 
-DatabaseT = TypeVar('DatabaseT', 'rdb.Database', 'rdb.DatabaseAsync')
+DatabaseEngineT = TypeVar('DatabaseEngineT', 'rengine.DatabaseEngine', 'rengine.DatabaseEngineAsync')
 DatabaseExecuteT = TypeVar('DatabaseExecuteT', 'rexec.DatabaseExecute', 'rexec.DatabaseExecuteAsync')
 
 
-class DatabaseConnectionSuper(DatabaseBase, Generic[DatabaseT, DatabaseExecuteT, ConnectionT, TransactionT]):
+class DatabaseConnectionSuper(DatabaseBase, Generic[DatabaseEngineT, DatabaseExecuteT, ConnectionT, TransactionT]):
     """
     Database connection super type.
     """
@@ -36,7 +36,7 @@ class DatabaseConnectionSuper(DatabaseBase, Generic[DatabaseT, DatabaseExecuteT,
 
     def __init__(
         self,
-        db: DatabaseT,
+        engine: DatabaseEngineT,
         autocommit: bool
     ) -> None:
         """
@@ -44,24 +44,24 @@ class DatabaseConnectionSuper(DatabaseBase, Generic[DatabaseT, DatabaseExecuteT,
 
         Parameters
         ----------
-        db : Database instance.
+        engine : Database engine.
         autocommit: Whether automatic commit execute.
         """
 
         # Build.
-        self.db = db
+        self.engine = engine
         self.autocommit = autocommit
-        match db:
-            case rdb.Database():
+        match self.engine:
+            case rengine.DatabaseEngine():
                 exec = rexec.DatabaseExecute(self)
-            case rdb.DatabaseAsync():
+            case rengine.DatabaseEngineAsync():
                 exec = rexec.DatabaseExecuteAsync(self)
         self.execute: DatabaseExecuteT = exec
         self.connection: ConnectionT | None = None
         self.transaction: TransactionT | None = None
 
 
-class DatabaseConnection(DatabaseConnectionSuper['rdb.Database', 'rexec.DatabaseExecute', Connection, Transaction]):
+class DatabaseConnection(DatabaseConnectionSuper['rengine.DatabaseEngine', 'rexec.DatabaseExecute', Connection, Transaction]):
     """
     Database connection type.
     """
@@ -111,7 +111,7 @@ class DatabaseConnection(DatabaseConnectionSuper['rdb.Database', 'rexec.Database
 
         # Create.
         if self.connection is None:
-            self.connection = self.db.engine.connect()
+            self.connection = self.engine.engine.connect()
 
         return self.connection
 
@@ -186,7 +186,7 @@ class DatabaseConnection(DatabaseConnectionSuper['rdb.Database', 'rexec.Database
         return insert_id
 
 
-class DatabaseConnectionAsync(DatabaseConnectionSuper['rdb.DatabaseAsync', 'rexec.DatabaseExecuteAsync', AsyncConnection, AsyncTransaction]):
+class DatabaseConnectionAsync(DatabaseConnectionSuper['rengine.DatabaseEngineAsync', 'rexec.DatabaseExecuteAsync', AsyncConnection, AsyncTransaction]):
     """
     Asynchronous database connection type.
     """
@@ -223,7 +223,7 @@ class DatabaseConnectionAsync(DatabaseConnectionSuper['rdb.DatabaseAsync', 'rexe
 
         # Close.
         await self.close()
-        await self.db.dispose()
+        await self.engine.dispose()
 
 
     async def get_conn(self) -> AsyncConnection:
@@ -237,7 +237,7 @@ class DatabaseConnectionAsync(DatabaseConnectionSuper['rdb.DatabaseAsync', 'rexe
 
         # Create.
         if self.connection is None:
-            self.connection = await self.db.engine.connect()
+            self.connection = await self.engine.engine.connect()
 
         return self.connection
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-@Time    : 2025-08-22 13:45:58
+@Time    : 2025-08-22
 @Author  : Rey
 @Contact : reyxbo@163.com
 @Explain : Database config methods.
@@ -18,7 +18,7 @@ from datetime import (
 )
 from reykit.rbase import Null, throw
 
-from . import rdb
+from . import rengine
 from . import rorm
 from .rbase import DatabaseBase
 
@@ -35,7 +35,7 @@ type ConfigValue = bool | str | int | float | list | tuple | dict | set | Dateti
 ConfigRow = TypedDict('ConfigRow', {'key': str, 'value': ConfigValue, 'note': str | None})
 type ConfigTable = list[ConfigRow]
 ConfigValueT = TypeVar('T', bound=ConfigValue) # Any.
-DatabaseT = TypeVar('DatabaseT', 'rdb.Database', 'rdb.DatabaseAsync')
+DatabaseEngineT = TypeVar('DatabaseEngineT', 'rengine.DatabaseEngine', 'rengine.DatabaseEngineAsync')
 
 
 class DatabaseORMTableConfig(rorm.Model, table=True):
@@ -53,7 +53,7 @@ class DatabaseORMTableConfig(rorm.Model, table=True):
     note: str = rorm.Field(rorm.types.VARCHAR(500), comment='Config note.')
 
 
-class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
+class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseEngineT]):
     """
     Database config super type.
     Can create database used `self.build_db` method.
@@ -62,24 +62,24 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
     _checked: bool = False
 
 
-    def __init__(self, db: DatabaseT) -> None:
+    def __init__(self, engine: DatabaseEngineT) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        db: Database instance.
+        engine: Database engine.
         """
 
         # Build.
-        self.db = db
+        self.engine = engine
 
         # Build Database.
         if not self._checked:
             if type(self) == DatabaseConfig:
                 self.build_db()
             elif type(self) == DatabaseConfigAsync:
-                db.sync_database.config.build_db()
+                engine.sync_database.config.build_db()
             self._checked = True
 
 
@@ -93,7 +93,7 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
         """
 
         # Parameter.
-        database = self.db.database
+        database = self.engine.database
 
         ## Table.
         tables = [DatabaseORMTableConfig]
@@ -134,7 +134,7 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseT]):
         return tables, views_stats
 
 
-class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
+class DatabaseConfig(DatabaseConfigSuper['rengine.DatabaseEngine']):
     """
     Database config type.
     Can create database used `self.build_db` method.
@@ -158,7 +158,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         tables, views_stats = self.handle_build_db()
 
         # Build.
-        self.db.build.build(tables=tables, views_stats=views_stats, skip=True)
+        self.engine.build.build(tables=tables, views_stats=views_stats, skip=True)
 
 
     def data(self) -> ConfigTable:
@@ -171,7 +171,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         """
 
         # Get.
-        result = self.db.execute.select(
+        result = self.engine.execute.select(
             'config',
             ['key', 'value', 'note'],
             order='IFNULL(`update_time`, `create_time`) DESC'
@@ -207,7 +207,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
 
         # Get.
         where = '`key` = :key'
-        result = self.db.execute.select(
+        result = self.engine.execute.select(
             'config',
             '`value`',
             where,
@@ -253,7 +253,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
             'type': type(default).__name__,
             'note': note
         }
-        result = self.db.execute.insert(
+        result = self.engine.execute.insert(
             'config',
             data,
             'ignore'
@@ -286,7 +286,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
             row['type'] = type(row['value']).__name__
 
         # Update.
-        self.db.execute.insert(
+        self.engine.execute.insert(
             'config',
             data,
             'update'
@@ -309,7 +309,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         else:
             where = '`key` in :key'
             limit = None
-        result = self.db.execute.delete(
+        result = self.engine.execute.delete(
             'config',
             where,
             limit=limit,
@@ -331,7 +331,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         """
 
         # Get.
-        result = self.db.execute.select(
+        result = self.engine.execute.select(
             'config',
             ['key', 'value']
         )
@@ -357,7 +357,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         """
 
         # Get.
-        result = self.db.execute.select(
+        result = self.engine.execute.select(
             'config',
             '`key`'
         )
@@ -382,7 +382,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         """
 
         # Get.
-        result = self.db.execute.select(
+        result = self.engine.execute.select(
             'config',
             '`value`'
         )
@@ -450,7 +450,7 @@ class DatabaseConfig(DatabaseConfigSuper['rdb.Database']):
         self.update(data)
 
 
-class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
+class DatabaseConfigAsync(DatabaseConfigSuper['rengine.DatabaseEngineAsync']):
     """
     Asynchronous database config type.
     Can create database used `self.build_db` method.
@@ -474,7 +474,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
         tables, views_stats = self.handle_build_db()
 
         # Build.
-        await self.db.build.build(tables=tables, views_stats=views_stats, skip=True)
+        await self.engine.build.build(tables=tables, views_stats=views_stats, skip=True)
 
 
     async def data(self) -> ConfigTable:
@@ -487,7 +487,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
         """
 
         # Get.
-        result = await self.db.execute.select(
+        result = await self.engine.execute.select(
             'config',
             ['key', 'value', 'note'],
             order='IFNULL(`update_time`, `create_time`) DESC'
@@ -523,7 +523,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
 
         # Get.
         where = '`key` = :key'
-        result = await self.db.execute.select(
+        result = await self.engine.execute.select(
             'config',
             '`value`',
             where,
@@ -569,7 +569,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
             'type': type(default).__name__,
             'note': note
         }
-        result = await self.db.execute.insert(
+        result = await self.engine.execute.insert(
             'config',
             data,
             'ignore'
@@ -602,7 +602,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
             row['type'] = type(row['value']).__name__
 
         # Update.
-        await self.db.execute.insert(
+        await self.engine.execute.insert(
             'config',
             data,
             'update'
@@ -625,7 +625,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
         else:
             where = '`key` in :key'
             limit = None
-        result = await self.db.execute.delete(
+        result = await self.engine.execute.delete(
             'config',
             where,
             limit=limit,
@@ -647,7 +647,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
         """
 
         # Get.
-        result = await self.db.execute.select(
+        result = await self.engine.execute.select(
             'config',
             ['key', 'value']
         )
@@ -673,7 +673,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
         """
 
         # Get.
-        result = await self.db.execute.select(
+        result = await self.engine.execute.select(
             'config',
             '`key`'
         )
@@ -698,7 +698,7 @@ class DatabaseConfigAsync(DatabaseConfigSuper['rdb.DatabaseAsync']):
         """
 
         # Get.
-        result = await self.db.execute.select(
+        result = await self.engine.execute.select(
             'config',
             '`value`'
         )

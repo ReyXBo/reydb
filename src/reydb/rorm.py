@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-@Time    : 2025-09-23 00:50:32
+@Time    : 2025-09-23
 @Author  : Rey
 @Contact : reyxbo@163.com
 @Explain : Database ORM methods.
@@ -32,7 +32,7 @@ from datetime import datetime, date, time, timedelta
 from warnings import filterwarnings
 from reykit.rbase import CallableT, Null, throw, is_instance
 
-from . import rdb
+from . import rengine
 from .rbase import (
     SessionT,
     SessionTransactionT,
@@ -69,7 +69,7 @@ __all__ = (
 )
 
 
-DatabaseT = TypeVar('DatabaseT', 'rdb.Database', 'rdb.DatabaseAsync')
+DatabaseEngineT = TypeVar('DatabaseEngineT', 'rengine.DatabaseEngine', 'rengine.DatabaseEngineAsync')
 DatabaseORMModelT = TypeVar('DatabaseORMModelT', bound='DatabaseORMModel')
 DatabaseORMT = TypeVar('DatabaseORMT', 'DatabaseORM', 'DatabaseORMAsync')
 DatabaseORMSessionT = TypeVar('DatabaseORMSessionT', 'DatabaseORMSession', 'DatabaseORMSessionAsync')
@@ -504,23 +504,23 @@ class DatabaseORMModelMethod(DatabaseORMBase):
         return instance
 
 
-class DatabaseORMSuper(DatabaseORMBase, Generic[DatabaseT, DatabaseORMSessionT]):
+class DatabaseORMSuper(DatabaseORMBase, Generic[DatabaseEngineT, DatabaseORMSessionT]):
     """
     Database ORM super type.
     """
 
 
-    def __init__(self, db: DatabaseT) -> None:
+    def __init__(self, engine: DatabaseEngineT) -> None:
         """
         Build instance attributes.
 
         Parameters
         ----------
-        db: Database instance.
+        engine: Database engine.
         """
 
         # Build.
-        self.db = db
+        self.engine = engine
         self.__sess = self.session(True)
 
         ## Method.
@@ -559,13 +559,13 @@ class DatabaseORMSuper(DatabaseORMBase, Generic[DatabaseT, DatabaseORMSessionT])
         return sess
 
 
-class DatabaseORM(DatabaseORMSuper['rdb.Database', 'DatabaseORMSession']):
+class DatabaseORM(DatabaseORMSuper['rengine.DatabaseEngine', 'DatabaseORMSession']):
     """
     Database ORM type.
     """
 
 
-class DatabaseORMAsync(DatabaseORMSuper['rdb.DatabaseAsync', 'DatabaseORMSessionAsync']):
+class DatabaseORMAsync(DatabaseORMSuper['rengine.DatabaseEngineAsync', 'DatabaseORMSessionAsync']):
     """
     Asynchronous database ORM type.
     """
@@ -777,7 +777,7 @@ class DatabaseORMSession(
 
         # Create.
         if self.session is None:
-            self.session = Session(self.orm.db.engine)
+            self.session = Session(self.orm.engine.engine)
 
         return self.session
 
@@ -863,7 +863,7 @@ class DatabaseORMSession(
 
             # Session.
             if self.session is None:
-                self.session = Session(self.orm.db.engine)
+                self.session = Session(self.orm.engine.engine)
 
             # Begin.
             if self.begin is None:
@@ -909,7 +909,7 @@ class DatabaseORMSession(
             throw(ValueError, tables)
 
         # Create.
-        metadata.create_all(self.orm.db.engine, tables, skip)
+        metadata.create_all(self.orm.engine.engine, tables, skip)
 
 
     @wrap_transact
@@ -938,7 +938,7 @@ class DatabaseORMSession(
             throw(ValueError, tables)
 
         # Drop.
-        metadata.drop_all(self.orm.db.engine, tables, skip)
+        metadata.drop_all(self.orm.engine.engine, tables, skip)
 
 
     @wrap_transact
@@ -1144,7 +1144,7 @@ class DatabaseORMSessionAsync(
 
         # Close.
         await self.close()
-        await self.orm.db.dispose()
+        await self.orm.engine.dispose()
 
 
     def get_sess(self) -> AsyncSession:
@@ -1158,7 +1158,7 @@ class DatabaseORMSessionAsync(
 
         # Create.
         if self.session is None:
-            self.session = AsyncSession(self.orm.db.engine)
+            self.session = AsyncSession(self.orm.engine.engine)
 
         return self.session
 
@@ -1255,7 +1255,7 @@ class DatabaseORMSessionAsync(
             if self.autocommit:
                 await self.commit()
                 await self.close()
-                await self.orm.db.dispose()
+                await self.orm.engine.dispose()
 
             return result
 
@@ -1597,7 +1597,7 @@ class DatabaseORMStatementAsync(DatabaseORMStatementSuper[DatabaseORMSessionAsyn
 
             await self.sess.commit()
             await self.sess.close()
-            await self.sess.orm.db.dispose()
+            await self.sess.orm.engine.dispose()
 
         return result
 
