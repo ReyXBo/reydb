@@ -9,9 +9,8 @@
 """
 
 
-from typing import TypeVar, Generic, Self, Type
-from functools import wraps as functools_wraps
-from reykit.rbase import CallableT, Null, throw, warn
+from typing import Any, TypeVar, Generic, overload
+from reykit.rbase import Null, throw
 
 from .rbase import DatabaseBase
 from .rengine import DatabaseEngine, DatabaseEngineAsync
@@ -42,43 +41,67 @@ class DatabaseSuper(DatabaseBase, Generic[DatabaseEngineT]):
         self.__engine_dict: dict[str, DatabaseEngineT] = {}
 
 
-    @classmethod
-    def _wrap_add(
-        cls_or_self,
-        engine_type: Type[DatabaseEngine] | Type[DatabaseEngineAsync],
-        type_hint: CallableT
-    ) -> CallableT:
+    @overload
+    def __call__(
+        self,
+        name: str | None = None,
+        *,
+        host: str,
+        port: int | str,
+        username: str,
+        password: str,
+        database: str,
+        pool_size: int = 5,
+        max_overflow: int = 10,
+        pool_timeout: float = 30.0,
+        pool_recycle: int | None = 3600,
+        echo: bool = False,
+        **query: str
+    ) -> DatabaseEngineT: ...
+
+    def __call__(
+        self,
+        name: str | None = None,
+        **kwargs: Any
+    ) -> DatabaseEngineT:
         """
-        Decorator, create and add database engine.
+        Build instance attributes.
 
         Parameters
         ----------
-        engine_type : Database engine type.
-        type_hint : Type hint.
-
-        Returns
-        -------
-        Decorated method.
+        name : Database engine name, useed for index.
+            - `None`: Use database name.
+        host : Remote server database host.
+        port : Remote server database port.
+        username : Remote server database username.
+        password : Remote server database password.
+        database : Remote server database name.
+        pool_size : Number of connections `keep open`.
+        max_overflow : Number of connections `allowed overflow`.
+        pool_timeout : Number of seconds `wait create` connection.
+        pool_recycle : Number of seconds `recycle` connection.
+            - `None | Literal[-1]`: No recycle.
+            - `int`: Use this value.
+        echo : Whether report SQL execute information, not include ORM execute.
+        query : Remote server database parameters.
         """
 
+        # Parameter.
+        match self:
+            case Database():
+                engine_type = DatabaseEngine
+            case DatabaseAsync():
+                engine_type = DatabaseEngineAsync
 
-        @functools_wraps(engine_type.__init__)
-        def func(self: Self, *args, **kwargs):
+        # Create.
+        engine = engine_type(**kwargs)
 
-            # Build.
-            engine: DatabaseEngineT = engine_type(*args, **kwargs)
+        # Add.
+        if name is None:
+            name = engine.database
+        self.__engine_dict[name] = engine
 
-            # Warning.
-            if engine.database in self.__engine_dict:
-                warn(f'database engine "{engine.database}" re registered.')
-
-            # Add.
-            self.__engine_dict[engine.database] = engine
-
-            return engine
-
-
-        return func
+        return engine
 
 
     def __getattr__(self, database: str) -> DatabaseEngineT:
@@ -125,13 +148,7 @@ class Database(DatabaseSuper[DatabaseEngine]):
     """
 
 
-    __call__ = DatabaseSuper._wrap_add(DatabaseEngine, DatabaseEngine.__init__)
-
-
 class DatabaseAsync(DatabaseSuper[DatabaseEngineAsync]):
     """
     Asynchronous database type.
     """
-
-
-    __call__ = DatabaseSuper._wrap_add(DatabaseEngineAsync, DatabaseEngineAsync.__init__)
