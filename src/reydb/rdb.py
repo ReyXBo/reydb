@@ -124,6 +124,9 @@ class DatabaseSuper(DatabaseBase, Generic[DatabaseEngineT]):
         return engine
 
 
+    @overload
+    def __getitem__(self, database: str) -> DatabaseEngineT: ...
+
     __getitem__ = __getattr__
 
 
