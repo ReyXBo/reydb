@@ -11,10 +11,17 @@
 
 from typing import TypeVar, Generic, Self, Type
 from functools import wraps as functools_wraps
-from reykit.rbase import CallableT, warn
+from reykit.rbase import CallableT, Null, throw, warn
 
 from .rbase import DatabaseBase
 from .rengine import DatabaseEngine, DatabaseEngineAsync
+
+
+__all__ = (
+    'DatabaseSuper',
+    'Database',
+    'DatabaseAsync'
+)
 
 
 DatabaseEngineT = TypeVar('DatabaseEngineT', DatabaseEngine, DatabaseEngineAsync)
@@ -74,7 +81,7 @@ class DatabaseSuper(DatabaseBase, Generic[DatabaseEngineT]):
         return func
 
 
-    def __getitem__(self, database: str) -> DatabaseEngineT:
+    def __getattr__(self, database: str) -> DatabaseEngineT:
         """
         Get added database engine.
 
@@ -84,12 +91,17 @@ class DatabaseSuper(DatabaseBase, Generic[DatabaseEngineT]):
         """
 
         # Get.
-        engine = self.__engine_dict[database]
+        engine = self.__engine_dict.get(database, Null)
+
+        # Throw exception.
+        if engine == Null:
+            text = f"lack of database engine '{database}'"
+            throw(AssertionError, text=text)
 
         return engine
 
 
-    __getattr__ = __getitem__
+    __getitem__ = __getattr__
 
 
     def __contains__(self, database: str) -> bool:

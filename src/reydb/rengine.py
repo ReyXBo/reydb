@@ -520,7 +520,7 @@ class DatabaseEngine(
 
 
     @property
-    def async_database(self) -> 'DatabaseEngineAsync':
+    def async_engine(self) -> 'DatabaseEngineAsync':
         """
         Same engine `DatabaseEngineAsync` instance.
         """
@@ -564,7 +564,7 @@ class DatabaseEngineAsync(
 
 
     @property
-    def sync_database(self) -> DatabaseEngine:
+    def sync_engine(self) -> DatabaseEngine:
         """
         Same engine `Database` instance.
         """

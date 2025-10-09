@@ -79,7 +79,7 @@ class DatabaseConfigSuper(DatabaseBase, Generic[DatabaseEngineT]):
             if type(self) == DatabaseConfig:
                 self.build_db()
             elif type(self) == DatabaseConfigAsync:
-                engine.sync_database.config.build_db()
+                engine.sync_engine.config.build_db()
             self._checked = True
 
 
