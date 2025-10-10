@@ -13,7 +13,12 @@ from typing import Self, Any, Type, Literal, TypeVar, Generic, Final, NoReturn, 
 from collections.abc import Callable
 from functools import wraps as functools_wraps
 from inspect import iscoroutinefunction as inspect_iscoroutinefunction
-from pydantic import ConfigDict, field_validator as pydantic_field_validator, model_validator as pydantic_model_validator
+from pydantic import (
+    ConfigDict as ModelConfig,
+    EmailStr as Email,
+    field_validator as pydantic_field_validator,
+    model_validator as pydantic_model_validator
+)
 from sqlalchemy import Column, types, text as sqlalchemy_text
 from sqlalchemy.orm import SessionTransaction, load_only
 from sqlalchemy.orm.strategy_options import _AttrType
@@ -28,7 +33,12 @@ from sqlmodel import SQLModel, Session, Table
 from sqlmodel.main import SQLModelMetaclass, FieldInfo, default_registry
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.sql._expression_select_cls import SelectOfScalar as Select
-from datetime import datetime, date, time, timedelta
+from datetime import (
+    datetime as Datetime,
+    date as Date,
+    time as Time,
+    timedelta as Timedelta
+)
 from warnings import filterwarnings
 from reykit.rbase import CallableT, Null, throw, is_instance
 
@@ -242,7 +252,7 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
             - `Callable[[], Any]`: Call function and use return value.
         name : Call argument name and database field name.
             - `None`: Same as attribute name.
-        key : Whether the field is primary key.
+        key : Whether the field is primary key. When set multiple field, then is composite Primary Key.
         key_auto : Whether the field is primary key and automatic increment.
         not_null : Whether the field is not null constraint.
             - `Litreal[False]`: When argument `arg_default` is `Null`, then set argument `arg_default` is `None`.
@@ -1959,7 +1969,7 @@ Model = DatabaseORMModel
 Field = DatabaseORMModelField
 
 ## Database ORM model config type.
-Config = ConfigDict
+ModelConfig
 
 ## Database ORM model filed types.
 types = types
@@ -1976,8 +1986,9 @@ wrap_validate_model = pydantic_model_validator
 ## Create decorator of validate database ORM model field.
 wrap_validate_filed = pydantic_field_validator
 
-## Time type.
-Datetime = datetime
-Date = date
-Time = time
-Timedelta = timedelta
+## Other type.
+Datetime
+Date
+Time
+Timedelta
+Email
