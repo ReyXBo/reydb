@@ -62,8 +62,10 @@ __all__ = (
     'DatabaseORMStatementInsertSuper',
     'DatabaseORMStatementInsert',
     'DatabaseORMStatementInsertAsync',
+    'DatabaseORMStatementUpdateSuper',
     'DatabaseORMStatementUpdate',
     'DatabaseORMStatementUpdateAsync',
+    'DatabaseORMStatementDeleteSuper',
     'DatabaseORMStatementDelete',
     'DatabaseORMStatementDeleteAsync'
 )
