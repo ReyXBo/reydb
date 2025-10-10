@@ -10,6 +10,7 @@
 
 
 from typing import Any, TypeVar, Generic, overload
+from collections.abc import Sequence
 from reykit.rbase import Null, throw
 
 from .rbase import DatabaseBase
@@ -44,7 +45,7 @@ class DatabaseSuper(DatabaseBase, Generic[DatabaseEngineT]):
     @overload
     def __call__(
         self,
-        name: str | None = None,
+        name: str | Sequence[str] | None = None,
         *,
         host: str,
         port: int | str,
@@ -71,6 +72,8 @@ class DatabaseSuper(DatabaseBase, Generic[DatabaseEngineT]):
         ----------
         name : Database engine name, useed for index.
             - `None`: Use database name.
+            - `str` : Use this name.
+            - `Sequence[str]`: Use multiple names.
         host : Remote server database host.
         port : Remote server database port.
         username : Remote server database username.
@@ -98,8 +101,11 @@ class DatabaseSuper(DatabaseBase, Generic[DatabaseEngineT]):
 
         # Add.
         if name is None:
-            name = engine.database
-        self.__engine_dict[name] = engine
+            name = (engine.database,)
+        elif type(name) == str:
+            name = (name,)
+        for n in name:
+            self.__engine_dict[n] = engine
 
         return engine
 
