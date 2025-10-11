@@ -332,15 +332,10 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
         ## Field default.
         if 'field_default' in kwargs:
             field_default: str = kwargs.pop('field_default')
-            if field_default == ':time':
-                field_default = sqlalchemy_text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
             if field_default == ':create_time':
                 field_default = sqlalchemy_text('CURRENT_TIMESTAMP')
             elif field_default == ':update_time':
-                if kwargs['nullable']:
-                    field_default = sqlalchemy_text('NULL ON UPDATE CURRENT_TIMESTAMP')
-                else:
-                    field_default = sqlalchemy_text('NOT NULL ON UPDATE CURRENT_TIMESTAMP')
+                field_default = sqlalchemy_text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
             kwargs['sa_column_kwargs']['server_default'] = field_default
 
         ## Argument default.
