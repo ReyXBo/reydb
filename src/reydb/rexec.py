@@ -673,15 +673,11 @@ class DatabaseExecute(DatabaseExecuteSuper['rconn.DatabaseConnection']):
                 f'{report_runtime}\n'
                 f'Row Count: {result.rowcount}'
             )
-            sqls = [
-                sql_part.strip()
-                for sql_part in sql.text.split(';')
-                if sql_part != ''
-            ]
+            sql = sql.text.strip()
             if data == []:
-                recho(report_info, *sqls, title='SQL')
+                recho(report_info, sql, title='SQL')
             else:
-                recho(report_info, *sqls, data, title='SQL')
+                recho(report_info, sql, data, title='SQL')
 
         ## Not report.
         else:
@@ -1217,16 +1213,11 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
                 f'{report_runtime}\n'
                 f'Row Count: {result.rowcount}'
             )
-            sqls = [
-                sql_part.strip()
-                for sql_part in sql.text.split(';')
-                if sql_part != ''
-            ]
-
+            sql = sql.text.strip()
             if data == []:
-                recho(report_info, *sqls, title='SQL')
+                recho(report_info, sql, title='SQL')
             else:
-                recho(report_info, *sqls, data, title='SQL')
+                recho(report_info, sql, data, title='SQL')
 
         ## Not report.
         else:
