@@ -223,7 +223,6 @@ class DatabaseConnectionAsync(DatabaseConnectionSuper['rengine.DatabaseEngineAsy
 
         # Close.
         await self.close()
-        await self.engine.dispose()
 
 
     async def get_conn(self) -> AsyncConnection:

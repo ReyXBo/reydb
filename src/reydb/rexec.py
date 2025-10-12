@@ -1227,7 +1227,6 @@ class DatabaseExecuteAsync(DatabaseExecuteSuper['rconn.DatabaseConnectionAsync']
         if self.conn.autocommit:
             await self.conn.commit()
             await self.conn.close()
-            await self.conn.engine.dispose()
 
         return result
 

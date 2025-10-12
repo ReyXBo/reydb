@@ -1151,7 +1151,6 @@ class DatabaseORMSessionAsync(
 
         # Close.
         await self.close()
-        await self.orm.engine.dispose()
 
 
     def get_sess(self) -> AsyncSession:
@@ -1262,7 +1261,6 @@ class DatabaseORMSessionAsync(
             if self.autocommit:
                 await self.commit()
                 await self.close()
-                await self.orm.engine.dispose()
 
             return result
 
@@ -1604,7 +1602,6 @@ class DatabaseORMStatementAsync(DatabaseORMStatementSuper[DatabaseORMSessionAsyn
 
             await self.sess.commit()
             await self.sess.close()
-            await self.sess.orm.engine.dispose()
 
         return result
 

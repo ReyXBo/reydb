@@ -10,8 +10,9 @@
 
 
 from typing import Any, TypeVar, Generic, overload
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from reykit.rbase import Null, throw
+from reykit.rtask import ThreadPool, async_gather
 
 from .rbase import DatabaseBase
 from .rengine import DatabaseEngine, DatabaseEngineAsync
@@ -52,8 +53,8 @@ class DatabaseSuper(DatabaseBase, Generic[DatabaseEngineT]):
         username: str,
         password: str,
         database: str,
-        pool_size: int = 5,
-        max_overflow: int = 10,
+        max_pool: int = 15,
+        max_keep: int = 5,
         pool_timeout: float = 30.0,
         pool_recycle: int | None = 3600,
         echo: bool = False,
@@ -79,8 +80,8 @@ class DatabaseSuper(DatabaseBase, Generic[DatabaseEngineT]):
         username : Remote server database username.
         password : Remote server database password.
         database : Remote server database name.
-        pool_size : Number of connections `keep open`.
-        max_overflow : Number of connections `allowed overflow`.
+        max_pool : Maximum number of connections in the pool.
+        max_keep : Maximum number of connections keeped.
         pool_timeout : Number of seconds `wait create` connection.
         pool_recycle : Number of seconds `recycle` connection.
             - `None | Literal[-1]`: No recycle.
@@ -136,19 +137,30 @@ class DatabaseSuper(DatabaseBase, Generic[DatabaseEngineT]):
     __getitem__ = __getattr__
 
 
-    def __contains__(self, database: str) -> bool:
+    def __contains__(self, name: str) -> bool:
         """
         Whether the exist this database engine.
 
         Parameters
         ----------
-        database : Database name.
+        name : Database engine name.
         """
 
         # Judge.
-        result = database in self.__engine_dict
+        result = name in self.__engine_dict
 
         return result
+
+
+    def __iter__(self) -> Iterable[str]:
+        """
+        Iterable of database engine names.
+        """
+
+        # Generate.
+        names = iter(self.__engine_dict)
+
+        return names
 
 
 class Database(DatabaseSuper[DatabaseEngine]):
@@ -157,7 +169,86 @@ class Database(DatabaseSuper[DatabaseEngine]):
     """
 
 
+    def warm_all(self, num: int | None = None) -> None:
+        """
+        Pre create connection to warm all pool.
+
+        Parameters
+        ----------
+        num : Create number.
+            - `None`: Use `self.max_keep` value.
+        """
+
+        # Parameter.
+        engines = set(
+            [
+                self[name]
+                for name in self
+            ]
+        )
+
+        # Warm.
+
+        ## Create.
+        func = lambda engine: engine.connect().close()
+        pool = ThreadPool(func, _max_workers=num)
+        for engine in engines:
+            engine_num = num or engine.max_keep
+            for _ in range(engine_num):
+                pool.one(engine.engine)
+
+        ## Wait.
+        pool.join()
+
+
 class DatabaseAsync(DatabaseSuper[DatabaseEngineAsync]):
     """
     Asynchronous database type.
     """
+
+
+    async def warm_all(self, num: int | None = None) -> None:
+        """
+        Asynchronous pre create connection to warm all pool.
+
+        Parameters
+        ----------
+        num : Create number.
+            - `None`: Use `self.max_keep` value.
+        """
+
+        # Parameter.
+        engines = set(
+            [
+                self[name]
+                for name in self
+            ]
+        )
+
+        # Warm.
+        coroutines = [
+            engine.warm(num)
+            for engine in engines
+        ]
+        await async_gather(*coroutines)
+
+
+    async def dispose_all(self) -> None:
+        """
+        Dispose asynchronous connections of all database.
+        """
+
+        # Parameter.
+        engines = set(
+            [
+                self[name]
+                for name in self
+            ]
+        )
+
+        # Dispose.
+        coroutines = [
+            engine.dispose()
+            for engine in engines
+        ]
+        await async_gather(*coroutines)

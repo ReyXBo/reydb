@@ -9,11 +9,13 @@
 """
 
 
-from typing import TypeVar, Generic, overload
+from typing import TypeVar, Generic
 from urllib.parse import quote as urllib_quote
 from pymysql.constants.CLIENT import MULTI_STATEMENTS
 from sqlalchemy import Engine, create_engine as sqlalchemy_create_engine
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine as sqlalchemy_create_async_engine
+from reykit.rbase import throw
+from reykit.rtask import ThreadPool, async_gather
 from reykit.rtext import join_data_text
 
 from . import rbase, rbuild, rconfig, rconn, rerror, rexec, rinfo, rorm
@@ -86,8 +88,8 @@ class DatabaseEngineSuper(
         username: str,
         password: str,
         database: str,
-        pool_size: int = 5,
-        max_overflow: int = 10,
+        max_pool: int = 15,
+        max_keep: int = 5,
         pool_timeout: float = 30.0,
         pool_recycle: int | None = 3600,
         echo: bool = False,
@@ -103,10 +105,10 @@ class DatabaseEngineSuper(
         username : Remote server database username.
         password : Remote server database password.
         database : Remote server database name.
-        pool_size : Number of connections `keep open`.
-        max_overflow : Number of connections `allowed overflow`.
-        pool_timeout : Number of seconds `wait create` connection.
-        pool_recycle : Number of seconds `recycle` connection.
+        max_pool : Maximum number of connections in the pool.
+        max_keep : Maximum number of connections keeped.
+        pool_timeout : Number of seconds wait create connection.
+        pool_recycle : Number of seconds recycle connection.
             - `None | Literal[-1]`: No recycle.
             - `int`: Use this value.
         echo : Whether report SQL execute information, not include ORM execute.
@@ -114,6 +116,8 @@ class DatabaseEngineSuper(
         """
 
         # Parameter.
+        if max_keep > max_pool:
+            throw(ValueError, max_keep, max_pool)
         if type(port) == str:
             port = int(port)
 
@@ -123,8 +127,8 @@ class DatabaseEngineSuper(
         self.host = host
         self.port: int | None = port
         self.database = database
-        self.pool_size = pool_size
-        self.max_overflow = max_overflow
+        self.max_pool = max_pool
+        self.max_keep = max_keep
         self.pool_timeout = pool_timeout
         if pool_recycle is None:
             self.pool_recycle = -1
@@ -238,10 +242,11 @@ class DatabaseEngineSuper(
         """
 
         # Parameter.
+        max_overflow = self.max_pool - self.max_keep
         engine_params = {
             'url': self.url,
-            'pool_size': self.pool_size,
-            'max_overflow': self.max_overflow,
+            'pool_size': self.max_keep,
+            'max_overflow': max_overflow,
             'pool_timeout': self.pool_timeout,
             'pool_recycle': self.pool_recycle,
             'connect_args': {'client_flag': MULTI_STATEMENTS}
@@ -270,10 +275,10 @@ class DatabaseEngineSuper(
         # Count.
         _overflow: int = self.engine.pool._overflow
         if _overflow < 0:
-            keep_n = self.pool_size + _overflow
+            keep_n = self.max_keep + _overflow
             overflow_n = 0
         else:
-            keep_n = self.pool_size
+            keep_n = self.max_keep
             overflow_n = _overflow
 
         return keep_n, overflow_n
@@ -532,8 +537,8 @@ class DatabaseEngine(
             self.username,
             self.password,
             self.database,
-            self.pool_size,
-            self.max_overflow,
+            self.max_pool,
+            self.max_keep,
             self.pool_timeout,
             self.pool_recycle,
             self.echo,
@@ -541,6 +546,31 @@ class DatabaseEngine(
         )
 
         return db
+
+
+    def warm(self, num: int | None = None) -> None:
+        """
+        Pre create connection to warm pool.
+
+        Parameters
+        ----------
+        num : Create number.
+            - `None`: Use `self.max_keep` value.
+        """
+
+        # Parameter.
+        if num is None:
+            num = self.max_keep
+
+        # Warm.
+
+        ## Create.
+        func = lambda: self.engine.connect().close()
+        pool = ThreadPool(func, _max_workers=num)
+        pool * 5
+
+        ## Wait.
+        pool.join()
 
 
 class DatabaseEngineAsync(
@@ -576,8 +606,8 @@ class DatabaseEngineAsync(
             self.username,
             self.password,
             self.database,
-            self.pool_size,
-            self.max_overflow,
+            self.max_pool,
+            self.max_keep,
             self.pool_timeout,
             self.pool_recycle,
             self.echo,
@@ -585,6 +615,37 @@ class DatabaseEngineAsync(
         )
 
         return db
+
+
+    async def warm(self, num: int | None = None) -> None:
+        """
+        Asynchronous pre create connection to warm pool.
+
+        Parameters
+        ----------
+        num : Create number.
+            - `None`: Use `self.max_keep` value.
+        """
+
+        # Parameter.
+        if num is None:
+            num = self.max_keep
+
+        # Warm.
+
+        ## Create.
+        coroutines = [
+            self.engine.connect()
+            for _ in range(num)
+        ]
+        conns = await async_gather(*coroutines)
+
+        ## Close.
+        coroutines = [
+            conn.close()
+            for conn in conns
+        ]
+        await async_gather(*coroutines)
 
 
     async def dispose(self) -> None:
