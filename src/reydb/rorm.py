@@ -29,7 +29,7 @@ from sqlalchemy.sql._typing import _ColumnExpressionArgument
 from sqlalchemy.ext.asyncio import AsyncSessionTransaction
 from sqlalchemy.dialects.mysql import Insert, types as types_mysql
 from sqlalchemy.exc import SAWarning
-from sqlmodel import SQLModel, Session, Table
+from sqlmodel import SQLModel, Session, Table as STable
 from sqlmodel.main import SQLModelMetaclass, FieldInfo, default_registry
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.sql._expression_select_cls import SelectOfScalar as Select
@@ -57,6 +57,8 @@ __all__ = (
     'DatabaseORMModelField',
     'DatabaseORMModel',
     'DatabaseORMModelMethod',
+    'DatabaseORMModelTableMeta',
+    'DatabaseORMModelTable',
     'DatabaseORMSuper',
     'DatabaseORM',
     'DatabaseORMAsync',
@@ -99,7 +101,7 @@ class DatabaseORMBase(DatabaseBase):
 
 class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
     """
-    Database ORM base meta type.
+    Database ORM meta type.
     """
 
 
@@ -181,7 +183,7 @@ class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
             '__annotations__' in attrs
             and hasattr(cls, '__table__')
         ):
-            table: Table = cls.__table__
+            table: STable = cls.__table__
             for index in table.indexes:
                 index_name = '_'.join(
                     column.key
@@ -383,7 +385,7 @@ class DatabaseORMModel(DatabaseORMBase, SQLModel, metaclass=model_metaclass):
 
 
     @classmethod
-    def _get_table(cls_or_self) -> Table:
+    def _get_table(cls_or_self) -> STable:
         """
         Return mapping database table instance.
 
@@ -393,7 +395,7 @@ class DatabaseORMModel(DatabaseORMBase, SQLModel, metaclass=model_metaclass):
         """
 
         # Get.
-        table: Table = cls_or_self.__table__
+        table: STable = cls_or_self.__table__
 
         return table
 
@@ -509,6 +511,54 @@ class DatabaseORMModelMethod(DatabaseORMBase):
         instance = self.model.__class__(**data)
 
         return instance
+
+
+class DatabaseORMModelTableMeta(DatabaseORMModelMeta):
+    """
+    Database ORM table meta type.
+    """
+
+
+    def __new__(
+        cls,
+        name: str,
+        bases: tuple[Type],
+        attrs: dict[str, Any],
+        **kwargs: Any
+    ) -> Type:
+        """
+        Create type.
+
+        Parameters
+        ----------
+        name : Type name.
+        bases : Type base types.
+        attrs : Type attributes and methods dictionary.
+        kwargs : Type other key arguments.
+        """
+
+        # Parameter.
+        if '__annotations__' in attrs:
+            kwargs['table'] = True
+
+        # Super.
+        new_cls = super().__new__(cls, name, bases, attrs, **kwargs)
+
+        return new_cls
+
+
+class DatabaseORMModelTable(DatabaseORMModel, metaclass=DatabaseORMModelTableMeta):
+    """
+    Database ORM model table type.
+    Based on `sqlalchemy` and `sqlmodel` package.
+
+    Examples
+    --------
+    >>> class Foo(DatabaseORMModelTable):
+    ...     __name__ = 'Table name, default is class name.'
+    ...     __comment__ = 'Table comment.'
+    ...     ...
+    """
 
 
 class DatabaseORMSuper(DatabaseORMBase, Generic[DatabaseEngineT, DatabaseORMSessionT]):
@@ -1956,6 +2006,7 @@ metadata = default_registry.metadata
 
 ## Database ORM model type.
 Model = DatabaseORMModel
+Table = DatabaseORMModelTable
 
 ## Database ORM model field type.
 Field = DatabaseORMModelField

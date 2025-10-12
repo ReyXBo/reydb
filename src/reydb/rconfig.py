@@ -38,7 +38,7 @@ ConfigValueT = TypeVar('T', bound=ConfigValue) # Any.
 DatabaseEngineT = TypeVar('DatabaseEngineT', 'rengine.DatabaseEngine', 'rengine.DatabaseEngineAsync')
 
 
-class DatabaseORMTableConfig(rorm.Model, table=True):
+class DatabaseORMTableConfig(rorm.Table):
     """
     Database `config` table ORM model.
     """

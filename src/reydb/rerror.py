@@ -32,7 +32,7 @@ __all__ = (
 DatabaseEngineT = TypeVar('DatabaseEngineT', 'rdb.Database', 'rdb.DatabaseEngineAsync')
 
 
-class DatabaseORMTableError(rorm.Model, table=True):
+class DatabaseORMTableError(rorm.Table):
     """
     Database `error` table ORM model.
     """
