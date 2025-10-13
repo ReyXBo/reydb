@@ -314,7 +314,7 @@ class DatabaseORMModelField(DatabaseORMBase, FieldInfo):
 
         ## Name.
         if 'name' in kwargs:
-            kwargs['alias'] = kwargs['sa_column_kwargs']['name'] = kwargs.pop('field_name')
+            kwargs['alias'] = kwargs['sa_column_kwargs']['name'] = kwargs.pop('name')
 
         ## Key auto.
         if kwargs.pop('key_auto', False):
