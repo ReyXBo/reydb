@@ -56,9 +56,10 @@ __all__ = (
     'DatabaseORMModelMeta',
     'DatabaseORMModelField',
     'DatabaseORMModel',
-    'DatabaseORMModelMethod',
-    'DatabaseORMModelTableMeta',
     'DatabaseORMModelTable',
+    'DatabaseORMModelView',
+    'DatabaseORMModelViewStats',
+    'DatabaseORMModelMethod',
     'DatabaseORMSuper',
     'DatabaseORM',
     'DatabaseORMAsync',
@@ -99,6 +100,9 @@ class DatabaseORMBase(DatabaseBase):
     """
 
 
+_is_defined_class_model: bool = False
+
+
 class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
     """
     Database ORM meta type.
@@ -124,39 +128,46 @@ class DatabaseORMModelMeta(DatabaseORMBase, SQLModelMetaclass):
         """
 
         # Parameter.
-        if '__annotations__' in attrs:
-            table_args = attrs.setdefault('__table_args__', {})
-            table_args['quote'] = True
-            table_name = name.lower()
+        table_args = attrs.setdefault('__table_args__', {})
+        table_args['quote'] = True
+        table_name = name.lower()
 
-            ## Charset.
-            attrs.setdefault('__charset__', 'utf8mb4')
-            table_args['mysql_charset'] = attrs.pop('__charset__')
+        ## Charset.
+        attrs.setdefault('__charset__', 'utf8mb4')
+        table_args['mysql_charset'] = attrs.pop('__charset__')
 
-            ## Name.
-            if '__name__' in attrs:
-                attrs['__tablename__'] = table_name = attrs.pop('__name__')
+        ## Name.
+        if '__name__' in attrs:
+            attrs['__tablename__'] = table_name = attrs.pop('__name__')
 
-            ## Comment.
-            if '__comment__' in attrs:
-                table_args['comment'] = attrs.pop('__comment__')
+        ## Comment.
+        if '__comment__' in attrs:
+            table_args['comment'] = attrs.pop('__comment__')
 
-            ## Field.
-            for attr_name in attrs['__annotations__']:
-                attr_name: str
-                if attr_name in attrs:
-                    field = attrs[attr_name]
-                    if type(field) != DatabaseORMModelField:
-                        field = attrs[attr_name] = DatabaseORMModelField(field)
-                else:
-                    field = attrs[attr_name] = DatabaseORMModelField()
-                sa_column_kwargs: dict = field.sa_column_kwargs
-                sa_column_kwargs.setdefault('name', attr_name)
+        ## Field.
+        annotations = attrs.get('__annotations__', ())
+        for attr_name in annotations:
+            attr_name: str
+            if attr_name in attrs:
+                field = attrs[attr_name]
+                if type(field) != DatabaseORMModelField:
+                    field = attrs[attr_name] = DatabaseORMModelField(field)
+            else:
+                field = attrs[attr_name] = DatabaseORMModelField()
+            sa_column_kwargs: dict = field.sa_column_kwargs
+            sa_column_kwargs.setdefault('name', attr_name)
 
-            ## Replace.
-            table = default_registry.metadata.tables.get(table_name)
-            if table is not None:
-                default_registry.metadata.remove(table)
+        ## Replace.
+        table = default_registry.metadata.tables.get(table_name)
+        if table is not None:
+            default_registry.metadata.remove(table)
+
+        ## Table model.
+        if _is_defined_class_model:
+            for base in bases:
+                if issubclass(base, (DatabaseORMModelTable, DatabaseORMModelView)):
+                    kwargs['table'] = True
+                    break
 
         # Super.
         new_cls = super().__new__(cls, name, bases, attrs, **kwargs)
@@ -438,6 +449,53 @@ class DatabaseORMModel(DatabaseORMBase, SQLModel, metaclass=model_metaclass):
         return method
 
 
+class DatabaseORMModelTable(DatabaseORMModel):
+    """
+    Database ORM table model type.
+    Based on `sqlalchemy` and `sqlmodel` package.
+
+    Examples
+    --------
+    >>> class Foo(DatabaseORMModelTable):
+    ...     __name__ = 'Table name, default is class name.'
+    ...     __comment__ = 'Table comment.'
+    ...     ...
+    """
+
+
+class DatabaseORMModelView(DatabaseORMModel):
+    """
+    Database ORM view model type.
+    Based on `sqlalchemy` and `sqlmodel` package.
+
+    Examples
+    --------
+    >>> class Foo(DatabaseORMView):
+    ...     __name__ = 'View name, default is class name.'
+    ...     ...
+    """
+
+
+class DatabaseORMModelViewStats(DatabaseORMModelView):
+    """
+    Database ORM stats view model type.
+    Based on `sqlalchemy` and `sqlmodel` package.
+
+    Examples
+    --------
+    >>> class Foo(DatabaseORMView):
+    ...     __name__ = 'View name, default is class name.'
+    ...     ...
+    """
+
+    item: str = DatabaseORMModelField(key=True)
+    value: str
+    comment: str
+
+
+_is_defined_class_model = True
+
+
 class DatabaseORMModelMethod(DatabaseORMBase):
     """
     Database ORM model method type.
@@ -511,54 +569,6 @@ class DatabaseORMModelMethod(DatabaseORMBase):
         instance = self.model.__class__(**data)
 
         return instance
-
-
-class DatabaseORMModelTableMeta(DatabaseORMModelMeta):
-    """
-    Database ORM table meta type.
-    """
-
-
-    def __new__(
-        cls,
-        name: str,
-        bases: tuple[Type],
-        attrs: dict[str, Any],
-        **kwargs: Any
-    ) -> Type:
-        """
-        Create type.
-
-        Parameters
-        ----------
-        name : Type name.
-        bases : Type base types.
-        attrs : Type attributes and methods dictionary.
-        kwargs : Type other key arguments.
-        """
-
-        # Parameter.
-        if '__annotations__' in attrs:
-            kwargs['table'] = True
-
-        # Super.
-        new_cls = super().__new__(cls, name, bases, attrs, **kwargs)
-
-        return new_cls
-
-
-class DatabaseORMModelTable(DatabaseORMModel, metaclass=DatabaseORMModelTableMeta):
-    """
-    Database ORM model table type.
-    Based on `sqlalchemy` and `sqlmodel` package.
-
-    Examples
-    --------
-    >>> class Foo(DatabaseORMModelTable):
-    ...     __name__ = 'Table name, default is class name.'
-    ...     __comment__ = 'Table comment.'
-    ...     ...
-    """
 
 
 class DatabaseORMSuper(DatabaseORMBase, Generic[DatabaseEngineT, DatabaseORMSessionT]):
@@ -2007,6 +2017,8 @@ metadata = default_registry.metadata
 ## Database ORM model type.
 Model = DatabaseORMModel
 Table = DatabaseORMModelTable
+View = DatabaseORMModelView
+ViewStats = DatabaseORMModelViewStats
 
 ## Database ORM model field type.
 Field = DatabaseORMModelField

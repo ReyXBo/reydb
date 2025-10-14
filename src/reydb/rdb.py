@@ -163,6 +163,17 @@ class DatabaseSuper(DatabaseBase, Generic[DatabaseEngineT]):
         return names
 
 
+    def __repr__(self) -> str:
+        """
+        Text content.
+        """
+
+        # Get.
+        text = repr(self.__engine_dict)
+
+        return text
+
+
 class Database(DatabaseSuper[DatabaseEngine]):
     """
     Database type.

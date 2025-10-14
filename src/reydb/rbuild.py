@@ -16,8 +16,8 @@ from reykit.rbase import throw, is_instance
 from reykit.rstdout import ask
 
 from . import rengine
+from . import rorm
 from .rbase import DatabaseBase
-from .rorm import DatabaseORMModel
 
 
 __all__ = (
@@ -970,7 +970,7 @@ class DatabaseBuildSuper(DatabaseBase, Generic[DatabaseEngineT]):
                     command = input(text)
 
 
-    def get_orm_table_text(self, model: DatabaseORMModel) -> str:
+    def get_orm_table_text(self, model: rorm.Model) -> str:
         """
         Get table text from ORM model.
 
@@ -1063,7 +1063,7 @@ class DatabaseBuild(DatabaseBuildSuper['rengine.DatabaseEngine']):
 
     def create_orm_table(
         self,
-        *models: Type[DatabaseORMModel] | DatabaseORMModel,
+        *models: Type[rorm.Model] | rorm.Model,
         skip: bool = False
     ) -> None:
         """
@@ -1081,7 +1081,7 @@ class DatabaseBuild(DatabaseBuildSuper['rengine.DatabaseEngine']):
 
     def drop_orm_table(
         self,
-        *models: Type[DatabaseORMModel] | DatabaseORMModel,
+        *models: Type[rorm.Model] | rorm.Model,
         skip: bool = False
     ) -> None:
         """
@@ -1100,7 +1100,7 @@ class DatabaseBuild(DatabaseBuildSuper['rengine.DatabaseEngine']):
     def build(
         self,
         databases: list[dict] | None = None,
-        tables: list[dict | Type[DatabaseORMModel] | DatabaseORMModel] | None = None,
+        tables: list[dict | Type[rorm.Model] | rorm.Model] | None = None,
         views: list[dict] | None = None,
         views_stats: list[dict] | None = None,
         ask: bool = True,
@@ -1278,7 +1278,7 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rengine.DatabaseEngineAsync']):
 
     async def create_orm_table(
         self,
-        *models: Type[DatabaseORMModel] | DatabaseORMModel,
+        *models: Type[rorm.Model] | rorm.Model,
         skip: bool = False
     ) -> None:
         """
@@ -1296,7 +1296,7 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rengine.DatabaseEngineAsync']):
 
     async def drop_orm_table(
         self,
-        *models: Type[DatabaseORMModel] | DatabaseORMModel,
+        *models: Type[rorm.Model] | rorm.Model,
         skip: bool = False
     ) -> None:
         """
@@ -1316,7 +1316,7 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rengine.DatabaseEngineAsync']):
         self,
         databases: list[dict] | None = None,
         tables: list[dict] | None = None,
-        tables_orm: list[Type[DatabaseORMModel]] | None = None,
+        tables_orm: list[Type[rorm.Model]] | None = None,
         views: list[dict] | None = None,
         views_stats: list[dict] | None = None,
         ask: bool = True,
@@ -1374,8 +1374,8 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rengine.DatabaseEngineAsync']):
             ## ORM.
             if (
                 is_instance(params)
-                and isinstance(params, DatabaseORMModel)
-                or issubclass(params, DatabaseORMModel)
+                and isinstance(params, rorm.Model)
+                or issubclass(params, rorm.Model)
             ):
                 database = self.engine.database
                 table = params._get_table().name
