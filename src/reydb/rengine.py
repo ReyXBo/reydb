@@ -263,25 +263,20 @@ class DatabaseEngineSuper(
 
 
     @property
-    def conn_count(self) -> tuple[int, int]:
+    def conn_count(self) -> int:
         """
-        Count number of keep open and allowed overflow connection.
+        Current count number of connection.
 
         Returns
         -------
-        Number of keep open and allowed overflow connection.
+        Count number.
         """
 
         # Count.
         _overflow: int = self.engine.pool._overflow
-        if _overflow < 0:
-            keep_n = self.max_keep + _overflow
-            overflow_n = 0
-        else:
-            keep_n = self.max_keep
-            overflow_n = _overflow
+        count = self.max_keep + _overflow
 
-        return keep_n, overflow_n
+        return count
 
 
     def connect(self, autocommit: bool = False) -> DatabaseConnectionT:
@@ -561,6 +556,12 @@ class DatabaseEngine(
         # Parameter.
         if num is None:
             num = self.max_keep
+        num = num - self.conn_count
+        if (
+            num <= 0
+            or self.conn_count >= self.max_keep
+        ):
+            return
 
         # Warm.
 
@@ -630,6 +631,12 @@ class DatabaseEngineAsync(
         # Parameter.
         if num is None:
             num = self.max_keep
+        num = num - self.conn_count
+        if (
+            num <= 0
+            or self.conn_count >= self.max_keep
+        ):
+            return
 
         # Warm.
 
