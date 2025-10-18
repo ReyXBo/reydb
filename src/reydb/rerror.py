@@ -29,7 +29,7 @@ __all__ = (
 )
 
 
-DatabaseEngineT = TypeVar('DatabaseEngineT', 'rdb.Database', 'rdb.DatabaseEngineAsync')
+DatabaseEngineT = TypeVar('DatabaseEngineT', 'rengine.DatabaseEngine', 'rengine.DatabaseEngineAsync')
 
 
 class DatabaseORMTableError(rorm.Table):
@@ -185,7 +185,7 @@ class DatabaseErrorSuper(DatabaseBase, Generic[DatabaseEngineT]):
         return data
 
 
-class DatabaseError(DatabaseErrorSuper['rdb.Database']):
+class DatabaseError(DatabaseErrorSuper['rengine.DatabaseEngine']):
     """
     Database error type.
     Can create database used `self.build_db` method.
@@ -266,7 +266,6 @@ class DatabaseError(DatabaseErrorSuper['rdb.Database']):
     def wrap(
         self,
         func: Callable[..., T] | None = None,
-        *,
         note: str | None = None,
         filter_type : BaseException | tuple[BaseException, ...] = Exit
     ) -> T | Callable[[Callable[..., T]], Callable[..., T]]:
@@ -290,16 +289,16 @@ class DatabaseError(DatabaseErrorSuper['rdb.Database']):
         >>> def func(*args, **kwargs): ...
 
         Method two.
-        >>> @wrap(**wrap_kwargs)
+        >>> @wrap(*wrap_args, **wrap_kwargs)
         >>> def func(*args, **kwargs): ...
 
         Method three.
         >>> def func(*args, **kwargs): ...
-        >>> func = wrap(func, **wrap_kwargs)
+        >>> func = wrap(func, *wrap_args, **wrap_kwargs)
 
         Method four.
         >>> def func(*args, **kwargs): ...
-        >>> wrap = wrap(**wrap_kwargs)
+        >>> wrap = wrap(*wrap_args, **wrap_kwargs)
         >>> func = wrap(func)
 
         >>> func(*args, **kwargs)
@@ -363,7 +362,7 @@ class DatabaseError(DatabaseErrorSuper['rdb.Database']):
             return _func
 
 
-class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseEngineAsync']):
+class DatabaseErrorAsync(DatabaseErrorSuper['rengine.DatabaseEngineAsync']):
     """
     Asynchronous database error type.
     Can create database used `self.build_db` method.
@@ -473,11 +472,11 @@ class DatabaseErrorAsync(DatabaseErrorSuper['rdb.DatabaseEngineAsync']):
 
         Method three.
         >>> [async ]def func(*args, **kwargs): ...
-        >>> func = wrap(func, **wrap_kwargs)
+        >>> func = wrap(func, *wrap_args, **wrap_kwargs)
 
         Method four.
         >>> [async ]def func(*args, **kwargs): ...
-        >>> wrap = wrap(**wrap_kwargs)
+        >>> wrap = wrap(*wrap_args, **wrap_kwargs)
         >>> func = wrap(func)
 
         Must asynchronous execute.
