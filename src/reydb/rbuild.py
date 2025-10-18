@@ -1394,6 +1394,11 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rengine.DatabaseEngineAsync']):
 
                 ## Execute.
                 await self.create_orm_table(params)
+                refresh_schema = True
+
+                ## Report.
+                text = f"Table '{table}' of database '{database}' build completed."
+                print(text)
 
             ## Parameter.
             else:
@@ -1421,9 +1426,9 @@ class DatabaseBuildAsync(DatabaseBuildSuper['rengine.DatabaseEngineAsync']):
                 await self.engine.execute(sql)
                 refresh_schema = True
 
-            ## Report.
-            text = f"Table '{table}' of database '{database}' build completed."
-            print(text)
+                ## Report.
+                text = f"Table '{table}' of database '{database}' build completed."
+                print(text)
 
         # Refresh schema.
         if refresh_schema:
